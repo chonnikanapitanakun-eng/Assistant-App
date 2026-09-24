@@ -47,6 +47,17 @@ describe('parseCaptureLocally', () => {
   it('parses EUR and k shorthand', () => {
     expect(parseCaptureLocally('hotel €1.2k', today)).toEqual([{ type: 'expense', amount: 1200, currency: 'EUR', note: 'hotel' }]);
   });
+  it('does not read codes like Q3 or FY2026 as money', () => {
+    expect(parseCaptureLocally('VAT return Q3 — confirm figures', today)).toEqual([{ type: 'note', body: 'VAT return Q3 — confirm figures' }]);
+    expect(parseCaptureLocally('Engagement letter for FY2026', today)).toEqual([{ type: 'note', body: 'Engagement letter for FY2026' }]);
+  });
+  it('finds a contact after a capitalised verb', () => {
+    expect(parseCaptureLocally('Call John Fri 2pm', today)).toContainEqual({ type: 'contact', name: 'John' });
+  });
+  it('strict money ignores bare numbers', () => {
+    expect(parseCaptureLocally('Day 1: Asakusa', today, { strictMoney: true })).toEqual([{ type: 'note', body: 'Day 1: Asakusa' }]);
+    expect(parseCaptureLocally('taxi 350 baht', today, { strictMoney: true })).toEqual([{ type: 'expense', amount: 350, currency: 'THB', note: 'taxi' }]);
+  });
   it('falls back to note', () => {
     expect(parseCaptureLocally('ไอเดีย: ทำ LINE bot', today)).toEqual([{ type: 'note', body: 'ไอเดีย: ทำ LINE bot' }]);
   });

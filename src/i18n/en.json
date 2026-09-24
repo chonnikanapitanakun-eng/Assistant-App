@@ -15,8 +15,43 @@
   },
   "notes": {
     "empty": "No notes yet",
+    "empty_body": "Capture ideas, meeting notes and plans — markdown welcome.",
     "new": "New note",
-    "search": "Search notes"
+    "search": "Search notes",
+    "untitled": "Untitled",
+    "pinned": "Pinned",
+    "pin": "Pin note",
+    "unpin": "Unpin note",
+    "read": "Read",
+    "section_pinned": "Pinned",
+    "section_others": "Notes",
+    "no_results": "No matching notes",
+    "no_results_body": "Try another word or clear the tag filter.",
+    "pick_one": "Pick a note to read",
+    "title_placeholder": "Title",
+    "body_placeholder": "Start writing…",
+    "markdown_hint": "Markdown: # heading, **bold**, _italic_, - list, - [ ] checklist, > quote",
+    "meta": "Edited {{date}} · {{words}} words",
+    "add_tag": "+ tag",
+    "remove_tag": "Remove tag {{tag}}",
+    "summarise": "Summarise",
+    "extract": "Find tasks & events",
+    "summary_title": "Quick summary",
+    "summary_empty": "Add a few lines and I'll pull out the key points.",
+    "summary_stats": "{{minutes}} min read · {{words}} words",
+    "summary_checklist": "{{done}}/{{total}} done",
+    "extract_empty": "Nothing to pull out yet — try lines like “Call John Fri 2pm” or a checklist.",
+    "extract_saved_one": "Added {{count}} item, linked to this note.",
+    "extract_saved_other": "Added {{count}} items, linked to this note.",
+    "on_device": "Worked out on your device — full AI summaries come with Veyra AI.",
+    "delete": "Delete note",
+    "not_found": "Note not found",
+    "fmt_heading": "Heading",
+    "fmt_bold": "Bold",
+    "fmt_italic": "Italic",
+    "fmt_bullet": "Bulleted list",
+    "fmt_check": "Checklist",
+    "fmt_quote": "Quote"
   },
   "money": {
     "income": "Income",
@@ -164,7 +199,8 @@
     "loading": "Loading...",
     "close": "Close",
     "coming_soon": "Designing this next",
-    "coming_soon_body": "This screen is on the way. Home is ready to explore."
+    "coming_soon_body": "This screen is on the way. Home is ready to explore.",
+    "back": "Back"
   },
   "nav": {
     "home": "Home",
@@ -310,5 +346,14 @@
     "with_hint": "Saved to contacts and linked to this event.",
     "not_found": "Event not found",
     "read_only": "Synced from {{source}} — edit it there."
+  },
+  "more": {
+    "title": "More",
+    "notes": "Notes",
+    "focus": "Focus",
+    "search": "Search",
+    "contacts": "Contacts",
+    "settings": "Settings",
+    "soon": "Soon"
   }
 }

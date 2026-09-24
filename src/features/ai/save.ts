@@ -1,6 +1,6 @@
 import { isNull } from 'drizzle-orm';
 
-import { calendarEvents, db, notes, tasks, transactions, wallets, type LinkableType } from '@/db';
+import { calendarEvents, db, links, notes, tasks, transactions, wallets, type LinkableType } from '@/db';
 import { findOrCreateContact, linkContact } from '@/features/contacts/links';
 import { syncTaskReminder } from '@/features/notifications';
 import { combineDateTime, toDateKey } from '@/lib/date';
@@ -22,7 +22,7 @@ function toEpoch(date: string, time?: string): number {
  * linked to the event / task / transaction that mentioned them.
  * Returns how many of the confirmed items were saved (matches the Save button count).
  */
-export function saveCaptureItems(items: CaptureItem[]): number {
+export function saveCaptureItems(items: CaptureItem[], opts: { sourceNoteId?: string } = {}): number {
   const t = now();
   const stamp = { createdAt: t, updatedAt: t };
   const newTaskReminders: { id: string; title: string; reminderAt: number }[] = [];
@@ -41,6 +41,10 @@ export function saveCaptureItems(items: CaptureItem[]): number {
     };
     const link = (fromType: LinkableType, fromId: string, name?: string) => {
       if (name) linkContact(tx, fromType, fromId, contactId(name));
+      // Items pulled out of a note remember where they came from.
+      if (opts.sourceNoteId) {
+        tx.insert(links).values({ ...stamp, id: newId(), fromType: 'note', fromId: opts.sourceNoteId, toType: fromType, toId: fromId, relation: 'extracted' }).run();
+      }
     };
 
     for (const item of items) {

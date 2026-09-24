@@ -4,7 +4,7 @@ import { addDays, toDateKey } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
 
 import type { Db } from './client';
-import { areas, calendarEvents, categories, contacts, links, recurringBills, tasks, transactions, wallets } from './schema';
+import { areas, calendarEvents, categories, contacts, links, notes, recurringBills, tasks, transactions, wallets } from './schema';
 
 const stamp = () => {
   const t = now();
@@ -146,6 +146,40 @@ function sampleEvents(today: Date) {
   ];
 }
 
+/** Sample notes (markdown) for a fresh install. */
+const sampleNotes = [
+  {
+    title: 'Client meeting notes — John',
+    pinned: true,
+    tags: ['work', 'client'],
+    body: ['## Agenda', '- VAT return Q3 — confirm figures', '- Engagement letter for FY2026', '', '## Actions', '- [ ] Send engagement letter', '- [x] Share Xero access', '- [ ] Call John Fri 2pm to confirm VAT £5,000', '', '> John prefers email over LINE.'].join('\n'),
+  },
+  {
+    title: 'CIMA SCS study plan',
+    pinned: true,
+    tags: ['study', 'cima'],
+    body: ['Exam window: **November**. Focus on the pre-seen and _strategic_ analysis.', '', '## This week', '- [ ] Read the pre-seen industry section', '- [ ] Mock exam 1 — timed', '- [ ] Review answers with the study group', '', '## Tips', '1. Plan answers before writing', '2. Use the pre-seen numbers'].join('\n'),
+  },
+  {
+    title: 'Travel plan — Tokyo',
+    pinned: false,
+    tags: ['travel', 'personal'],
+    body: ['Flights booked, hotel in Shinjuku.', '', '- Day 1: Asakusa, Senso-ji', '- Day 2: Shibuya, Harajuku', '- Day 3: Day trip to Kamakura', '', '## To book', '- [ ] JR Pass', '- [ ] teamLab tickets'].join('\n'),
+  },
+  {
+    title: 'ภาษีเงินได้ — เตรียมยื่น',
+    pinned: false,
+    tags: ['tax'],
+    body: ['## เอกสารที่ต้องเตรียม', '- [ ] หนังสือรับรองการหักภาษี ณ ที่จ่าย', '- [x] ใบเสร็จเบี้ยประกัน', '- [ ] สรุปรายได้ค่าบริการ', '', 'พรุ่งนี้ 10 โมง นัดคุณสมชาย คุยเรื่องภาษี'].join('\n'),
+  },
+  {
+    title: 'Ideas — app features',
+    pinned: false,
+    tags: ['ideas'],
+    body: ['- Slip OCR for Thai bank transfers', '- Weekly review with Veyra', '- LINE bot for quick capture'].join('\n'),
+  },
+];
+
 export function seedIfEmpty(db: Db) {
   const [{ value: areaCount }] = db.select({ value: count() }).from(areas).all();
   if (areaCount > 0) return;
@@ -173,6 +207,11 @@ export function seedIfEmpty(db: Db) {
         tx.insert(contacts).values({ id: people.get(person)!, name: person, ...s }).run();
       }
       tx.insert(links).values({ id: newId(), fromType: 'event', fromId: id, toType: 'contact', toId: people.get(person)!, relation: 'with', ...s }).run();
+    });
+    sampleNotes.forEach((n, i) => {
+      const s = stamp();
+      // Stagger updatedAt so "recently edited" ordering looks natural.
+      tx.insert(notes).values({ id: newId(), ...n, createdAt: s.createdAt - i * 3_600_000, updatedAt: s.updatedAt - i * 3_600_000 }).run();
     });
     sampleTasks(new Date()).forEach(({ area, isDone, ...task }, i) => {
       const s = stamp();

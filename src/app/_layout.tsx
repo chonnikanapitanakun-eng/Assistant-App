@@ -62,6 +62,8 @@ export default function RootLayout() {
             <Stack.Screen name="bill/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="wallet/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="budget/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
+            <Stack.Screen name="note/[id]" />
+            <Stack.Screen name="more" options={{ presentation: 'transparentModal', animation: 'none' }} />
           </Stack>
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </ThemeProvider>

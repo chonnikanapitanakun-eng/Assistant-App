@@ -1,4 +1,6 @@
+import { router } from 'expo-router';
 import type { ReactNode } from 'react';
+import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
@@ -20,13 +22,21 @@ function Reveal({ children, index }: { children: ReactNode; index: number }) {
 }
 
 export default function HomeScreen() {
+  const { t } = useTranslation();
   const { bp, isDesktop } = useBreakpoint();
   const { spacing } = useTheme();
   const columns = bp !== 'mobile';
 
   const header = (
     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-      {isDesktop ? <View /> : <VeyraLockup size={30} />}
+      {isDesktop ? (
+        <View />
+      ) : (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginLeft: -spacing.sm }}>
+          <IconButton icon="menu" label={t('more.title')} onPress={() => router.push('/more')} />
+          <VeyraLockup size={30} />
+        </View>
+      )}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
         <IconButton icon="search" label="Search" />
         <IconButton icon="bell" label="Notifications" />
