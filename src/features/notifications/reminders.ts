@@ -1,5 +1,6 @@
 import { eq } from 'drizzle-orm';
 import * as Notifications from 'expo-notifications';
+import { Platform } from 'react-native';
 
 import { db, tasks } from '@/db';
 
@@ -20,6 +21,8 @@ export async function cancelTaskReminder(notificationId: string | null) {
  * ไม่ throw — ถ้า permission ถูกปฏิเสธหรือ schedule ไม่สำเร็จ จะแค่เคลียร์ reminderNotificationId แล้ว return
  */
 export async function syncTaskReminder(task: ReminderTask): Promise<void> {
+  // Local notifications aren't available on web (same as the focus timer in ./focus.ts).
+  if (Platform.OS === 'web') return;
   await cancelTaskReminder(task.reminderNotificationId);
 
   let notificationId: string | null = null;
