@@ -11,9 +11,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useDatabase } from '@/db';
 import { Text } from '@/components/ui';
+import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
 import { useTheme } from '@/theme';
 
 void SplashScreen.preventAutoHideAsync();
+configureNotificationHandler();
+void configureAndroidChannel();
 
 const queryClient = new QueryClient();
 

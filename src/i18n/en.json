@@ -114,5 +114,10 @@
   "assistant": {
     "hello": "Good morning, {{name}}. I've organised your day. What would you like to do next?",
     "emails": "Summarise emails"
+  },
+  "notifications": {
+    "permission_banner": "Turn on notifications to get reminders when tasks are due",
+    "enable": "Enable notifications",
+    "open_settings": "Open settings"
   }
 }

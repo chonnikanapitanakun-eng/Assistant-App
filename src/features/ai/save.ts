@@ -1,7 +1,8 @@
 import { and, isNull, sql } from 'drizzle-orm';
 
 import { calendarEvents, contacts, db, links, notes, tasks, transactions, wallets, type LinkableType } from '@/db';
-import { toDateKey } from '@/lib/date';
+import { syncTaskReminder } from '@/features/notifications';
+import { combineDateTime, toDateKey } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
 
 import type { CaptureItem } from './types';
@@ -23,6 +24,7 @@ function toEpoch(date: string, time?: string): number {
 export function saveCaptureItems(items: CaptureItem[]): number {
   const t = now();
   const stamp = { createdAt: t, updatedAt: t };
+  const newTaskReminders: { id: string; title: string; reminderAt: number }[] = [];
   const defaultWallet = db.select().from(wallets).where(isNull(wallets.deletedAt)).orderBy(wallets.sortOrder).limit(1).get();
   let written = 0;
 
@@ -57,10 +59,13 @@ export function saveCaptureItems(items: CaptureItem[]): number {
           link('event', id, item.contactName);
           break;
         }
-        case 'task':
-          tx.insert(tasks).values({ ...stamp, id, title: item.title, date: item.date, startTime: item.startTime, endTime: item.endTime }).run();
+        case 'task': {
+          const reminderAt = combineDateTime(item.date, item.startTime);
+          tx.insert(tasks).values({ ...stamp, id, title: item.title, date: item.date, startTime: item.startTime, endTime: item.endTime, reminderAt }).run();
+          if (reminderAt) newTaskReminders.push({ id, title: item.title, reminderAt });
           link('task', id, item.contactName);
           break;
+        }
         case 'expense':
         case 'income':
           if (!defaultWallet) continue;
@@ -87,5 +92,8 @@ export function saveCaptureItems(items: CaptureItem[]): number {
       written++;
     }
   });
+
+  // Timed tasks get a reminder automatically (scheduled after the write commits).
+  for (const task of newTaskReminders) void syncTaskReminder({ ...task, reminderNotificationId: null });
   return written;
 }
