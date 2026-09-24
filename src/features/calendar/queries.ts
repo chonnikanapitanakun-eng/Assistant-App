@@ -3,9 +3,10 @@ import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 
 import { calendarEvents, contacts, db, links, type CalendarEvent } from '@/db';
 import { setLinkedContact } from '@/features/contacts/links';
+import { getTask, rescheduleTask } from '@/features/tasks/queries';
 import { newId, now } from '@/lib/ids';
 
-import { fromDateKey } from './model';
+import { fromDateKey, type CalItem } from './model';
 
 const DAY = 86_400_000;
 
@@ -73,4 +74,16 @@ export function updateEvent(id: string, v: EventFormValues) {
 export function deleteEvent(id: string) {
   const t = now();
   db.update(calendarEvents).set({ deletedAt: t, updatedAt: t }).where(eq(calendarEvents.id, id)).run();
+}
+
+/** Drag-drop on the timeline: move an event or task to a new time on the same day. */
+export function moveItem(item: CalItem, start: string, end: string) {
+  if (item.kind === 'task') {
+    const task = getTask(item.id);
+    if (task) rescheduleTask(task, item.date, start, end);
+    return;
+  }
+  const day = fromDateKey(item.date).getTime();
+  const at = (hhmm: string) => day + (Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3))) * 60_000;
+  db.update(calendarEvents).set({ start: at(start), end: at(end), updatedAt: now() }).where(eq(calendarEvents.id, item.id)).run();
 }

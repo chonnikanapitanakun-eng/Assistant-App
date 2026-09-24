@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { countByDay, eventToItem, hourRange, itemsForDay, layoutTimeline, mergeItems, monthGrid, scheduleStatus, shiftDate, taskToItem, weekDays } from '../model';
+import { countByDay, eventToItem, hourRange, itemsForDay, layoutTimeline, mergeItems, monthGrid, moveSlot, scheduleStatus, shiftDate, taskToItem, weekDays } from '../model';
 
 const at = (d: string, t: string) => new Date(`${d}T${t}:00`).getTime();
 const ev = (id: string, d: string, s: string, e: string, isAllDay = false) => ({ id, title: id, start: at(d, s), end: at(d, e), isAllDay, location: null });
@@ -73,5 +73,17 @@ describe('scheduleStatus', () => {
   it('finds the current and next item', () => {
     expect(scheduleStatus(timed, 9 * 60 + 15)).toEqual({ currentId: 'a', nextId: 'b', nextIn: 75 });
     expect(scheduleStatus(timed, 12 * 60)).toEqual({ currentId: undefined, nextId: undefined, nextIn: undefined });
+  });
+});
+
+describe('moveSlot', () => {
+  it('snaps to 15 minutes and keeps the length', () => {
+    expect(moveSlot('09:00', '10:00', 38)).toEqual({ start: '09:45', end: '10:45' });
+    expect(moveSlot('09:00', '09:30', -58)).toEqual({ start: '08:00', end: '08:30' });
+  });
+  it('stays inside the day', () => {
+    expect(moveSlot('01:00', '02:00', -300)).toEqual({ start: '00:00', end: '01:00' });
+    expect(moveSlot('22:00', '23:00', 300)).toEqual({ start: '23:00', end: '23:59' });
+    expect(moveSlot('22:00', '22:15', 300)).toEqual({ start: '23:45', end: '23:59' });
   });
 });

@@ -12,7 +12,7 @@ import { MonthGrid } from '@/features/calendar/components/month-grid';
 import { HourGutter, nowMinutes, TimelineColumn } from '@/features/calendar/components/timeline';
 import { WeekStrip } from '@/features/calendar/components/week-strip';
 import { countByDay, fromDateKey, hourRange, itemsForDay, mergeItems, monthGrid, shiftDate, weekDays, type CalItem } from '@/features/calendar/model';
-import { useEventsBetween } from '@/features/calendar/queries';
+import { moveItem, useEventsBetween } from '@/features/calendar/queries';
 import { useAllTasks } from '@/features/tasks/queries';
 import { addDays, toDateKey } from '@/lib/date';
 import { useBreakpoint, useTheme } from '@/theme';
@@ -87,7 +87,7 @@ export default function CalendarScreen() {
         <AllDayRow items={dayItems.allDay} onOpen={open} />
         <View style={{ flexDirection: 'row', paddingTop: spacing.sm }}>
           <HourGutter range={range} />
-          <TimelineColumn timed={dayItems.timed} range={range} now={date === today ? nowMinutes() : undefined} onOpen={open} onCreateAt={(time) => createAt(date, time)} />
+          <TimelineColumn timed={dayItems.timed} range={range} now={date === today ? nowMinutes() : undefined} onOpen={open} onCreateAt={(time) => createAt(date, time)} onMove={moveItem} />
         </View>
       </Card>
     );
@@ -217,7 +217,7 @@ function WeekTimeline({ days, items, today, selected, onSelect, onOpen, onCreate
         <HourGutter range={range} />
         {days.map((d, i) => (
           <View key={d} style={{ flex: 1, minWidth: 0, borderLeftWidth: 1, borderLeftColor: colors.border }}>
-            <TimelineColumn compact timed={perDay[i].timed} range={range} now={d === today ? nowMinutes() : undefined} onOpen={onOpen} onCreateAt={(time) => onCreateAt(d, time)} />
+            <TimelineColumn compact timed={perDay[i].timed} range={range} now={d === today ? nowMinutes() : undefined} onOpen={onOpen} onCreateAt={(time) => onCreateAt(d, time)} onMove={moveItem} />
           </View>
         ))}
       </View>

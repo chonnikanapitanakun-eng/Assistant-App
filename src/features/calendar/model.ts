@@ -12,9 +12,11 @@ export type CalItem = {
   location?: string | null;
   done?: boolean;
   priority?: number;
+  /** Synced from another calendar — edit it there, not here. */
+  readOnly?: boolean;
 };
 
-type EventRow = { id: string; title: string; start: number; end: number; isAllDay: boolean; location: string | null };
+type EventRow = { id: string; title: string; start: number; end: number; isAllDay: boolean; location: string | null; source?: string };
 type TaskRow = { id: string; title: string; date: string | null; startTime: string | null; endTime: string | null; isDone: boolean; priority: number };
 
 export const toMinutes = (hhmm: string) => {
@@ -33,11 +35,12 @@ export const fromDateKey = (key: string) => {
 export function eventToItem(e: EventRow): CalItem {
   const start = new Date(e.start);
   const date = toDateKey(start);
-  if (e.isAllDay) return { kind: 'event', id: e.id, title: e.title, date, allDay: true, location: e.location };
+  const readOnly = e.source !== undefined && e.source !== 'veyra';
+  if (e.isAllDay) return { kind: 'event', id: e.id, title: e.title, date, allDay: true, location: e.location, readOnly };
   const end = new Date(e.end);
   // Events that run past midnight are clipped to the end of their start day.
   const endStr = toDateKey(end) === date ? hhmm(end) : '23:59';
-  return { kind: 'event', id: e.id, title: e.title, date, start: hhmm(start), end: endStr, allDay: false, location: e.location };
+  return { kind: 'event', id: e.id, title: e.title, date, start: hhmm(start), end: endStr, allDay: false, location: e.location, readOnly };
 }
 
 /** Dated tasks appear on the calendar; untimed ones sit in the all-day row. Default length 30 min. */
@@ -139,6 +142,21 @@ export function layoutTimeline(timed: CalItem[], startHour: number, hourHeight: 
   }
   flush();
   return out;
+}
+
+export const SNAP_MIN = 15;
+const LAST_MIN = 23 * 60 + 59;
+
+/**
+ * Drag on the timeline: shift a slot by `deltaMin`, snapped to 15 minutes and kept
+ * inside the day. The length stays the same unless the day's end cuts it short.
+ */
+export function moveSlot(start: string, end: string, deltaMin: number): { start: string; end: string } {
+  const s = toMinutes(start);
+  const length = Math.max(toMinutes(end) - s, SNAP_MIN);
+  const latest = 24 * 60 - length; // keep the whole slot inside the day
+  const next = Math.min(Math.max(Math.round((s + deltaMin) / SNAP_MIN) * SNAP_MIN, 0), Math.min(latest, 24 * 60 - SNAP_MIN));
+  return { start: fromMinutes(next), end: fromMinutes(Math.min(next + length, LAST_MIN)) };
 }
 
 /** Visible hour range: 07–21 by default, stretched to fit early/late items. */
