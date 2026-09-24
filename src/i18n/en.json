@@ -9,7 +9,7 @@
     "spent_month": "Spent this month",
     "empty": "Nothing yet today. Tap + to start."
   },
-  "plan": { "day": "Day", "week": "Week", "month": "Month" },
+  "plan": { "day": "Day", "week": "Week", "month": "Month", "today": "Today", "previous": "Previous", "next": "Next", "anytime": "Anytime", "no_tasks": "No tasks", "drag_hint": "Long-press a task and drag to change its time" },
   "notes": { "empty": "No notes yet", "new": "New note", "search": "Search notes" },
   "money": { "income": "Income", "expense": "Expense", "balance": "Balance", "wallets": "Wallets", "add": "Add transaction" },
   "capture": {
