@@ -10,7 +10,7 @@ type Item = { key: string; icon: IconName; href?: Href; kind?: 'tab' | 'screen' 
 const items: Item[] = [
   { key: 'notes', icon: 'file-text', href: '/notes', kind: 'tab' },
   { key: 'focus', icon: 'target', href: '/focus', kind: 'screen' },
-  { key: 'search', icon: 'search' },
+  { key: 'search', icon: 'search', href: '/search', kind: 'screen' },
   { key: 'contacts', icon: 'users' },
   { key: 'settings', icon: 'settings', href: '/settings', kind: 'screen' },
 ];
