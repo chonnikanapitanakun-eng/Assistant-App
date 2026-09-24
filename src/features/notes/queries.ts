@@ -1,9 +1,10 @@
 import { desc, isNull } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 
-import { db, notes } from '@/db';
+import { db, notes, useDbQuery } from '@/db';
 
 export function useNotes() {
-  const { data } = useLiveQuery(db.select().from(notes).where(isNull(notes.deletedAt)).orderBy(desc(notes.pinned), desc(notes.updatedAt)));
-  return data;
+  return (
+    useDbQuery(['notes'], () => db.select().from(notes).where(isNull(notes.deletedAt)).orderBy(desc(notes.pinned), desc(notes.updatedAt)).all()) ??
+    []
+  );
 }

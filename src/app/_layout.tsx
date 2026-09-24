@@ -1,6 +1,6 @@
 import '@/i18n';
 
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -8,7 +8,7 @@ import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { useDatabase } from '@/db';
+import { queryClient, useDatabase } from '@/db';
 import { Text } from '@/components/ui';
 import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
 import { useTheme } from '@/theme';
@@ -16,8 +16,6 @@ import { useTheme } from '@/theme';
 void SplashScreen.preventAutoHideAsync();
 configureNotificationHandler();
 void configureAndroidChannel();
-
-const queryClient = new QueryClient();
 
 export default function RootLayout() {
   const { ready, error } = useDatabase();

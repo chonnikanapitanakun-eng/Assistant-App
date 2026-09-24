@@ -62,24 +62,24 @@ export const defaultWallets = [
   { name: 'UK Bank (GBP)', type: 'bank' as const, currency: 'GBP', color: '#4F79B8' },
 ];
 
-export function seedIfEmpty(db: Db) {
-  const [{ value: areaCount }] = db.select({ value: count() }).from(areas).all();
+export async function seedIfEmpty(db: Db) {
+  const [{ value: areaCount }] = await db.select({ value: count() }).from(areas).all();
   if (areaCount > 0) return;
 
-  db.transaction((tx) => {
-    let order = 0;
-    for (const a of defaultAreas) {
-      const parentId = newId();
-      tx.insert(areas).values({ id: parentId, nameTh: a.nameTh, nameEn: a.nameEn, color: a.color, icon: a.icon, sortOrder: order++, ...stamp() }).run();
-      for (const c of a.children) {
-        tx.insert(areas).values({ id: newId(), nameTh: c.nameTh, nameEn: c.nameEn, parentId, color: a.color, sortOrder: order++, ...stamp() }).run();
-      }
+  const areaRows: (typeof areas.$inferInsert)[] = [];
+  let order = 0;
+  for (const a of defaultAreas) {
+    const parentId = newId();
+    areaRows.push({ id: parentId, nameTh: a.nameTh, nameEn: a.nameEn, color: a.color, icon: a.icon, sortOrder: order++, ...stamp() });
+    for (const c of a.children) {
+      areaRows.push({ id: newId(), nameTh: c.nameTh, nameEn: c.nameEn, parentId, color: a.color, sortOrder: order++, ...stamp() });
     }
-    defaultCategories.forEach((c, i) => {
-      tx.insert(categories).values({ id: newId(), ...c, sortOrder: i, ...stamp() }).run();
-    });
-    defaultWallets.forEach((w, i) => {
-      tx.insert(wallets).values({ id: newId(), ...w, sortOrder: i, ...stamp() }).run();
-    });
-  });
+  }
+
+  // batch = transaction เดียว (ดู client.ts)
+  await db.batch([
+    db.insert(areas).values(areaRows),
+    db.insert(categories).values(defaultCategories.map((c, i) => ({ id: newId(), ...c, sortOrder: i, ...stamp() }))),
+    db.insert(wallets).values(defaultWallets.map((w, i) => ({ id: newId(), ...w, sortOrder: i, ...stamp() }))),
+  ]);
 }
