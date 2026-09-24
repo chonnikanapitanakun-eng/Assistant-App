@@ -8,7 +8,7 @@ export default function NotesScreen() {
   const notes = useNotes();
   return (
     <Screen>
-      <Text variant="title">{t('tabs.notes')}</Text>
+      <Text variant="title" accessibilityRole="header">{t('nav.notes')}</Text>
       {notes.length === 0 ? (
         <Text color="textSecondary" style={{ textAlign: 'center', marginTop: 24 }}>{t('notes.empty')}</Text>
       ) : (

@@ -1,7 +1,7 @@
-export const supportedCurrencies = ['THB', 'GBP', 'USD'] as const;
+export const supportedCurrencies = ['THB', 'GBP', 'USD', 'EUR'] as const;
 export type Currency = (typeof supportedCurrencies)[number];
 
-const symbols: Record<Currency, string> = { THB: '฿', GBP: '£', USD: '$' };
+const symbols: Record<Currency, string> = { THB: '฿', GBP: '£', USD: '$', EUR: '€' };
 
 export function formatMoney(amount: number, currency: string = 'THB', locale: string = 'th-TH'): string {
   const symbol = symbols[currency as Currency] ?? `${currency} `;

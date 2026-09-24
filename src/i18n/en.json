@@ -1,5 +1,4 @@
 {
-  "tabs": { "today": "Today", "plan": "Plan", "notes": "Notes", "money": "Money" },
   "today": {
     "greeting_morning": "Good morning",
     "greeting_afternoon": "Good afternoon",
@@ -9,9 +8,23 @@
     "spent_month": "Spent this month",
     "empty": "Nothing yet today. Tap + to start."
   },
-  "plan": { "day": "Day", "week": "Week", "month": "Month" },
-  "notes": { "empty": "No notes yet", "new": "New note", "search": "Search notes" },
-  "money": { "income": "Income", "expense": "Expense", "balance": "Balance", "wallets": "Wallets", "add": "Add transaction" },
+  "plan": {
+    "day": "Day",
+    "week": "Week",
+    "month": "Month"
+  },
+  "notes": {
+    "empty": "No notes yet",
+    "new": "New note",
+    "search": "Search notes"
+  },
+  "money": {
+    "income": "Income",
+    "expense": "Expense",
+    "balance": "Balance",
+    "wallets": "Wallets",
+    "add": "Add transaction"
+  },
   "capture": {
     "title": "Quick capture",
     "placeholder": "Type anything, e.g. lunch 80 or Fri 10am client meeting",
@@ -19,5 +32,60 @@
     "cancel": "Cancel",
     "preview": "Review before saving"
   },
-  "common": { "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit", "done": "Done", "loading": "Loading..." }
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "done": "Done",
+    "loading": "Loading...",
+    "close": "Close",
+    "coming_soon": "Designing this next",
+    "coming_soon_body": "This screen is on the way. Home is ready to explore."
+  },
+  "nav": {
+    "home": "Home",
+    "tasks": "Tasks",
+    "calendar": "Calendar",
+    "notes": "Notes",
+    "money": "Money",
+    "assistant": "Veyra AI",
+    "settings": "Settings"
+  },
+  "home": {
+    "summary": "You have {{meetings}} meetings, {{tasks}} tasks and {{bills}} bills today.",
+    "stat_meetings": "Meetings",
+    "stat_tasks": "Tasks",
+    "stat_bills": "Bills due",
+    "today": "Today",
+    "open_calendar": "Calendar",
+    "now": "Now",
+    "in_minutes": "In {{count}} min",
+    "needs_attention": "Needs attention",
+    "all_tasks": "All {{count}}",
+    "done": "Done",
+    "priority_high": "High",
+    "priority_medium": "Medium",
+    "priority_low": "Low",
+    "upcoming_bills": "Upcoming bills",
+    "open_money": "Money",
+    "due_today": "Due today",
+    "ai_title": "How can I help?",
+    "ai_suggestion": "You have a 2-hour focus block at 13:00. Shall I move “Prepare VAT reconciliation” into it before your 15:00 review?",
+    "ai_accept": "Yes, schedule it",
+    "ai_not_now": "Not now",
+    "ai_plan_day": "Plan my day",
+    "ai_summarise": "Summarise my tasks",
+    "ai_overdue": "Find overdue tasks",
+    "ai_expenses": "Review my expenses",
+    "capture_placeholder": "Tell Veyra anything…",
+    "capture_voice": "Capture by voice",
+    "capture_photo": "Capture a photo",
+    "capture_document": "Attach a document",
+    "capture_send": "Send to Veyra"
+  },
+  "assistant": {
+    "hello": "Good morning, {{name}}. I've organised your day. What would you like to do next?",
+    "emails": "Summarise emails"
+  }
 }

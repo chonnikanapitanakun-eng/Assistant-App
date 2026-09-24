@@ -1,5 +1,4 @@
 {
-  "tabs": { "today": "วันนี้", "plan": "แผน", "notes": "โน้ต", "money": "เงิน" },
   "today": {
     "greeting_morning": "สวัสดีตอนเช้า",
     "greeting_afternoon": "สวัสดีตอนบ่าย",
@@ -9,9 +8,23 @@
     "spent_month": "ใช้ไปเดือนนี้",
     "empty": "วันนี้ยังไม่มีอะไร กดปุ่ม + เพื่อเริ่ม"
   },
-  "plan": { "day": "วัน", "week": "สัปดาห์", "month": "เดือน" },
-  "notes": { "empty": "ยังไม่มีโน้ต", "new": "โน้ตใหม่", "search": "ค้นหาโน้ต" },
-  "money": { "income": "รายรับ", "expense": "รายจ่าย", "balance": "คงเหลือ", "wallets": "กระเป๋า", "add": "บันทึกรายการ" },
+  "plan": {
+    "day": "วัน",
+    "week": "สัปดาห์",
+    "month": "เดือน"
+  },
+  "notes": {
+    "empty": "ยังไม่มีโน้ต",
+    "new": "โน้ตใหม่",
+    "search": "ค้นหาโน้ต"
+  },
+  "money": {
+    "income": "รายรับ",
+    "expense": "รายจ่าย",
+    "balance": "คงเหลือ",
+    "wallets": "กระเป๋า",
+    "add": "บันทึกรายการ"
+  },
   "capture": {
     "title": "จดเร็ว",
     "placeholder": "พิมพ์อะไรก็ได้ เช่น ข้าวเที่ยง 80 หรือ ศุกร์ 10 โมง ประชุมลูกค้า",
@@ -19,5 +32,60 @@
     "cancel": "ยกเลิก",
     "preview": "ตรวจสอบก่อนบันทึก"
   },
-  "common": { "save": "บันทึก", "cancel": "ยกเลิก", "delete": "ลบ", "edit": "แก้ไข", "done": "เสร็จ", "loading": "กำลังโหลด..." }
+  "common": {
+    "save": "บันทึก",
+    "cancel": "ยกเลิก",
+    "delete": "ลบ",
+    "edit": "แก้ไข",
+    "done": "เสร็จ",
+    "loading": "กำลังโหลด...",
+    "close": "ปิด",
+    "coming_soon": "กำลังออกแบบหน้านี้",
+    "coming_soon_body": "หน้านี้กำลังจะมา ลองใช้หน้าหลักก่อนได้เลย"
+  },
+  "nav": {
+    "home": "หน้าหลัก",
+    "tasks": "งาน",
+    "calendar": "ปฏิทิน",
+    "notes": "โน้ต",
+    "money": "การเงิน",
+    "assistant": "Veyra AI",
+    "settings": "ตั้งค่า"
+  },
+  "home": {
+    "summary": "วันนี้มีประชุม {{meetings}} นัด งาน {{tasks}} รายการ และบิล {{bills}} รายการ",
+    "stat_meetings": "ประชุม",
+    "stat_tasks": "งาน",
+    "stat_bills": "บิลครบกำหนด",
+    "today": "วันนี้",
+    "open_calendar": "ปฏิทิน",
+    "now": "ตอนนี้",
+    "in_minutes": "อีก {{count}} นาที",
+    "needs_attention": "ต้องจัดการ",
+    "all_tasks": "ทั้งหมด {{count}}",
+    "done": "เสร็จแล้ว",
+    "priority_high": "สูง",
+    "priority_medium": "กลาง",
+    "priority_low": "ต่ำ",
+    "upcoming_bills": "บิลที่ใกล้ถึง",
+    "open_money": "การเงิน",
+    "due_today": "ครบกำหนดวันนี้",
+    "ai_title": "ให้ช่วยอะไรดี?",
+    "ai_suggestion": "บ่ายโมงมีช่วงโฟกัส 2 ชั่วโมง ให้ย้าย “Prepare VAT reconciliation” ไปไว้ช่วงนั้นก่อนรีวิวตอน 15:00 ไหม?",
+    "ai_accept": "ย้ายเลย",
+    "ai_not_now": "ไว้ก่อน",
+    "ai_plan_day": "วางแผนวันนี้",
+    "ai_summarise": "สรุปงาน",
+    "ai_overdue": "หางานที่เลยกำหนด",
+    "ai_expenses": "ดูค่าใช้จ่าย",
+    "capture_placeholder": "บอก Veyra ได้ทุกเรื่อง…",
+    "capture_voice": "บันทึกด้วยเสียง",
+    "capture_photo": "ถ่ายรูป",
+    "capture_document": "แนบเอกสาร",
+    "capture_send": "ส่งให้ Veyra"
+  },
+  "assistant": {
+    "hello": "สวัสดีตอนเช้า {{name}} จัดตารางวันนี้ให้เรียบร้อยแล้ว อยากให้ช่วยอะไรต่อ?",
+    "emails": "สรุปอีเมล"
+  }
 }

@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, TextInput, View } from 'react-native';
@@ -12,7 +12,8 @@ import { useTheme } from '@/theme';
 export default function CaptureScreen() {
   const { t } = useTranslation();
   const { colors, radius, spacing } = useTheme();
-  const [text, setText] = useState('');
+  const params = useLocalSearchParams<{ text?: string }>();
+  const [text, setText] = useState(params.text ?? '');
   const [preview, setPreview] = useState<CaptureItem[] | null>(null);
 
   const onSubmit = () => {
@@ -51,7 +52,7 @@ export default function CaptureScreen() {
         </View>
       ) : null}
       <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: 'auto' }}>
-        <Pressable onPress={() => router.back()} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, alignItems: 'center' }}>
+        <Pressable onPress={() => router.back()} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceMuted, alignItems: 'center' }}>
           <Text>{t('capture.cancel')}</Text>
         </Pressable>
         <Pressable onPress={preview ? onConfirm : onSubmit} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center' }}>
