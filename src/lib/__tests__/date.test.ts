@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { addDays, greetingKey, toBuddhistYear, toDateKey, toMonthKey } from '../date';
+import { addDays, combineDateTime, greetingKey, toBuddhistYear, toDateKey, toMonthKey } from '../date';
 
 describe('date helpers', () => {
   it('formats date key', () => {
@@ -17,5 +17,13 @@ describe('date helpers', () => {
     expect(greetingKey(new Date(2026, 0, 1, 8))).toBe('greeting_morning');
     expect(greetingKey(new Date(2026, 0, 1, 14))).toBe('greeting_afternoon');
     expect(greetingKey(new Date(2026, 0, 1, 20))).toBe('greeting_evening');
+  });
+  it('combines date + time into epoch ms', () => {
+    expect(combineDateTime('2026-09-24', '14:30')).toBe(new Date(2026, 8, 24, 14, 30).getTime());
+  });
+  it('returns undefined when date or time is missing or malformed', () => {
+    expect(combineDateTime(undefined, '14:30')).toBeUndefined();
+    expect(combineDateTime('2026-09-24', undefined)).toBeUndefined();
+    expect(combineDateTime('not-a-date', '14:30')).toBeUndefined();
   });
 });

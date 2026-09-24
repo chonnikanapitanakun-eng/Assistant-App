@@ -19,5 +19,10 @@
     "cancel": "ยกเลิก",
     "preview": "ตรวจสอบก่อนบันทึก"
   },
-  "common": { "save": "บันทึก", "cancel": "ยกเลิก", "delete": "ลบ", "edit": "แก้ไข", "done": "เสร็จ", "loading": "กำลังโหลด..." }
+  "common": { "save": "บันทึก", "cancel": "ยกเลิก", "delete": "ลบ", "edit": "แก้ไข", "done": "เสร็จ", "loading": "กำลังโหลด..." },
+  "notifications": {
+    "permission_banner": "เปิดการแจ้งเตือนเพื่อรับ reminder เมื่อถึงเวลางาน",
+    "enable": "เปิดการแจ้งเตือน",
+    "open_settings": "ไปที่ตั้งค่า"
+  }
 }

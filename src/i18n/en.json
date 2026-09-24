@@ -19,5 +19,10 @@
     "cancel": "Cancel",
     "preview": "Review before saving"
   },
-  "common": { "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit", "done": "Done", "loading": "Loading..." }
+  "common": { "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit", "done": "Done", "loading": "Loading..." },
+  "notifications": {
+    "permission_banner": "Turn on notifications to get reminders when tasks are due",
+    "enable": "Enable notifications",
+    "open_settings": "Open settings"
+  }
 }

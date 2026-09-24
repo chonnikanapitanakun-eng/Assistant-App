@@ -3,6 +3,7 @@ import { View } from 'react-native';
 
 import { Card, Screen, Text } from '@/components/ui';
 import { useTodayMoney } from '@/features/money/queries';
+import { NotificationPermissionBanner } from '@/features/notifications';
 import { useTasksForDate } from '@/features/tasks/queries';
 import { formatMoney } from '@/lib/currency';
 import { greetingKey, toDateKey } from '@/lib/date';
@@ -18,6 +19,8 @@ export default function TodayScreen() {
     <Screen>
       <Text variant="title">{t(`today.${greetingKey()}`)}</Text>
       <Text color="textSecondary">{today}</Text>
+
+      <NotificationPermissionBanner />
 
       <View style={{ flexDirection: 'row', gap: 12 }}>
         <Card style={{ flex: 1 }}>
