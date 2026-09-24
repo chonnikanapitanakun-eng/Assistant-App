@@ -267,6 +267,10 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
           </View>
         </Field>
 
+        {existing && !existing.isDone ? (
+          <Button variant="secondary" icon="target" label={t('focus.start_for_task')} onPress={() => router.push({ pathname: '/focus', params: { taskId: existing.id } })} />
+        ) : null}
+
         {existing ? (
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 44, padding: spacing.md, borderRadius: radius.lg, backgroundColor: isDone ? tints.done.bg : colors.surfaceMuted }}>
             <Icon name="check-circle" size={18} tone={isDone ? tints.done.fg : colors.textSecondary} />

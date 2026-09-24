@@ -5,10 +5,11 @@ import { View } from 'react-native';
 import { Icon, PressableScale, Sheet, Tag, Text, type IconName } from '@/components/ui';
 import { useTheme } from '@/theme';
 
-type Item = { key: string; icon: IconName; href?: Href };
+/** `tab` routes live under (tabs) and are dismissed back to; `screen` routes replace the sheet. */
+type Item = { key: string; icon: IconName; href?: Href; kind?: 'tab' | 'screen' };
 const items: Item[] = [
-  { key: 'notes', icon: 'file-text', href: '/notes' },
-  { key: 'focus', icon: 'target' },
+  { key: 'notes', icon: 'file-text', href: '/notes', kind: 'tab' },
+  { key: 'focus', icon: 'target', href: '/focus', kind: 'screen' },
   { key: 'search', icon: 'search' },
   { key: 'contacts', icon: 'users' },
   { key: 'settings', icon: 'settings' },
@@ -31,7 +32,7 @@ export default function MoreScreen() {
               accessibilityState={{ disabled: !ready }}
               accessibilityLabel={ready ? t(`more.${item.key}`) : `${t(`more.${item.key}`)}, ${t('more.soon')}`}
               disabled={!ready}
-              onPress={() => item.href && router.dismissTo(item.href)}
+              onPress={() => item.href && (item.kind === 'screen' ? router.replace(item.href) : router.dismissTo(item.href))}
               style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 56, paddingHorizontal: spacing.md, borderRadius: radius.lg, opacity: ready ? 1 : 0.55 }}
             >
               <View style={{ width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }}>

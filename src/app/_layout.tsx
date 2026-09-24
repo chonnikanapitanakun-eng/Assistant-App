@@ -64,6 +64,7 @@ export default function RootLayout() {
             <Stack.Screen name="budget/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="note/[id]" />
             <Stack.Screen name="more" options={{ presentation: 'transparentModal', animation: 'none' }} />
+            <Stack.Screen name="focus" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           </Stack>
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </ThemeProvider>

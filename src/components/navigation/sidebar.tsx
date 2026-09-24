@@ -42,6 +42,8 @@ export function Sidebar({ state, navigation }: BottomTabBarProps) {
         );
       })}
 
+      <SidebarItem icon="target" label={t('more.focus')} focused={false} onPress={() => router.push('/focus')} />
+
       <View style={{ height: 1, backgroundColor: colors.border, marginVertical: spacing.lg }} />
 
       <PressableScale accessibilityRole="button" accessibilityLabel={t('nav.assistant')} onPress={() => router.push('/assistant')} style={{ borderRadius: radius.md, overflow: 'hidden' }}>
