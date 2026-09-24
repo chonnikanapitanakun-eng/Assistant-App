@@ -1,0 +1,73 @@
+import { router, useLocalSearchParams } from 'expo-router';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { TextInput, View } from 'react-native';
+
+import { Button, Field, FieldError, Sheet, Text, useInputStyle } from '@/components/ui';
+import type { Category } from '@/db';
+import { BudgetBar } from '@/features/money/components/budget-bar';
+import { spendingByCategory } from '@/features/money/model';
+import { setBudget, useCategory, useTransactions } from '@/features/money/queries';
+import { usePrimaryCurrency } from '@/features/profile/store';
+import { currencySymbol, parseAmount } from '@/lib/currency';
+import { toMonthKey } from '@/lib/date';
+import { useTheme } from '@/theme';
+
+/** Monthly budget for one expense category (in the primary currency). */
+export default function BudgetScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const { row } = useCategory(id);
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/money'));
+  if (!row) return null;
+  return <BudgetForm key={row.id} category={row} onClose={close} />;
+}
+
+function BudgetForm({ category, onClose }: { category: Category; onClose: () => void }) {
+  const { t, i18n } = useTranslation();
+  const { colors, spacing } = useTheme();
+  const input = useInputStyle();
+  const txs = useTransactions();
+  const budgetCurrency = usePrimaryCurrency();
+  const [amount, setAmount] = useState(category.budgetMonthly ? String(category.budgetMonthly) : '');
+  const [showErrors, setShowErrors] = useState(false);
+  const spent = spendingByCategory(txs, toMonthKey(), budgetCurrency).find((r) => r.categoryId === category.id)?.total ?? 0;
+  const parsed = parseAmount(amount);
+  const error = parsed === null || parsed <= 0 ? t('money.invalid_amount') : null;
+  const name = i18n.language === 'th' ? category.nameTh : category.nameEn;
+
+  const save = () => {
+    if (error || parsed === null) {
+      setShowErrors(true);
+      return;
+    }
+    setBudget(category.id, parsed);
+    onClose();
+  };
+
+  return (
+    <Sheet
+      onClose={onClose}
+      title={t('money.budget_for', { name })}
+      subtitle={t('money.budget_currency_note', { currency: budgetCurrency })}
+      footer={
+        <View style={{ gap: spacing.sm }}>
+          <Button fullWidth icon="check" label={t('common.save')} onPress={save} />
+          {category.budgetMonthly ? <Button fullWidth variant="ghost" icon="x-circle" label={t('money.remove_budget')} onPress={() => (setBudget(category.id, null), onClose())} /> : null}
+        </View>
+      }
+    >
+      <View style={{ padding: spacing.xl, gap: spacing.xl }}>
+        <Field label={t('money.monthly_budget')} icon="target">
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <Text variant="title" color="textSecondary">{currencySymbol(budgetCurrency)}</Text>
+            <TextInput autoFocus value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('money.monthly_budget')} style={[input(error, showErrors), { flex: 1 }]} />
+          </View>
+          <FieldError message={showErrors ? error : null} />
+        </Field>
+        <Field label={t('money.this_month')} icon="bar-chart-2">
+          {parsed && parsed > 0 ? <BudgetBar spent={spent} budget={parsed} /> : <Text variant="bodySm" color="textSecondary">{t('money.spent_so_far', { amount: `${currencySymbol(budgetCurrency)}${spent.toLocaleString('en-GB')}` })}</Text>}
+        </Field>
+      </View>
+    </Sheet>
+  );
+}

@@ -1,22 +1,22 @@
 {
   "expo": {
-    "name": "Proud Assistant",
-    "slug": "proud-assistant",
+    "name": "Veyra",
+    "slug": "veyra",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "proudassistant",
+    "scheme": "veyra",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/icon.png",
       "supportsTablet": true,
       "bundleIdentifier": "com.proud.assistant"
     },
     "android": {
       "package": "com.proud.assistant",
       "adaptiveIcon": {
-        "backgroundColor": "#0B1F3A",
+        "backgroundColor": "#0F172A",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
@@ -34,15 +34,16 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0B1F3A",
+          "backgroundColor": "#0F172A",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "imageWidth": 160
         }
       ],
+      "expo-image",
       [
         "expo-notifications",
         {
-          "color": "#14325C"
+          "color": "#6366F1"
         }
       ]
     ],

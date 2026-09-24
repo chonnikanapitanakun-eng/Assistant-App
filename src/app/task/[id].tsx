@@ -1,238 +1,301 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, Switch, TextInput, View } from 'react-native';
+import { ScrollView, TextInput, View } from 'react-native';
 
-import { Card, Screen, Text } from '@/components/ui';
-import { createTask, deleteTask, updateTask, useTask, type ChecklistItem } from '@/features/tasks/queries';
-import { toDateKey } from '@/lib/date';
+import { Mascot } from '@/components/brand/mascot';
+import { Button, Chip, Field, FieldError, Icon, IconButton, PressableScale, Sheet, Text, Toggle, type IconName } from '@/components/ui';
+import type { Task } from '@/db';
+import { isValidDate, isValidTime, priorityLevel, priorityTint, priorityValue, type PriorityLevel } from '@/features/tasks/model';
+import { createTask, deleteTask, updateTask, useAreas, useTask, type ChecklistItem, type TaskFormValues } from '@/features/tasks/queries';
+import { addDays, toDateKey } from '@/lib/date';
 import { newId } from '@/lib/ids';
 import { useTheme } from '@/theme';
 
-const priorities = [1, 2, 3] as const;
-const energies = ['low', 'med', 'high'] as const;
+const levels: PriorityLevel[] = ['high', 'medium', 'low'];
+const energies: { key: 'low' | 'med' | 'high'; icon: IconName }[] = [
+  { key: 'low', icon: 'battery' },
+  { key: 'med', icon: 'battery-charging' },
+  { key: 'high', icon: 'zap' },
+];
 
 export default function TaskDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, date: dateParam } = useLocalSearchParams<{ id: string; date?: string }>();
   const isNew = id === 'new';
-  const { t } = useTranslation();
-  const { colors, radius, spacing } = useTheme();
-  const existing = useTask(isNew ? '' : id);
-  const hydrated = useRef(false);
+  const { task: existing, loaded } = useTask(isNew ? '' : id);
+  const close = () => (router.canGoBack() ? router.back() : router.replace('/tasks'));
 
-  const [title, setTitle] = useState('');
-  const [notes, setNotes] = useState('');
-  const [date, setDate] = useState(toDateKey());
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
-  const [priority, setPriority] = useState<number>(2);
-  const [energy, setEnergy] = useState<'low' | 'med' | 'high' | null>(null);
-  const [isDone, setIsDone] = useState(false);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
-  const [newItemText, setNewItemText] = useState('');
+  if (!isNew && !existing) return loaded ? <NotFound onClose={close} /> : null;
+  return <TaskForm key={existing?.id ?? 'new'} existing={existing} initialDate={dateParam} onClose={close} />;
+}
 
-  useEffect(() => {
-    if (existing && !hydrated.current) {
-      hydrated.current = true;
-      setTitle(existing.title);
-      setNotes(existing.notes ?? '');
-      setDate(existing.date ?? toDateKey());
-      setStartTime(existing.startTime ?? '');
-      setEndTime(existing.endTime ?? '');
-      setPriority(existing.priority);
-      setEnergy(existing.energy);
-      setIsDone(existing.isDone);
-      setChecklist(existing.checklist ?? []);
-    }
-  }, [existing]);
+function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initialDate?: string; onClose: () => void }) {
+  const { t, i18n } = useTranslation();
+  const { colors, tints, spacing, radius, typography, fontFamily } = useTheme();
+  const areas = useAreas().filter((a) => a.parentId);
+  const th = i18n.language === 'th';
 
-  if (!isNew && !existing) {
-    return (
-      <Screen>
-        <Text color="textSecondary" style={{ textAlign: 'center', marginTop: 24 }}>{t('task.not_found')}</Text>
-      </Screen>
-    );
-  }
+  const [title, setTitle] = useState(existing?.title ?? '');
+  const [notes, setNotes] = useState(existing?.notes ?? '');
+  const [date, setDate] = useState(existing ? (existing.date ?? '') : (initialDate ?? toDateKey()));
+  const [startTime, setStartTime] = useState(existing?.startTime ?? '');
+  const [endTime, setEndTime] = useState(existing?.endTime ?? '');
+  const [priority, setPriority] = useState<PriorityLevel>(priorityLevel(existing?.priority ?? 2));
+  const [energy, setEnergy] = useState(existing?.energy ?? null);
+  const [areaId, setAreaId] = useState(existing?.areaId ?? null);
+  const [isDone, setIsDone] = useState(existing?.isDone ?? false);
+  const [remind, setRemind] = useState(existing ? !!existing.reminderAt : true);
+  const [checklist, setChecklist] = useState<ChecklistItem[]>(existing?.checklist ?? []);
+  const [newItem, setNewItem] = useState('');
+  const [showErrors, setShowErrors] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const addChecklistItem = () => {
-    const text = newItemText.trim();
-    if (!text) return;
-    setChecklist((prev) => [...prev, { id: newId(), text, done: false }]);
-    setNewItemText('');
+  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (confirmTimer.current) clearTimeout(confirmTimer.current);
+  }, []);
+
+  const errors = {
+    title: !title.trim() ? t('task.title_required') : null,
+    date: date && !isValidDate(date) ? t('tasks.invalid_date') : null,
+    startTime: startTime && !isValidTime(startTime) ? t('tasks.invalid_time') : null,
+    endTime: endTime && (!isValidTime(endTime) || (isValidTime(startTime) && endTime <= startTime)) ? t('tasks.invalid_end') : null,
   };
+  const hasErrors = Object.values(errors).some(Boolean);
+  const canRemind = !!date && isValidDate(date) && isValidTime(startTime);
 
-  const toggleChecklistItem = (itemId: string) => {
-    setChecklist((prev) => prev.map((item) => (item.id === itemId ? { ...item, done: !item.done } : item)));
-  };
-
-  const removeChecklistItem = (itemId: string) => {
-    setChecklist((prev) => prev.filter((item) => item.id !== itemId));
-  };
+  const quickDates = [
+    { key: 'today', value: toDateKey() },
+    { key: 'tomorrow', value: toDateKey(addDays(new Date(), 1)) },
+    { key: 'next_week', value: toDateKey(addDays(new Date(), 7)) },
+    { key: 'no_date', value: '' },
+  ];
 
   const onSave = () => {
-    const trimmedTitle = title.trim();
-    if (!trimmedTitle) {
-      Alert.alert(t('task.title_required'));
+    if (hasErrors) {
+      setShowErrors(true);
       return;
     }
-    const values = {
-      title: trimmedTitle,
+    const values: TaskFormValues = {
+      title: title.trim(),
       notes: notes.trim() || null,
-      date: date.trim() || null,
-      startTime: startTime.trim() || null,
-      endTime: endTime.trim() || null,
-      priority,
+      date: date || null,
+      startTime: startTime || null,
+      endTime: endTime || null,
+      priority: priorityValue[priority],
       energy,
+      areaId,
       isDone,
-      checklist: checklist.length > 0 ? checklist : null,
+      checklist: checklist.length ? checklist : null,
+      remind: remind && canRemind,
     };
-    if (isNew) {
-      createTask(values);
-    } else {
-      updateTask(id, values);
-    }
-    router.back();
+    if (existing) updateTask(existing, values);
+    else createTask(values);
+    onClose();
   };
 
   const onDelete = () => {
-    Alert.alert(t('task.delete_confirm_title'), t('task.delete_confirm_message'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: () => {
-          deleteTask(id);
-          router.back();
-        },
-      },
-    ]);
+    if (!existing) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      confirmTimer.current = setTimeout(() => setConfirmDelete(false), 4000);
+      return;
+    }
+    deleteTask(existing);
+    onClose();
   };
 
-  const inputStyle = {
-    backgroundColor: colors.surface,
+  const addItem = () => {
+    const text = newItem.trim();
+    if (!text) return;
+    setChecklist((prev) => [...prev, { id: newId(), text, done: false }]);
+    setNewItem('');
+  };
+
+  const input = (focusedError?: string | null) => ({
+    backgroundColor: colors.surfaceMuted,
     color: colors.text,
     borderRadius: radius.md,
-    padding: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    fontSize: 16,
-  };
+    paddingHorizontal: spacing.md,
+    minHeight: 44,
+    minWidth: 0,
+    borderWidth: 1.5,
+    borderColor: showErrors && focusedError ? tints.priorityHigh.fg : colors.border,
+    fontSize: typography.body.fontSize,
+    fontFamily: fontFamily.regular,
+  });
 
   return (
-    <Screen>
-      <Text variant="title">{isNew ? t('task.new_title') : t('task.edit_title')}</Text>
-
-      <TextInput
-        autoFocus={isNew}
-        value={title}
-        onChangeText={setTitle}
-        placeholder={t('task.title_placeholder')}
-        placeholderTextColor={colors.textSecondary}
-        style={inputStyle}
-      />
-
-      <TextInput
-        value={notes}
-        onChangeText={setNotes}
-        placeholder={t('task.notes_placeholder')}
-        placeholderTextColor={colors.textSecondary}
-        multiline
-        style={[inputStyle, { minHeight: 72, textAlignVertical: 'top' }]}
-      />
-
-      <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-        <View style={{ flex: 1, gap: spacing.xs }}>
-          <Text variant="caption" color="textSecondary">{t('task.date')}</Text>
-          <TextInput value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textSecondary} style={inputStyle} />
+    <Sheet
+      wide="side"
+      onClose={onClose}
+      title={existing ? t('task.edit_title') : t('task.new_title')}
+      footer={
+        <View style={{ gap: spacing.sm }}>
+          <Button fullWidth icon="check" label={t('common.save')} onPress={onSave} />
+          {existing ? (
+            <Button
+              fullWidth
+              variant="ghost"
+              icon="trash-2"
+              label={confirmDelete ? t('tasks.delete_confirm') : t('common.delete')}
+              accessibilityHint={t('task.delete_confirm_message')}
+              onPress={onDelete}
+            />
+          ) : null}
         </View>
-        <View style={{ flex: 1, gap: spacing.xs }}>
-          <Text variant="caption" color="textSecondary">{t('task.start_time')}</Text>
-          <TextInput value={startTime} onChangeText={setStartTime} placeholder="HH:mm" placeholderTextColor={colors.textSecondary} style={inputStyle} />
-        </View>
-        <View style={{ flex: 1, gap: spacing.xs }}>
-          <Text variant="caption" color="textSecondary">{t('task.end_time')}</Text>
-          <TextInput value={endTime} onChangeText={setEndTime} placeholder="HH:mm" placeholderTextColor={colors.textSecondary} style={inputStyle} />
-        </View>
-      </View>
-
-      <View style={{ gap: spacing.xs }}>
-        <Text variant="caption" color="textSecondary">{t('task.priority')}</Text>
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          {priorities.map((p) => (
-            <Pressable
-              key={p}
-              onPress={() => setPriority(p)}
-              style={{ paddingVertical: 8, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: priority === p ? colors.primary : colors.surfaceAlt }}
-            >
-              <Text color={priority === p ? 'onPrimary' : 'text'}>{t(`task.priority_${p}`)}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <View style={{ gap: spacing.xs }}>
-        <Text variant="caption" color="textSecondary">{t('task.energy')}</Text>
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          {energies.map((e) => (
-            <Pressable
-              key={e}
-              onPress={() => setEnergy(energy === e ? null : e)}
-              style={{ paddingVertical: 8, paddingHorizontal: 16, borderRadius: radius.pill, backgroundColor: energy === e ? colors.primary : colors.surfaceAlt }}
-            >
-              <Text color={energy === e ? 'onPrimary' : 'text'}>{t(`task.energy_${e}`)}</Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
-
-      <Card style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text>{t('task.mark_done')}</Text>
-        <Switch value={isDone} onValueChange={setIsDone} trackColor={{ true: colors.primary }} />
-      </Card>
-
-      <View style={{ gap: spacing.sm }}>
-        <Text variant="caption" color="textSecondary">{t('task.checklist')}</Text>
-        {checklist.map((item) => (
-          <View key={item.id} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <Pressable onPress={() => toggleChecklistItem(item.id)} hitSlop={8}>
-              <Ionicons name={item.done ? 'checkmark-circle' : 'ellipse-outline'} size={22} color={item.done ? colors.primary : colors.textSecondary} />
-            </Pressable>
-            <Text style={[{ flex: 1 }, item.done ? { textDecorationLine: 'line-through', color: colors.textSecondary } : undefined]}>{item.text}</Text>
-            <Pressable onPress={() => removeChecklistItem(item.id)} hitSlop={8}>
-              <Ionicons name="close" size={20} color={colors.textSecondary} />
-            </Pressable>
-          </View>
-        ))}
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+      }
+    >
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: spacing.xl, gap: spacing.xl }}>
+        <View style={{ gap: spacing.sm }}>
           <TextInput
-            value={newItemText}
-            onChangeText={setNewItemText}
-            onSubmitEditing={addChecklistItem}
-            placeholder={t('task.checklist_placeholder')}
-            placeholderTextColor={colors.textSecondary}
-            style={[inputStyle, { flex: 1 }]}
+            autoFocus={!existing}
+            value={title}
+            onChangeText={setTitle}
+            placeholder={t('task.title_placeholder')}
+            placeholderTextColor={colors.textTertiary}
+            accessibilityLabel={t('task.title_placeholder')}
+            style={[input(errors.title), { fontSize: typography.heading.fontSize, fontFamily: fontFamily.semibold, minHeight: 52 }]}
           />
-          <Pressable onPress={addChecklistItem} style={{ width: 48, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}>
-            <Ionicons name="add" size={22} color={colors.text} />
-          </Pressable>
+          <FieldError message={showErrors ? errors.title : null} />
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            placeholder={t('task.notes_placeholder')}
+            placeholderTextColor={colors.textTertiary}
+            accessibilityLabel={t('task.notes_placeholder')}
+            multiline
+            style={[input(), { minHeight: 72, paddingVertical: spacing.md, textAlignVertical: 'top' }]}
+          />
         </View>
-      </View>
 
-      <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
-        <Pressable onPress={() => router.back()} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, alignItems: 'center' }}>
-          <Text>{t('common.cancel')}</Text>
-        </Pressable>
-        <Pressable onPress={onSave} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center' }}>
-          <Text color="onPrimary">{t('common.save')}</Text>
-        </Pressable>
-      </View>
+        <Field label={t('task.date')} icon="calendar">
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+            {quickDates.map((q) => (
+              <Chip key={q.key} label={t(`tasks.date_${q.key}`)} selected={date === q.value} onPress={() => setDate(q.value)} />
+            ))}
+          </View>
+          <TextInput value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.date')} style={input(errors.date)} />
+          <FieldError message={showErrors ? errors.date : null} />
+        </Field>
 
-      {!isNew ? (
-        <Pressable onPress={onDelete} style={{ padding: spacing.md, borderRadius: radius.md, alignItems: 'center' }}>
-          <Text color="expense">{t('common.delete')}</Text>
-        </Pressable>
-      ) : null}
-    </Screen>
+        <Field label={t('tasks.time')} icon="clock">
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <TextInput value={startTime} onChangeText={setStartTime} placeholder="09:00" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.start_time')} style={[input(errors.startTime), { flex: 1 }]} />
+            <Text color="textTertiary">–</Text>
+            <TextInput value={endTime} onChangeText={setEndTime} placeholder="10:00" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.end_time')} style={[input(errors.endTime), { flex: 1 }]} />
+          </View>
+          <FieldError message={showErrors ? (errors.startTime ?? errors.endTime) : null} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 44 }}>
+            <Icon name="bell" size={16} color={canRemind ? 'primary' : 'textTertiary'} />
+            <Text variant="bodySm" color={canRemind ? 'text' : 'textTertiary'} style={{ flex: 1 }}>
+              {canRemind ? t('tasks.remind_at', { time: startTime }) : t('tasks.remind_needs_time')}
+            </Text>
+            <Toggle value={remind && canRemind} disabled={!canRemind} onValueChange={setRemind} label={t('tasks.reminder')} />
+          </View>
+        </Field>
+
+        <Field label={t('task.priority')} icon="flag">
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            {levels.map((l) => {
+              const tint = tints[priorityTint[l]];
+              const on = priority === l;
+              return (
+                <PressableScale
+                  key={l}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: on }}
+                  accessibilityLabel={t(`home.priority_${l}`)}
+                  onPress={() => setPriority(l)}
+                  style={{ flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, borderWidth: 1.5, borderColor: on ? tint.fg : colors.border, backgroundColor: on ? tint.bg : 'transparent' }}
+                >
+                  <Text variant="label" weight="semibold" tone={on ? tint.fg : colors.textSecondary}>{t(`home.priority_${l}`)}</Text>
+                </PressableScale>
+              );
+            })}
+          </View>
+        </Field>
+
+        <Field label={t('task.energy')} icon="battery-charging">
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            {energies.map((e) => (
+              <Chip key={e.key} icon={e.icon} label={t(`task.energy_${e.key}`)} selected={energy === e.key} onPress={() => setEnergy(energy === e.key ? null : e.key)} />
+            ))}
+          </View>
+        </Field>
+
+        {areas.length ? (
+          <Field label={t('tasks.project')} icon="folder">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
+              {areas.map((a) => (
+                <Chip key={a.id} label={th ? a.nameTh : a.nameEn} selected={areaId === a.id} onPress={() => setAreaId(areaId === a.id ? null : a.id)} />
+              ))}
+            </ScrollView>
+          </Field>
+        ) : null}
+
+        <Field label={`${t('task.checklist')}${checklist.length ? ` · ${checklist.filter((c) => c.done).length}/${checklist.length}` : ''}`} icon="check-square">
+          {checklist.map((item) => (
+            <View key={item.id} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+              <PressableScale
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: item.done }}
+                accessibilityLabel={item.text}
+                onPress={() => setChecklist((prev) => prev.map((c) => (c.id === item.id ? { ...c, done: !c.done } : c)))}
+                style={{ width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <View style={{ width: 20, height: 20, borderRadius: 6, borderWidth: 2, borderColor: item.done ? colors.success : colors.borderStrong, backgroundColor: item.done ? colors.success : 'transparent', alignItems: 'center', justifyContent: 'center' }}>
+                  {item.done ? <Icon name="check" size={12} tone={colors.onPrimary} /> : null}
+                </View>
+              </PressableScale>
+              <Text variant="body" color={item.done ? 'textTertiary' : 'text'} style={[{ flex: 1 }, item.done ? { textDecorationLine: 'line-through' } : null]}>{item.text}</Text>
+              <IconButton icon="x" label={t('tasks.remove_item', { text: item.text })} onPress={() => setChecklist((prev) => prev.filter((c) => c.id !== item.id))} />
+            </View>
+          ))}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <TextInput
+              value={newItem}
+              onChangeText={setNewItem}
+              onSubmitEditing={addItem}
+              returnKeyType="done"
+              placeholder={t('task.checklist_placeholder')}
+              placeholderTextColor={colors.textTertiary}
+              accessibilityLabel={t('task.checklist_placeholder')}
+              style={[input(), { flex: 1 }]}
+            />
+            <IconButton icon="plus" label={t('tasks.add_item')} color="primary" filled onPress={addItem} />
+          </View>
+        </Field>
+
+        {existing && !existing.isDone ? (
+          <Button variant="secondary" icon="target" label={t('focus.start_for_task')} onPress={() => router.push({ pathname: '/focus', params: { taskId: existing.id } })} />
+        ) : null}
+
+        {existing ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 44, padding: spacing.md, borderRadius: radius.lg, backgroundColor: isDone ? tints.done.bg : colors.surfaceMuted }}>
+            <Icon name="check-circle" size={18} tone={isDone ? tints.done.fg : colors.textSecondary} />
+            <Text variant="label" style={{ flex: 1 }}>{t('task.mark_done')}</Text>
+            <Toggle value={isDone} onValueChange={setIsDone} label={t('task.mark_done')} tone="success" />
+          </View>
+        ) : null}
+      </ScrollView>
+    </Sheet>
+  );
+}
+
+
+
+function NotFound({ onClose }: { onClose: () => void }) {
+  const { t } = useTranslation();
+  const { spacing } = useTheme();
+  return (
+    <Sheet onClose={onClose}>
+      <View style={{ alignItems: 'center', gap: spacing.md, padding: spacing.xxl }}>
+        <Mascot pose="search" size={104} />
+        <Text variant="heading" align="center">{t('task.not_found')}</Text>
+        <Text variant="bodySm" color="textSecondary" align="center">{t('tasks.not_found_body')}</Text>
+        <Button label={t('common.close')} variant="secondary" onPress={onClose} />
+      </View>
+    </Sheet>
   );
 }

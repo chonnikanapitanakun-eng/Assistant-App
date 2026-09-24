@@ -1,4 +1,4 @@
-# Proud Assistant
+# Veyra — Your life, handled.
 
 เลขาส่วนตัวภาษาไทย: จดบันทึก + ตารางงาน + รายรับรายจ่าย + AI
 Expo (React Native) · TypeScript · SQLite (Drizzle) · Supabase (Phase 2)
@@ -26,13 +26,13 @@ npm run db:generate     # หลังแก้ src/db/schema.ts
 ## Structure
 
 ```
-src/app/          Expo Router screens  ((tabs)/, capture.tsx)
-src/components/   UI primitives (Screen, Text, Card, Fab)
+src/app/          Expo Router screens  ((tabs)/, capture.tsx, assistant.tsx)
+src/components/   ui/ (design-system primitives), brand/ (logo, mascot), navigation/ (tab bar, sidebar)
 src/db/           Drizzle schema, migrations, FTS, seed
 src/features/     tasks / notes / money / contacts / areas / search / ai
 src/i18n/         th.json, en.json
 src/lib/          date, currency, ids
-src/theme/        tokens (Navy/Silver), useTheme
+src/theme/        Veyra design tokens (colour, type, spacing, radius, shadow, motion), useTheme, useBreakpoint
 supabase/         Edge Functions (AI)
 docs/             SPEC, ROADMAP
 ```

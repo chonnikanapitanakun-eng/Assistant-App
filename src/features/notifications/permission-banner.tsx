@@ -1,12 +1,12 @@
 import { useTranslation } from 'react-i18next';
-import { Linking, Pressable } from 'react-native';
+import { Linking, View } from 'react-native';
 
-import { Card, Text } from '@/components/ui';
+import { Button, Icon, Text } from '@/components/ui';
 import { useTheme } from '@/theme';
 
 import { useNotificationPermission } from './use-notification-permission';
 
-/** แจ้งเตือน user ให้เปิด notification permission ถ้ายังไม่ได้ให้ — ซ่อนเองถ้า granted หรือยังไม่รู้สถานะ */
+/** Asks for notification permission in context. Hidden when granted or status is unknown. */
 export function NotificationPermissionBanner() {
   const { t } = useTranslation();
   const { colors, radius, spacing } = useTheme();
@@ -20,11 +20,14 @@ export function NotificationPermissionBanner() {
   };
 
   return (
-    <Card style={{ borderColor: colors.warning }}>
-      <Text variant="caption" color="textSecondary">{t('notifications.permission_banner')}</Text>
-      <Pressable onPress={onPress} style={{ alignSelf: 'flex-start', marginTop: spacing.xs, paddingVertical: spacing.xs, paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: colors.primary }}>
-        <Text color="onPrimary" variant="caption">{t(state === 'denied' ? 'notifications.open_settings' : 'notifications.enable')}</Text>
-      </Pressable>
-    </Card>
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.aiWash, borderRadius: radius.lg, padding: spacing.lg }}>
+      <View style={{ width: 36, height: 36, borderRadius: 12, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' }}>
+        <Icon name="bell" size={18} />
+      </View>
+      <View style={{ flex: 1, gap: spacing.sm }}>
+        <Text variant="bodySm">{t('notifications.permission_banner')}</Text>
+        <Button size="sm" variant="secondary" label={t(state === 'denied' ? 'notifications.open_settings' : 'notifications.enable')} onPress={onPress} />
+      </View>
+    </View>
   );
 }

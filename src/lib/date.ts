@@ -35,3 +35,11 @@ export function greetingKey(d: Date = new Date()): 'greeting_morning' | 'greetin
   if (h < 17) return 'greeting_afternoon';
   return 'greeting_evening';
 }
+
+/** Whole days from `today` to a YYYY-MM-DD key (local time). */
+export function daysFromToday(dateKey: string, today: Date = new Date()): number {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const a = new Date(y, m - 1, d).getTime();
+  const b = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+  return Math.round((a - b) / 86_400_000);
+}

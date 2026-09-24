@@ -1,66 +1,89 @@
-import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, View } from 'react-native';
+import { View } from 'react-native';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 
-import { Card, Screen, Text } from '@/components/ui';
-import { useTodayMoney } from '@/features/money/queries';
-import { NotificationPermissionBanner } from '@/features/notifications';
-import { useTasksForDate } from '@/features/tasks/queries';
-import { formatMoney } from '@/lib/currency';
-import { greetingKey, toDateKey } from '@/lib/date';
-import { useTheme } from '@/theme';
+import { VeyraLockup } from '@/components/brand/logo';
+import { Avatar, IconButton, PressableScale, Screen } from '@/components/ui';
+import { AssistantCard } from '@/features/home/components/assistant-card';
+import { AttentionTasks } from '@/features/home/components/attention-tasks';
+import { Bills } from '@/features/home/components/bills';
+import { Greeting } from '@/features/home/components/greeting';
+import { QuickCapture } from '@/features/home/components/quick-capture';
+import { Schedule } from '@/features/home/components/schedule';
+import { useProfile } from '@/features/profile/store';
+import { useBreakpoint, useTheme } from '@/theme';
 
-export default function TodayScreen() {
+/** Staggered, subtle entrance (≈300ms, ease-out). */
+function Reveal({ children, index }: { children: ReactNode; index: number }) {
+  const { motion } = useTheme();
+  return <Animated.View entering={FadeInDown.duration(motion.base).delay(index * 50)}>{children}</Animated.View>;
+}
+
+export default function HomeScreen() {
   const { t } = useTranslation();
-  const { colors } = useTheme();
-  const today = toDateKey();
-  const tasks = useTasksForDate(today);
-  const money = useTodayMoney(today);
-  const remaining = tasks.filter((x) => !x.isDone).length;
+  const name = useProfile((p) => p.name);
+  const interests = useProfile((p) => p.interests);
+  // Home only shows the areas picked during onboarding.
+  const show = { tasks: interests.includes('tasks'), calendar: interests.includes('calendar'), money: interests.includes('money') };
+  const { bp, isDesktop } = useBreakpoint();
+  const { spacing } = useTheme();
+  const columns = bp !== 'mobile';
+
+  const header = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+      {isDesktop ? (
+        <View />
+      ) : (
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginLeft: -spacing.sm }}>
+          <IconButton icon="menu" label={t('more.title')} onPress={() => router.push('/more')} />
+          <VeyraLockup size={30} />
+        </View>
+      )}
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+        <IconButton icon="search" label="Search" />
+        <IconButton icon="bell" label="Notifications" />
+        <PressableScale accessibilityRole="button" accessibilityLabel={t('settings.title')} onPress={() => router.push('/settings')} style={{ borderRadius: 22 }}>
+          <Avatar name={name || 'V'} size={40} />
+        </PressableScale>
+      </View>
+    </View>
+  );
+
+  if (columns) {
+    return (
+      <Screen>
+        {header}
+        <Reveal index={0}><Greeting /></Reveal>
+        <Reveal index={1}><QuickCapture /></Reveal>
+        <View style={{ flexDirection: 'row', gap: spacing.xxl, alignItems: 'flex-start' }}>
+          <View style={{ flex: 1.35, gap: spacing.xxl }}>
+            {show.calendar ? <Reveal index={2}><Schedule /></Reveal> : null}
+            {show.money ? <Reveal index={3}><Bills /></Reveal> : null}
+          </View>
+          <View style={{ flex: 1, gap: spacing.xxl }}>
+            <Reveal index={2}><AssistantCard /></Reveal>
+            {show.tasks ? <Reveal index={3}><AttentionTasks /></Reveal> : null}
+          </View>
+        </View>
+      </Screen>
+    );
+  }
 
   return (
-    <Screen>
-      <Text variant="title">{t(`today.${greetingKey()}`)}</Text>
-      <Text color="textSecondary">{today}</Text>
-
-      <NotificationPermissionBanner />
-
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <Card style={{ flex: 1 }}>
-          <Text variant="caption" color="textSecondary">{t('today.tasks_left')}</Text>
-          <Text variant="title">{remaining}</Text>
-        </Card>
-        <Card style={{ flex: 1 }}>
-          <Text variant="caption" color="textSecondary">{t('today.spent_today')}</Text>
-          <Text variant="title" color="expense">{formatMoney(money.today)}</Text>
-        </Card>
+    <View style={{ flex: 1 }}>
+      <Screen bottomInset={96}>
+        {header}
+        <Reveal index={0}><Greeting /></Reveal>
+        {show.calendar ? <Reveal index={1}><Schedule /></Reveal> : null}
+        {show.tasks ? <Reveal index={2}><AttentionTasks /></Reveal> : null}
+        {show.money ? <Reveal index={3}><Bills /></Reveal> : null}
+        <Reveal index={4}><AssistantCard /></Reveal>
+      </Screen>
+      <View pointerEvents="box-none" style={{ position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.xxxl + spacing.xs }}>
+        <QuickCapture />
       </View>
-
-      <Card>
-        <Text variant="caption" color="textSecondary">{t('today.spent_month')}</Text>
-        <Text variant="heading">{formatMoney(money.month)}</Text>
-      </Card>
-
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text variant="heading">{t('tabs.plan')}</Text>
-        <Pressable onPress={() => router.push('/task/new')} hitSlop={8}>
-          <Ionicons name="add-circle-outline" size={26} color={colors.primary} />
-        </Pressable>
-      </View>
-
-      {tasks.length === 0 ? (
-        <Text color="textSecondary" style={{ textAlign: 'center', marginTop: 24 }}>{t('today.empty')}</Text>
-      ) : (
-        tasks.map((task) => (
-          <Pressable key={task.id} onPress={() => router.push(`/task/${task.id}`)}>
-            <Card>
-              <Text style={task.isDone ? { textDecorationLine: 'line-through' } : undefined}>{task.title}</Text>
-              {task.startTime ? <Text variant="caption" color="textSecondary">{task.startTime}{task.endTime ? ` – ${task.endTime}` : ''}</Text> : null}
-            </Card>
-          </Pressable>
-        ))
-      )}
-    </Screen>
+    </View>
   );
 }

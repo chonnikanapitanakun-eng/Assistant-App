@@ -1,4 +1,15 @@
+export { Avatar } from './avatar';
+export { Button } from './button';
 export { Card } from './card';
-export { Fab } from './fab';
+export { Chip } from './chip';
+export { Field, FieldError, useInputStyle } from './form';
+export { Gradient } from './gradient';
+export { Icon, type IconName } from './icon';
+export { IconButton } from './icon-button';
+export { PressableScale } from './pressable-scale';
 export { Screen } from './screen';
+export { SectionHeader } from './section-header';
+export { Sheet } from './sheet';
+export { Tag } from './tag';
 export { Text } from './text';
+export { Toggle } from './toggle';
