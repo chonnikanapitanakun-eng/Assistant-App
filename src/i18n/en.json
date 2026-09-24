@@ -9,7 +9,31 @@
     "spent_month": "Spent this month",
     "empty": "Nothing yet today. Tap + to start."
   },
-  "plan": { "day": "Day", "week": "Week", "month": "Month", "today": "Today", "previous": "Previous", "next": "Next", "anytime": "Anytime", "no_tasks": "No tasks", "drag_hint": "Long-press a task and drag to change its time" },
+  "plan": { "day": "Day", "week": "Week", "month": "Month", "today": "Today", "previous": "Previous", "next": "Next", "anytime": "Anytime", "no_tasks": "No tasks", "drag_hint": "Tap a task to open · long-press and drag to change its time" },
+  "task": {
+    "new_title": "New Task",
+    "edit_title": "Edit Task",
+    "title_placeholder": "Task title",
+    "notes_placeholder": "Add more details",
+    "date": "Date",
+    "start_time": "Start time",
+    "end_time": "End time",
+    "priority": "Priority",
+    "priority_1": "High",
+    "priority_2": "Normal",
+    "priority_3": "Low",
+    "energy": "Energy",
+    "energy_low": "Low",
+    "energy_med": "Med",
+    "energy_high": "High",
+    "mark_done": "Mark as done",
+    "checklist": "Checklist",
+    "checklist_placeholder": "Add a checklist item",
+    "delete_confirm_title": "Delete this task?",
+    "delete_confirm_message": "This cannot be undone.",
+    "not_found": "Task not found",
+    "title_required": "Please enter a title"
+  },
   "notes": { "empty": "No notes yet", "new": "New note", "search": "Search notes" },
   "money": { "income": "Income", "expense": "Expense", "balance": "Balance", "wallets": "Wallets", "add": "Add transaction" },
   "capture": {
@@ -19,5 +43,10 @@
     "cancel": "Cancel",
     "preview": "Review before saving"
   },
-  "common": { "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit", "done": "Done", "loading": "Loading..." }
+  "common": { "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit", "done": "Done", "loading": "Loading..." },
+  "notifications": {
+    "permission_banner": "Turn on notifications to get reminders when tasks are due",
+    "enable": "Enable notifications",
+    "open_settings": "Open settings"
+  }
 }

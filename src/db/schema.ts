@@ -68,6 +68,7 @@ export const tasks = sqliteTable(
     routineId: text('routine_id'),
     checklist: text('checklist', { mode: 'json' }).$type<{ id: string; text: string; done: boolean }[]>(),
     reminderAt: integer('reminder_at'),
+    reminderNotificationId: text('reminder_notification_id'),
     sortOrder: integer('sort_order').notNull().default(0),
   },
   (t) => [index('tasks_date_idx').on(t.date), index('tasks_done_idx').on(t.isDone)],

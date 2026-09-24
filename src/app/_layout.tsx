@@ -10,9 +10,12 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { useDatabase } from '@/db';
 import { Text } from '@/components/ui';
+import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
 import { useTheme } from '@/theme';
 
 void SplashScreen.preventAutoHideAsync();
+configureNotificationHandler();
+void configureAndroidChannel();
 
 const queryClient = new QueryClient();
 
@@ -48,6 +51,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="capture" options={{ presentation: 'modal', headerShown: true, title: '' }} />
+            <Stack.Screen name="task/[id]" options={{ headerShown: true, title: '' }} />
           </Stack>
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </ThemeProvider>

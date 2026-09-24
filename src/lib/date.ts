@@ -17,6 +17,15 @@ export function addDays(d: Date, n: number): Date {
   return r;
 }
 
+/** รวม date (YYYY-MM-DD) + time (HH:mm) เป็น epoch ms ตาม local time, คืน undefined ถ้าข้อมูลไม่ครบหรือ parse ไม่ได้ */
+export function combineDateTime(date?: string, time?: string): number | undefined {
+  if (!date || !time) return undefined;
+  const [y, m, d] = date.split('-').map(Number);
+  const [h, min] = time.split(':').map(Number);
+  if ([y, m, d, h, min].some((n) => !Number.isFinite(n))) return undefined;
+  return new Date(y, m - 1, d, h, min).getTime();
+}
+
 /** ค.ศ. → พ.ศ. */
 export const toBuddhistYear = (year: number): number => year + 543;
 
