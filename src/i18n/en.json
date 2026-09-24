@@ -119,5 +119,29 @@
     "permission_banner": "Turn on notifications to get reminders when tasks are due",
     "enable": "Enable notifications",
     "open_settings": "Open settings"
+  },
+  "task": {
+    "new_title": "New Task",
+    "edit_title": "Edit Task",
+    "title_placeholder": "Task title",
+    "notes_placeholder": "Add more details",
+    "date": "Date",
+    "start_time": "Start time",
+    "end_time": "End time",
+    "priority": "Priority",
+    "priority_1": "High",
+    "priority_2": "Normal",
+    "priority_3": "Low",
+    "energy": "Energy",
+    "energy_low": "Low",
+    "energy_med": "Med",
+    "energy_high": "High",
+    "mark_done": "Mark as done",
+    "checklist": "Checklist",
+    "checklist_placeholder": "Add a checklist item",
+    "delete_confirm_title": "Delete this task?",
+    "delete_confirm_message": "This cannot be undone.",
+    "not_found": "Task not found",
+    "title_required": "Please enter a title"
   }
 }

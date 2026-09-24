@@ -56,6 +56,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="capture" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="assistant" options={{ presentation: 'modal' }} />
+            <Stack.Screen name="task/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
           </Stack>
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </ThemeProvider>
