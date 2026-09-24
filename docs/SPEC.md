@@ -125,7 +125,7 @@ App นี้ต้องทำ 3 อย่างให้เหนือกว�
 | Cloud | Supabase (Auth, Postgres, Storage, Edge Functions) | backup, sync, login Apple/Google |
 | State | Zustand + TanStack Query | เบา |
 | AI | Claude API ผ่าน Supabase Edge Function | API key ไม่อยู่ในเครื่อง user |
-| UI | NativeWind (Tailwind) | theme Navy/Silver |
+| UI | RN StyleSheet + design tokens (`src/theme`) | เบา ไม่ผูก dependency; ค่อยพิจารณา NativeWind เมื่อ UI โตขึ้น |
 | i18n | i18next + react-i18next | ไทย/อังกฤษ |
 
 ### 6.2 โครงสร้างโฟลเดอร์

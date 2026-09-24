@@ -1,0 +1,23 @@
+{
+  "tabs": { "today": "Today", "plan": "Plan", "notes": "Notes", "money": "Money" },
+  "today": {
+    "greeting_morning": "Good morning",
+    "greeting_afternoon": "Good afternoon",
+    "greeting_evening": "Good evening",
+    "tasks_left": "Tasks left today",
+    "spent_today": "Spent today",
+    "spent_month": "Spent this month",
+    "empty": "Nothing yet today. Tap + to start."
+  },
+  "plan": { "day": "Day", "week": "Week", "month": "Month" },
+  "notes": { "empty": "No notes yet", "new": "New note", "search": "Search notes" },
+  "money": { "income": "Income", "expense": "Expense", "balance": "Balance", "wallets": "Wallets", "add": "Add transaction" },
+  "capture": {
+    "title": "Quick capture",
+    "placeholder": "Type anything, e.g. lunch 80 or Fri 10am client meeting",
+    "submit": "Save",
+    "cancel": "Cancel",
+    "preview": "Review before saving"
+  },
+  "common": { "save": "Save", "cancel": "Cancel", "delete": "Delete", "edit": "Edit", "done": "Done", "loading": "Loading..." }
+}

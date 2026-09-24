@@ -10,14 +10,16 @@
 
 ## Phase 0 — Foundation
 
-- [ ] Expo + TypeScript + Expo Router
-- [ ] NativeWind + theme (Navy/Silver, dark/light)
-- [ ] i18n (th/en) โครง
-- [ ] expo-sqlite + Drizzle schema ทุกตาราง + migrations
-- [ ] FTS5 virtual table + trigger
-- [ ] Tab navigation 4 tab (Today / Plan / Notes / Money) + Capture button
-- [ ] Seed: areas, categories ภาษาไทย, wallet เริ่มต้น
-- [ ] Lint / typecheck / test script
+- [x] Expo + TypeScript + Expo Router
+- [x] Theme tokens (Navy/Silver, dark/light)
+- [x] i18n (th/en) โครง
+- [x] expo-sqlite + Drizzle schema ทุกตาราง + migrations
+- [x] FTS5 virtual table + trigger
+- [x] Tab navigation 4 tab (Today / Plan / Notes / Money) + Capture button
+- [x] Seed: areas, categories ภาษาไทย, wallet เริ่มต้น
+- [x] Lint / typecheck / test script
+- [x] Quick Capture แบบ rule-based (offline fallback) + preview + save
+- [ ] ทดสอบบนเครื่องจริง (development build)
 
 ## Phase 1 — MVP
 
