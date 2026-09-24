@@ -8,6 +8,7 @@ import { Button, Chip, Gradient, Icon, IconButton, PressableScale, Text, type Ic
 import type { Note } from '@/db';
 import { saveCaptureItems } from '@/features/ai/save';
 import { DetectedItem } from '@/features/capture/detected-item';
+import { RelatedSection } from '@/features/links/components/related-section';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme } from '@/theme';
 
@@ -205,6 +206,8 @@ function NoteForm({ note, startInEdit, onBack, onDeleted }: Props & { note: Note
             <Text variant="body" color="textTertiary">{t('notes.body_placeholder')}</Text>
           </PressableScale>
         )}
+
+        <RelatedSection self={{ type: 'note', id: note.id }} />
 
         <View style={{ height: 1, backgroundColor: colors.border, marginTop: spacing.xl }} />
         <View style={{ alignSelf: 'flex-start' }}>
