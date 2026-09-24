@@ -1,5 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
@@ -7,8 +7,10 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Gradient, IconButton, PressableScale, Sheet, Text, type IconName } from '@/components/ui';
 import { parseCaptureLocally } from '@/features/ai/capture';
+import { captureRemote, captureRemoteEnabled } from '@/features/ai/remote';
 import { saveCaptureItems } from '@/features/ai/save';
 import type { CaptureItem } from '@/features/ai/types';
+import { useCaptureContext } from '@/features/ai/use-capture-context';
 import { DetectedItem } from '@/features/capture/detected-item';
 import { useTheme } from '@/theme';
 
@@ -42,15 +44,46 @@ export default function CaptureScreen() {
   const [moneyType, setMoneyType] = useState<Record<string, 'income' | 'expense'>>({});
   const [mediaHint, setMediaHint] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
+  const [remote, setRemote] = useState<{ text: string; items: CaptureItem[] } | null>(null);
+  const [thinking, setThinking] = useState(false);
+  const captureContext = useCaptureContext();
+  const abortRef = useRef<AbortController | null>(null);
+
+  // Claude refines the instant local parse once typing pauses. Any failure keeps the local result.
+  useEffect(() => {
+    if (!captureRemoteEnabled || phase.kind !== 'edit') return;
+    const value = text.trim();
+    if (!value) return; // a stale `remote` is ignored because it is keyed by text
+    const controller = new AbortController();
+    abortRef.current?.abort();
+    abortRef.current = controller;
+    const id = setTimeout(async () => {
+      setThinking(true);
+      try {
+        const res = await captureRemote(value, captureContext(), controller.signal);
+        if (!controller.signal.aborted && res.items.length) setRemote({ text: value, items: res.items });
+      } catch {
+        // offline / rate-limited / upstream error → local parse stays
+      } finally {
+        setThinking(false); // an aborted request also clears it; the next one sets it again
+      }
+    }, 700);
+    return () => {
+      clearTimeout(id);
+      controller.abort();
+    };
+  }, [text, phase.kind, captureContext]);
 
   const detected = useMemo(() => {
-    return parseCaptureLocally(text).map((item, i) => {
+    const base = remote && remote.text === text.trim() ? remote.items : parseCaptureLocally(text);
+    return base.map((item, i) => {
       const key = `${i}:${item.type === 'income' ? 'expense' : item.type}`;
       const override = moneyType[key];
       const resolved: CaptureItem = override && (item.type === 'income' || item.type === 'expense') ? { ...item, type: override } : item;
       return { key, item: resolved };
     });
-  }, [text, moneyType]);
+  }, [text, moneyType, remote]);
+  const fromClaude = !!remote && remote.text === text.trim();
   const selected = detected.filter((d) => !excluded.has(d.key));
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
@@ -141,6 +174,11 @@ export default function CaptureScreen() {
                 <Text variant="overline" color="primary" accessibilityLiveRegion="polite">
                   {t('capture.found', { count: detected.length }).toUpperCase()}
                 </Text>
+                {thinking || fromClaude ? (
+                  <Text variant="caption" color="textTertiary" style={{ marginLeft: 'auto' }}>
+                    {thinking ? t('capture.thinking') : t('capture.by_claude')}
+                  </Text>
+                ) : null}
               </View>
               {detected.map((d) => (
                 <Animated.View key={d.key} entering={FadeInDown.duration(motion.fast)}>

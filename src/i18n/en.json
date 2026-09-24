@@ -186,6 +186,8 @@
     "error_title": "That didn't save",
     "error_body": "Nothing was lost — your text is still here. Please try again.",
     "try_again": "Try again",
+    "thinking": "Thinking…",
+    "by_claude": "Sorted by Veyra AI",
     "media_voice": "Voice capture arrives with the next app build.",
     "media_photo": "Photo capture (receipts, whiteboards) arrives with the next app build.",
     "media_document": "Document capture arrives with the next app build."

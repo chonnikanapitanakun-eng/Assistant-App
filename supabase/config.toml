@@ -1,0 +1,28 @@
+# Supabase project config — `supabase link --project-ref <ref>` then `supabase functions deploy`.
+# Only the settings the app depends on are pinned here; everything else uses the CLI defaults.
+project_id = "veyra"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+
+[db]
+port = 54322
+major_version = 17
+
+[auth]
+enabled = true
+# Phase 2 adds Apple / Google sign-in; until then the anon key is enough for Edge Functions.
+
+[edge_runtime]
+enabled = true
+policy = "per_worker"
+
+# Phase 1: no login yet, so the app calls with the anon key only.
+# Flip to true in Phase 2 once Supabase Auth ships and the app sends a user JWT.
+[functions.ai-capture]
+verify_jwt = false
+
+[functions.assistant]
+verify_jwt = false
