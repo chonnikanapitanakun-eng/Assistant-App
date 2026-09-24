@@ -2,10 +2,11 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { Icon, PressableScale, Text, type IconName } from '@/components/ui';
-import { greetingKey } from '@/lib/date';
+import { useAllTasks } from '@/features/tasks/queries';
+import { greetingKey, toDateKey } from '@/lib/date';
 import { useBreakpoint, useTheme, type TintName } from '@/theme';
 
-import { bills, events, mockNow, tasksToday, user } from '../mock';
+import { bills, events, mockNow, user } from '../mock';
 
 const meetings = events.filter((e) => e.kind === 'meeting').length;
 const billsToday = bills.filter((b) => b.dueToday).length;
@@ -14,6 +15,8 @@ export function Greeting() {
   const { t, i18n } = useTranslation();
   const { spacing } = useTheme();
   const { isMobile } = useBreakpoint();
+  const today = toDateKey();
+  const tasksToday = useAllTasks().filter((x) => !x.isDone && x.date === today).length;
   const date = mockNow.toLocaleDateString(i18n.language === 'th' ? 'th-TH' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
   const emoji = greetingKey(mockNow) === 'greeting_evening' ? '🌙' : '☀️';
 

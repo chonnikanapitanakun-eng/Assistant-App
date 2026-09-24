@@ -1,13 +1,11 @@
 import type { TintName } from '@/theme';
 
 /**
- * Prototype data for the Home dashboard. Replace with live queries
- * (tasks / events / bills) once those screens are built.
+ * Prototype data for the Home dashboard (events, bills). Tasks are live.
+ * Replace the rest with queries once Calendar and Money are built.
  */
 export type EventKind = 'meeting' | 'focus' | 'personal';
 export type HomeEvent = { id: string; start: string; end: string; title: string; meta?: string; kind: EventKind };
-export type Priority = 'high' | 'medium' | 'low';
-export type HomeTask = { id: string; title: string; due: string; project?: string; priority: Priority; overdue?: boolean };
 export type HomeBill = { id: string; name: string; amount: number; currency: string; due: string; dueToday: boolean; icon: 'home' | 'zap' | 'repeat' };
 
 /** Fixed "now" so the prototype always looks the same. */
@@ -28,14 +26,6 @@ export const events: HomeEvent[] = [
   { id: 'e6', start: '16:30', end: '17:00', title: 'Tax planning call', meta: 'Somchai Trading Co., Ltd.', kind: 'meeting' },
 ];
 
-export const tasksToday = 7;
-
-export const attentionTasks: HomeTask[] = [
-  { id: 't1', title: 'Send engagement letter', due: 'Overdue · 1 day', project: 'Client · John', priority: 'high', overdue: true },
-  { id: 't2', title: 'Prepare VAT reconciliation', due: 'Today', project: 'Client · John', priority: 'high' },
-  { id: 't3', title: 'Review CIMA SCS case notes', due: 'Today · 30 min', project: 'Study', priority: 'medium' },
-];
-
 export const bills: HomeBill[] = [
   { id: 'b1', name: 'Council Tax', amount: 142, currency: 'GBP', due: 'Due today', dueToday: true, icon: 'home' },
   { id: 'b2', name: 'Electricity (MEA)', amount: 1240, currency: 'THB', due: 'Due today', dueToday: true, icon: 'zap' },
@@ -43,7 +33,6 @@ export const bills: HomeBill[] = [
 ];
 
 export const eventTint: Record<EventKind, TintName> = { meeting: 'meeting', focus: 'focus', personal: 'personal' };
-export const priorityTint: Record<Priority, TintName> = { high: 'priorityHigh', medium: 'priorityMedium', low: 'priorityLow' };
 
 export const toMinutes = (hhmm: string) => {
   const [h, m] = hhmm.split(':').map(Number);

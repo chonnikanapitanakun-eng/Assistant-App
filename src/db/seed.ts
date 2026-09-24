@@ -1,9 +1,10 @@
 import { count } from 'drizzle-orm';
 
+import { addDays, toDateKey } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
 
 import type { Db } from './client';
-import { areas, categories, wallets } from './schema';
+import { areas, categories, tasks, wallets } from './schema';
 
 const stamp = () => {
   const t = now();
@@ -62,19 +63,43 @@ export const defaultWallets = [
   { name: 'UK Bank (GBP)', type: 'bank' as const, currency: 'GBP', color: '#4F79B8' },
 ];
 
+/** A few realistic tasks so a fresh install shows the Tasks screen at work. Keyed by child area nameEn. */
+function sampleTasks(today: Date) {
+  const day = (n: number) => toDateKey(addDays(today, n));
+  const check = (text: string, done = false) => ({ id: newId(), text, done });
+  return [
+    { title: 'Send engagement letter', date: day(-1), priority: 1, area: 'Clients' },
+    { title: 'Prepare VAT reconciliation', date: day(0), startTime: '13:00', endTime: '15:00', priority: 1, energy: 'high' as const, area: 'Tax',
+      checklist: [check('Export bank feed from Xero', true), check('Match purchase invoices'), check('Review VAT control account')] },
+    { title: 'Review CIMA SCS case notes', date: day(0), priority: 2, energy: 'med' as const, area: 'CIMA' },
+    { title: 'Reply to client about bank feed', date: day(0), startTime: '16:00', priority: 2, area: 'Clients' },
+    { title: 'Book dentist appointment', date: day(0), priority: 3, area: 'Health', isDone: true },
+    { title: 'Renew UK car insurance', date: day(2), priority: 2, area: 'Finance' },
+    { title: 'Draft Q4 marketing post', date: day(5), priority: 3, energy: 'low' as const, area: 'Marketing' },
+    { title: 'Read “The Psychology of Money” ch. 3', priority: 3, energy: 'low' as const, area: 'Reading' },
+  ];
+}
+
 export function seedIfEmpty(db: Db) {
   const [{ value: areaCount }] = db.select({ value: count() }).from(areas).all();
   if (areaCount > 0) return;
 
   db.transaction((tx) => {
+    const areaIds = new Map<string, string>();
     let order = 0;
     for (const a of defaultAreas) {
       const parentId = newId();
       tx.insert(areas).values({ id: parentId, nameTh: a.nameTh, nameEn: a.nameEn, color: a.color, icon: a.icon, sortOrder: order++, ...stamp() }).run();
       for (const c of a.children) {
-        tx.insert(areas).values({ id: newId(), nameTh: c.nameTh, nameEn: c.nameEn, parentId, color: a.color, sortOrder: order++, ...stamp() }).run();
+        const id = newId();
+        areaIds.set(c.nameEn, id);
+        tx.insert(areas).values({ id, nameTh: c.nameTh, nameEn: c.nameEn, parentId, color: a.color, sortOrder: order++, ...stamp() }).run();
       }
     }
+    sampleTasks(new Date()).forEach(({ area, isDone, ...task }, i) => {
+      const s = stamp();
+      tx.insert(tasks).values({ id: newId(), ...task, areaId: areaIds.get(area) ?? null, isDone: !!isDone, doneAt: isDone ? s.createdAt : null, sortOrder: i, ...s }).run();
+    });
     defaultCategories.forEach((c, i) => {
       tx.insert(categories).values({ id: newId(), ...c, sortOrder: i, ...stamp() }).run();
     });

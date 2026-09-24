@@ -8,5 +8,7 @@ export { IconButton } from './icon-button';
 export { PressableScale } from './pressable-scale';
 export { Screen } from './screen';
 export { SectionHeader } from './section-header';
+export { Sheet } from './sheet';
 export { Tag } from './tag';
 export { Text } from './text';
+export { Toggle } from './toggle';
