@@ -12,6 +12,7 @@ Expo (React Native) · TypeScript · SQLite (Drizzle) · Supabase (Phase 2)
 npm install
 npx expo start          # dev server (Expo Go ไม่พอ ต้องใช้ development build เพราะมี expo-sqlite)
 npx expo run:android    # หรือ run:ios บน macOS
+npx expo start --web    # เว็บ: ข้อมูลเก็บใน browser (OPFS) — ยังไม่มี FTS5 จึงค้นหา (Search) ไม่เจออะไร และไม่มี notification
 ```
 
 ## Checks

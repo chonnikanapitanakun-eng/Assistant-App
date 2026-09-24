@@ -34,29 +34,27 @@ relation ที่ไม่รู้จักจะแสดงเป็น "เ
 ```
 self = { type: 'task', id }
    │
-   ├─ 1. links WHERE (from = self) OR (to = self) AND deleted_at IS NULL   ← live (useLiveQuery)
+   ├─ 1. links WHERE (from = self) OR (to = self) AND deleted_at IS NULL   ← live (useDbQuery)
    │        ↓ otherEnd(link, self)  →  { ref, direction: 'out' | 'in' }
-   ├─ 2. resolveRefs(refs)  →  1 query ต่อ type: SELECT … WHERE id IN (…)  ← sync
+   ├─ 2. resolveRefs(refs)  →  1 query ต่อ type: SELECT … WHERE id IN (…)  ← async, ใน query เดียวกัน
    │        ↓ describe({ type, row }, lang)  →  { title, subtitle }
    └─ 3. sortRelated()  →  contact, event, task, transaction, note, area
 ```
 
 | API (`queries.ts`) | ใช้เมื่อ |
 |---|---|
-| `useRelated(self)` | UI — live list, re-run เมื่อตาราง `links` เปลี่ยน; ส่ง `null` สำหรับ record ที่ยังไม่ save |
-| `getRelated(self, lang)` | นอก React — Veyra engine, `ai-prep-meeting` (Phase 4) |
+| `useRelated(self)` | UI — live list, re-run หลังการเขียน DB ทุกครั้ง; ส่ง `null` สำหรับ record ที่ยังไม่ save |
+| `getRelated(self, lang)` | นอก React (async) — Veyra engine, `ai-prep-meeting` (Phase 4) |
 | `useLinkCandidates(type, q, self)` | picker — ค้นชื่อแบบ substring, ตัด `self` ออก |
 | `addLink(from, to, relation?)` | idempotent — ถ้ามี link (ทิศใดก็ได้) อยู่แล้วคืน id เดิม; relation default = `with` ถ้าปลายทางเป็นคน |
 | `removeLink(linkId)` | soft delete |
 
-Helper เดิมใน `features/contacts/links.ts` (`setLinkedContact`, `findOrCreateContact`) ยังใช้ได้เหมือนเดิม — เป็น writer เฉพาะเคส "1 คนต่อ record"
+Helper ใน `features/contacts/links.ts` (`linkedContactWrites`, `resolveContact`) เป็นเคสเฉพาะ "1 คนต่อ record" — อ่านก่อนแล้ว *คืน* statement ให้ผู้เรียก `commit([...])` รวมกับ insert ของตัวเองใน batch เดียว (ดู `src/db/client.ts` ว่าทำไมไม่ใช้ `db.transaction()`)
 
 ### Trade-off ที่ตั้งใจ
 
-- `useLiveQuery` ของ drizzle/expo-sqlite ฟังการเปลี่ยนแปลง **เฉพาะตารางหลัก** ของ query (`links`) ดังนั้น
-  - เพิ่ม/ลบ link → อัปเดตทันที ✅
-  - แก้ชื่อ record ปลายทาง → list ไม่ refresh จนกว่า component จะ mount ใหม่ (sheet ปิด/เปิด) — ยอมรับได้ใน Phase 1
-- ไม่ใช้ `UNION ALL` ข้าม 6 ตารางใน query เดียว เพราะ `useLiveQuery` ไม่รองรับ raw SQL / subquery และ shape ของแต่ละตารางต่างกันมาก — resolve ทีละ type อ่านง่ายและเทสได้
+- `useDbQuery` (`src/db/query.ts`) re-run ทุก query ที่ mount อยู่หลังการเขียน DB **ใดๆ** ดังนั้นทั้งเพิ่ม/ลบ link และแก้ชื่อ record ปลายทางอัปเดตทันที ✅ — แลกกับการ refetch กว้างกว่าที่จำเป็น (ถูกสำหรับข้อมูลส่วนตัวขนาดนี้)
+- ไม่ใช้ `UNION ALL` ข้าม 6 ตารางใน query เดียว เพราะ shape ของแต่ละตารางต่างกันมาก — resolve ทีละ type อ่านง่ายและเทสได้
 - ปลายทางที่ถูก soft-delete จะหายจาก list เอง (resolve ไม่เจอ) โดยไม่ต้องลบ link ตาม → undo ในอนาคตทำได้
 
 ## 3. UI — `RelatedSection`
