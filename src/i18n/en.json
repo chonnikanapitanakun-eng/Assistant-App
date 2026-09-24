@@ -82,7 +82,9 @@
     "capture_voice": "Capture by voice",
     "capture_photo": "Capture a photo",
     "capture_document": "Attach a document",
-    "capture_send": "Send to Veyra"
+    "capture_send": "Send to Veyra",
+    "all_caught_up": "All caught up",
+    "all_caught_up_body": "Nice work — nothing urgent left today."
   },
   "assistant": {
     "hello": "Good morning, {{name}}. I've organised your day. What would you like to do next?",

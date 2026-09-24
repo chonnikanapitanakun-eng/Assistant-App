@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
+import { Mascot } from '@/components/brand/mascot';
 import { Card, Icon, PressableScale, SectionHeader, Tag, Text } from '@/components/ui';
 import { useTheme } from '@/theme';
 
@@ -12,6 +13,7 @@ export function AttentionTasks() {
   const { t } = useTranslation();
   const { spacing } = useTheme();
   const [done, setDone] = useState<Record<string, boolean>>({});
+  const allDone = attentionTasks.every((task) => done[task.id]);
 
   return (
     <Card>
@@ -21,6 +23,15 @@ export function AttentionTasks() {
           <TaskRow key={task.id} task={task} done={!!done[task.id]} onToggle={() => setDone((d) => ({ ...d, [task.id]: !d[task.id] }))} />
         ))}
       </View>
+      {allDone ? (
+        <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingTop: spacing.xs }}>
+          <Mascot pose="success" size={56} />
+          <View style={{ flex: 1 }}>
+            <Text variant="subheading">{t('home.all_caught_up')}</Text>
+            <Text variant="caption" color="textSecondary">{t('home.all_caught_up_body')}</Text>
+          </View>
+        </View>
+      ) : null}
     </Card>
   );
 }

@@ -27,7 +27,7 @@ export function AssistantCard() {
     <Gradient style={{ borderRadius: radius.panel, padding: 1.5, boxShadow: shadow.md }}>
       <View style={{ backgroundColor: colors.surface, borderRadius: radius.panel - 1.5, padding: spacing.xl, gap: spacing.lg }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-          <Mascot pose="wave" size={52} />
+          <Mascot pose="wave" size={56} />
           <View style={{ flex: 1 }}>
             <Text variant="overline" color="primary">VEYRA</Text>
             <Text variant="heading">{t('home.ai_title')}</Text>

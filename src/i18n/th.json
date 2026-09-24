@@ -82,7 +82,9 @@
     "capture_voice": "บันทึกด้วยเสียง",
     "capture_photo": "ถ่ายรูป",
     "capture_document": "แนบเอกสาร",
-    "capture_send": "ส่งให้ Veyra"
+    "capture_send": "ส่งให้ Veyra",
+    "all_caught_up": "เคลียร์หมดแล้ว",
+    "all_caught_up_body": "เยี่ยมมาก วันนี้ไม่มีงานด่วนเหลือแล้ว"
   },
   "assistant": {
     "hello": "สวัสดีตอนเช้า {{name}} จัดตารางวันนี้ให้เรียบร้อยแล้ว อยากให้ช่วยอะไรต่อ?",
