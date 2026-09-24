@@ -26,7 +26,9 @@ export function saveCaptureItems(items: CaptureItem[]): number {
   const t = now();
   const stamp = { createdAt: t, updatedAt: t };
   const newTaskReminders: { id: string; title: string; reminderAt: number }[] = [];
-  const defaultWallet = db.select().from(wallets).where(isNull(wallets.deletedAt)).orderBy(wallets.sortOrder).limit(1).get();
+  const walletList = db.select().from(wallets).where(isNull(wallets.deletedAt)).orderBy(wallets.sortOrder).all();
+  // Prefer an account in the item's currency so £ amounts don't land in a THB wallet.
+  const walletFor = (currency: string) => walletList.find((w) => w.currency === currency) ?? walletList[0];
   let written = 0;
 
   db.transaction((tx) => {
@@ -60,11 +62,12 @@ export function saveCaptureItems(items: CaptureItem[]): number {
         }
         case 'expense':
         case 'income':
-          if (!defaultWallet) continue;
+          const wallet = walletFor(item.currency);
+          if (!wallet) continue;
           tx.insert(transactions).values({
             ...stamp,
             id,
-            walletId: defaultWallet.id,
+            walletId: wallet.id,
             amount: item.amount,
             currency: item.currency,
             type: item.type,

@@ -89,7 +89,7 @@ export const wallets = sqliteTable('wallets', {
   name: text('name').notNull(),
   type: text('type', { enum: ['cash', 'bank', 'card', 'investment'] }).notNull(),
   currency: text('currency').notNull().default('THB'),
-  balance: real('balance').notNull().default(0),
+  balance: real('balance').notNull().default(0), // opening balance; current = opening + transactions
   color: text('color'),
   sortOrder: integer('sort_order').notNull().default(0),
 });
@@ -134,6 +134,10 @@ export const recurringBills = sqliteTable('recurring_bills', {
   frequency: text('frequency', { enum: ['monthly', 'yearly'] }).notNull().default('monthly'),
   remindDaysBefore: integer('remind_days_before').notNull().default(3),
   isSubscription: integer('is_subscription', { mode: 'boolean' }).notNull().default(false),
+  dueMonth: integer('due_month'), // 1-12, yearly bills only
+  paidThrough: text('paid_through'), // YYYY-MM-DD of the last due date that was paid
+  lastPaymentId: text('last_payment_id'), // transaction created by the last "Mark paid" (for undo)
+  previousPaidThrough: text('previous_paid_through'),
 });
 
 export const checkins = sqliteTable('checkins', {
@@ -195,3 +199,4 @@ export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
 export type Link = typeof links.$inferSelect;
 export type CalendarEvent = typeof calendarEvents.$inferSelect;
+export type RecurringBill = typeof recurringBills.$inferSelect;

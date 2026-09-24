@@ -68,6 +68,8 @@ export type ThemeColors = {
   overlay: string;
   /** Faint wash behind AI surfaces (used with gradient accents). */
   aiWash: string;
+  /** Single-series chart mark (validated vs card surface, both modes). */
+  chart: string;
 };
 
 export type ThemeTints = {
@@ -106,6 +108,7 @@ const light: ThemeColors = {
   tabInactive: '#94A3B8',
   overlay: 'rgba(15, 23, 42, 0.4)',
   aiWash: '#F5F3FF',
+  chart: '#6366F1',
 };
 
 const dark: ThemeColors = {
@@ -133,6 +136,7 @@ const dark: ThemeColors = {
   tabInactive: '#64748B',
   overlay: 'rgba(0, 0, 0, 0.55)',
   aiWash: 'rgba(139, 92, 246, 0.10)',
+  chart: '#7C83F5',
 };
 
 const lightTints: ThemeTints = {

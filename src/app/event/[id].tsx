@@ -1,10 +1,10 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Button, Chip, Icon, Sheet, Text, Toggle, type IconName } from '@/components/ui';
+import { Button, Chip, Field, FieldError, Sheet, Text, Toggle } from '@/components/ui';
 import type { CalendarEvent } from '@/db';
 import { eventToItem, fromMinutes, toMinutes } from '@/features/calendar/model';
 import { createEvent, deleteEvent, updateEvent, useEvent, type EventFormValues } from '@/features/calendar/queries';
@@ -169,28 +169,7 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
   );
 }
 
-function Field({ label, icon, children }: { label: string; icon: IconName; children: ReactNode }) {
-  const { spacing } = useTheme();
-  return (
-    <View style={{ gap: spacing.sm }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-        <Icon name={icon} size={14} color="textSecondary" />
-        <Text variant="overline" color="textSecondary">{label.toUpperCase()}</Text>
-      </View>
-      {children}
-    </View>
-  );
-}
 
-function FieldError({ message }: { message: string | null }) {
-  const { tints } = useTheme();
-  if (!message) return null;
-  return (
-    <Text variant="caption" tone={tints.priorityHigh.fg} accessibilityLiveRegion="polite">
-      {message}
-    </Text>
-  );
-}
 
 function NotFound({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation();

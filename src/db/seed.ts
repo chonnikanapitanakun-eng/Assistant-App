@@ -4,7 +4,7 @@ import { addDays, toDateKey } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
 
 import type { Db } from './client';
-import { areas, calendarEvents, categories, contacts, links, tasks, wallets } from './schema';
+import { areas, calendarEvents, categories, contacts, links, recurringBills, tasks, transactions, wallets } from './schema';
 
 const stamp = () => {
   const t = now();
@@ -62,6 +62,51 @@ export const defaultWallets = [
   { name: 'บัญชีธนาคาร (THB)', type: 'bank' as const, currency: 'THB', color: '#1F4A85' },
   { name: 'UK Bank (GBP)', type: 'bank' as const, currency: 'GBP', color: '#4F79B8' },
 ];
+
+/** Sample opening balances, keyed by wallet index above. */
+const sampleOpening = [3500, 85000, 4200];
+
+/** Sample monthly budgets (THB) by category nameEn. */
+const sampleBudgets: Record<string, number> = { Food: 8000, Transport: 3000, Shopping: 5000, Utilities: 3000, Entertainment: 2000, Subscriptions: 1000 };
+
+/**
+ * A realistic month of money for a fresh install. `w` = wallet index, `n` = days ago
+ * (clamped to this month), `cat` = category nameEn.
+ */
+function sampleMoney(today: Date) {
+  const y = today.getFullYear();
+  const m = today.getMonth();
+  const d = today.getDate();
+  const dayAgo = (n: number) => toDateKey(new Date(y, m, Math.max(1, d - n)));
+  type T = { w: number; type: 'income' | 'expense' | 'transfer'; amount: number; n: number; cat?: string; note: string; to?: number };
+  const txs: T[] = [
+    { w: 1, type: 'income', amount: 45000, n: 20, cat: 'Fees', note: 'Audit fee — Somchai Trading' },
+    { w: 0, type: 'expense', amount: 180, n: 0, cat: 'Food', note: 'Lunch' },
+    { w: 1, type: 'expense', amount: 1250, n: 3, cat: 'Food', note: 'Groceries — Tops' },
+    { w: 0, type: 'expense', amount: 420, n: 6, cat: 'Food', note: 'Coffee & snacks' },
+    { w: 1, type: 'expense', amount: 2100, n: 12, cat: 'Food', note: 'Dinner with family' },
+    { w: 0, type: 'expense', amount: 350, n: 1, cat: 'Transport', note: 'Grab' },
+    { w: 1, type: 'expense', amount: 1500, n: 9, cat: 'Transport', note: 'BTS top-up' },
+    { w: 1, type: 'expense', amount: 3290, n: 5, cat: 'Shopping', note: 'Uniqlo' },
+    { w: 1, type: 'expense', amount: 419, n: 8, cat: 'Subscriptions', note: 'Netflix' },
+    { w: 1, type: 'expense', amount: 599, n: 4, cat: 'Utilities', note: 'AIS Fibre' },
+    { w: 1, type: 'expense', amount: 800, n: 14, cat: 'Health', note: 'Pharmacy' },
+    { w: 1, type: 'expense', amount: 1200, n: 10, cat: 'Entertainment', note: 'Cinema' },
+    { w: 1, type: 'transfer', amount: 10000, n: 13, note: 'ATM withdrawal', to: 0 },
+    { w: 2, type: 'income', amount: 5000, n: 7, cat: 'Fees', note: 'Client fee — VAT return' },
+    { w: 2, type: 'income', amount: 1200, n: 15, cat: 'Dividend', note: 'Dividend — UK Ltd' },
+    { w: 2, type: 'expense', amount: 45, n: 11, cat: 'Transport', note: 'Train to London' },
+  ];
+  const bills = [
+    { name: 'Council Tax', amount: 142, currency: 'GBP', w: 2, cat: 'Housing', dueDay: d },
+    { name: 'Electricity (MEA)', amount: 1240, currency: 'THB', w: 1, cat: 'Utilities', dueDay: d },
+    { name: 'Xero subscription', amount: 33, currency: 'GBP', w: 2, cat: 'Subscriptions', dueDay: Math.min(d + 2, 28), isSubscription: true },
+    { name: 'AIS Fibre', amount: 599, currency: 'THB', w: 1, cat: 'Utilities', dueDay: Math.max(1, d - 4), paidThrough: dayAgo(4) },
+    { name: 'Netflix', amount: 419, currency: 'THB', w: 1, cat: 'Subscriptions', dueDay: Math.max(1, d - 8), paidThrough: dayAgo(8), isSubscription: true },
+    { name: 'Car insurance', amount: 620, currency: 'GBP', w: 2, cat: 'Transport', dueDay: 15, frequency: 'yearly' as const, dueMonth: ((m + 1) % 12) + 1 },
+  ];
+  return { txs: txs.map((t) => ({ ...t, date: dayAgo(t.n) })), bills };
+}
 
 /** A few realistic tasks so a fresh install shows the Tasks screen at work. Keyed by child area nameEn. */
 function sampleTasks(today: Date) {
@@ -133,11 +178,36 @@ export function seedIfEmpty(db: Db) {
       const s = stamp();
       tx.insert(tasks).values({ id: newId(), ...task, areaId: areaIds.get(area) ?? null, isDone: !!isDone, doneAt: isDone ? s.createdAt : null, sortOrder: i, ...s }).run();
     });
+    const catIds = new Map<string, string>();
     defaultCategories.forEach((c, i) => {
-      tx.insert(categories).values({ id: newId(), ...c, sortOrder: i, ...stamp() }).run();
+      const id = newId();
+      catIds.set(c.nameEn, id);
+      tx.insert(categories).values({ id, ...c, budgetMonthly: sampleBudgets[c.nameEn] ?? null, sortOrder: i, ...stamp() }).run();
     });
-    defaultWallets.forEach((w, i) => {
-      tx.insert(wallets).values({ id: newId(), ...w, sortOrder: i, ...stamp() }).run();
+    const walletIds = defaultWallets.map((w, i) => {
+      const id = newId();
+      tx.insert(wallets).values({ id, ...w, balance: sampleOpening[i] ?? 0, sortOrder: i, ...stamp() }).run();
+      return id;
+    });
+    const money = sampleMoney(new Date());
+    money.txs.forEach((t) => {
+      tx.insert(transactions)
+        .values({
+          id: newId(),
+          walletId: walletIds[t.w],
+          toWalletId: t.to !== undefined ? walletIds[t.to] : null,
+          amount: t.amount,
+          currency: defaultWallets[t.w].currency,
+          type: t.type,
+          categoryId: t.cat ? (catIds.get(t.cat) ?? null) : null,
+          date: t.date,
+          note: t.note,
+          ...stamp(),
+        })
+        .run();
+    });
+    money.bills.forEach(({ w, cat, ...b }) => {
+      tx.insert(recurringBills).values({ id: newId(), ...b, walletId: walletIds[w], categoryId: catIds.get(cat) ?? null, ...stamp() }).run();
     });
   });
 }

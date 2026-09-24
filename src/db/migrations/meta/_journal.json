@@ -15,6 +15,13 @@
       "when": 1790274620980,
       "tag": "0001_small_marauders",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790279041118,
+      "tag": "0002_uneven_lily_hollister",
+      "breakpoints": true
     }
   ]
 }

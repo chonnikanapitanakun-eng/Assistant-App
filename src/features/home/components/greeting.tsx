@@ -2,15 +2,14 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { Icon, PressableScale, Text, type IconName } from '@/components/ui';
+import { useEventsBetween } from '@/features/calendar/queries';
+import { billState, nextDueDate } from '@/features/money/model';
+import { useBills } from '@/features/money/queries';
 import { useAllTasks } from '@/features/tasks/queries';
 import { addDays, greetingKey, toDateKey } from '@/lib/date';
 import { useBreakpoint, useTheme, type TintName } from '@/theme';
 
-import { useEventsBetween } from '@/features/calendar/queries';
-
-import { bills, user } from '../mock';
-
-const billsToday = bills.filter((b) => b.dueToday).length;
+import { user } from '../mock';
 
 export function Greeting() {
   const { t, i18n } = useTranslation();
@@ -19,6 +18,7 @@ export function Greeting() {
   const today = toDateKey();
   const now = new Date();
   const meetings = useEventsBetween(today, toDateKey(addDays(now, 1))).length;
+  const billsToday = useBills().filter((b) => ['overdue', 'today'].includes(billState(nextDueDate(b), b.remindDaysBefore).state)).length;
   const tasksToday = useAllTasks().filter((x) => !x.isDone && x.date === today).length;
   const date = now.toLocaleDateString(i18n.language === 'th' ? 'th-TH' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
   const emoji = greetingKey(now) === 'greeting_evening' ? '🌙' : '☀️';

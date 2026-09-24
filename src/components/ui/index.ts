@@ -2,6 +2,7 @@ export { Avatar } from './avatar';
 export { Button } from './button';
 export { Card } from './card';
 export { Chip } from './chip';
+export { Field, FieldError, useInputStyle } from './form';
 export { Gradient } from './gradient';
 export { Icon, type IconName } from './icon';
 export { IconButton } from './icon-button';
