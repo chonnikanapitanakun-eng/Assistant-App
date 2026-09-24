@@ -158,3 +158,7 @@ export function deleteWallet(id: string) {
 export function setBudget(categoryId: string, amount: number | null) {
   db.update(categories).set({ budgetMonthly: amount, updatedAt: now() }).where(eq(categories.id, categoryId)).run();
 }
+
+export function getBill(id: string): RecurringBill | undefined {
+  return db.select().from(recurringBills).where(and(eq(recurringBills.id, id), isNull(recurringBills.deletedAt))).get();
+}

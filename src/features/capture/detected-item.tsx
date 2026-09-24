@@ -122,7 +122,8 @@ function formatWhen(t: T, lang: string, date?: string, time?: string): string {
   return time ? `${day} · ${time}` : `${day} · ${t('capture.all_day')}`;
 }
 
-function describe(item: CaptureItem, t: T, lang: string): { title: string; detail?: string } {
+/** Title + one-line detail for a capture item (shared with assistant proposal cards). */
+export function describe(item: CaptureItem, t: T, lang: string): { title: string; detail?: string } {
   switch (item.type) {
     case 'event':
     case 'task': {

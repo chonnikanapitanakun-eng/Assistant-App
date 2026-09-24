@@ -91,3 +91,18 @@ export function deleteTask(task: Task) {
   db.update(tasks).set({ deletedAt: t, updatedAt: t }).where(eq(tasks.id, task.id)).run();
   void cancelTaskReminder(task.reminderNotificationId);
 }
+
+/** Sync read by id (for actions outside React). */
+export function getTask(id: string): Task | undefined {
+  return db.select().from(tasks).where(and(eq(tasks.id, id), isNull(tasks.deletedAt))).get();
+}
+
+/** Move a task to a date (and optional time). Keeps its reminder in sync. */
+export function rescheduleTask(task: Task, date: string, startTime?: string | null, endTime?: string | null) {
+  const reminderAt = !task.isDone && startTime ? (combineDateTime(date, startTime) ?? null) : null;
+  db.update(tasks)
+    .set({ date, startTime: startTime ?? null, endTime: endTime ?? null, reminderAt, updatedAt: now() })
+    .where(eq(tasks.id, task.id))
+    .run();
+  void syncTaskReminder({ id: task.id, title: task.title, reminderAt, reminderNotificationId: task.reminderNotificationId });
+}

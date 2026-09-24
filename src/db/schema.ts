@@ -172,6 +172,18 @@ export const calendarEvents = sqliteTable(
   (t) => [index('calendar_events_start_idx').on(t.start)],
 );
 
+/** Veyra AI chat history. `payload` holds cards/proposals (and their confirm state). */
+export const assistantMessages = sqliteTable(
+  'assistant_messages',
+  {
+    ...base,
+    role: text('role', { enum: ['user', 'assistant'] }).notNull(),
+    text: text('text').notNull().default(''),
+    payload: text('payload', { mode: 'json' }).$type<unknown>(),
+  },
+  (t) => [index('assistant_messages_created_idx').on(t.createdAt)],
+);
+
 export const linkableTypes = ['task', 'note', 'transaction', 'contact', 'event', 'area'] as const;
 export type LinkableType = (typeof linkableTypes)[number];
 
@@ -200,3 +212,4 @@ export type NewTransaction = typeof transactions.$inferInsert;
 export type Link = typeof links.$inferSelect;
 export type CalendarEvent = typeof calendarEvents.$inferSelect;
 export type RecurringBill = typeof recurringBills.$inferSelect;
+export type AssistantMessage = typeof assistantMessages.$inferSelect;
