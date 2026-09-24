@@ -14,9 +14,11 @@ type Props = {
   icon?: IconName;
   size?: 'md' | 'sm';
   accessibilityHint?: string;
+  disabled?: boolean;
+  fullWidth?: boolean;
 };
 
-export function Button({ label, onPress, variant = 'primary', icon, size = 'md', accessibilityHint }: Props) {
+export function Button({ label, onPress, variant = 'primary', icon, size = 'md', accessibilityHint, disabled, fullWidth }: Props) {
   const { colors, radius, spacing, shadow, touchTarget } = useTheme();
   const height = size === 'md' ? 48 : touchTarget;
   const fg = variant === 'primary' ? colors.onPrimary : colors.primary;
@@ -31,12 +33,16 @@ export function Button({ label, onPress, variant = 'primary', icon, size = 'md',
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={accessibilityHint}
+      accessibilityState={{ disabled }}
+      disabled={disabled}
       onPress={onPress}
       style={{
+        alignSelf: fullWidth ? 'stretch' : 'flex-start',
+        opacity: disabled ? 0.45 : 1,
         borderRadius: radius.button,
         overflow: 'hidden',
         backgroundColor: variant === 'secondary' ? colors.primarySoft : 'transparent',
-        boxShadow: variant === 'primary' ? shadow.glow : undefined,
+        boxShadow: variant === 'primary' && !disabled ? shadow.glow : undefined,
       }}
     >
       {variant === 'primary' ? <Gradient variant="ai">{content}</Gradient> : content}

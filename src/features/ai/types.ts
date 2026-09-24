@@ -18,6 +18,7 @@ export type CaptureMoney = {
   note?: string;
   categoryHint?: string;
   date?: string;
+  contactName?: string;
 };
 
 export type CaptureNote = {
@@ -25,7 +26,22 @@ export type CaptureNote = {
   body: string;
 };
 
-export type CaptureItem = CaptureTask | CaptureMoney | CaptureNote;
+export type CaptureEvent = {
+  type: 'event';
+  title: string;
+  date: string; // YYYY-MM-DD
+  startTime?: string; // HH:mm — absent = all-day
+  endTime?: string;
+  contactName?: string;
+};
+
+export type CaptureContact = {
+  type: 'contact';
+  name: string;
+};
+
+export type CaptureItem = CaptureTask | CaptureEvent | CaptureMoney | CaptureNote | CaptureContact;
+export type CaptureType = CaptureItem['type'];
 
 export type CaptureResponse = {
   items: CaptureItem[];

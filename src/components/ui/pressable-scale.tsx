@@ -7,7 +7,7 @@ export function PressableScale({ style, ...rest }: Props) {
   return (
     <Pressable
       {...rest}
-      style={({ pressed }) => [style, { opacity: pressed ? 0.88 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }]}
+      style={({ pressed }) => [style, pressed ? { opacity: 0.88, transform: [{ scale: 0.98 }] } : null]}
     />
   );
 }
