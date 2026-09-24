@@ -55,6 +55,7 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false }} />
+            <Stack.Screen name="settings" />
             <Stack.Screen name="capture" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="assistant" options={{ presentation: 'modal' }} />
             <Stack.Screen name="task/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />

@@ -212,7 +212,6 @@
     "settings": "Settings"
   },
   "home": {
-    "summary": "You have {{meetings}} events, {{tasks}} tasks and {{bills}} bills today.",
     "stat_meetings": "Events",
     "stat_tasks": "Tasks",
     "stat_bills": "Bills due",
@@ -244,7 +243,16 @@
     "capture_send": "Send to Veyra",
     "all_caught_up": "All caught up",
     "all_caught_up_body": "Nice work — nothing urgent left today.",
-    "no_events": "No events today — tap to add one"
+    "no_events": "No events today — tap to add one",
+    "summary_list": "You have {{list}} today.",
+    "list_sep": ", ",
+    "list_and": " and ",
+    "part_events_one": "{{count}} event",
+    "part_events_other": "{{count}} events",
+    "part_tasks_one": "{{count}} task",
+    "part_tasks_other": "{{count}} tasks",
+    "part_bills_one": "{{count}} bill",
+    "part_bills_other": "{{count}} bills"
   },
   "assistant": {
     "hello": "Good morning, {{name}}. I've organised your day. What would you like to do next?",
@@ -441,6 +449,24 @@
     "fresh_title": "Start fresh",
     "fresh_body": "An empty space, ready for your own things.",
     "start": "Start using Veyra",
-    "progress": "Step {{step}} of {{total}}"
+    "progress": "Step {{step}} of {{total}}",
+    "ready_body_replay": "Your changes are saved as you go."
+  },
+  "settings": {
+    "title": "Settings",
+    "profile": "Profile",
+    "name": "Name",
+    "preferences": "Preferences",
+    "currency_hint": "Used for budgets and as the default in Money.",
+    "home": "Home",
+    "home_hint": "Home only shows the areas you turn on. Every screen stays available.",
+    "notifications": "Notifications",
+    "notify_on": "On — reminders, bills and focus timers",
+    "notify_off": "Off",
+    "notify_denied": "Blocked — turn on in system settings",
+    "help": "Help",
+    "replay": "Replay the welcome tour",
+    "replay_body": "Walk through setup again. Your data stays as it is.",
+    "version": "version {{version}}"
   }
 }

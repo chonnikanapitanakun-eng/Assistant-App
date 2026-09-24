@@ -12,7 +12,7 @@ const items: Item[] = [
   { key: 'focus', icon: 'target', href: '/focus', kind: 'screen' },
   { key: 'search', icon: 'search' },
   { key: 'contacts', icon: 'users' },
-  { key: 'settings', icon: 'settings' },
+  { key: 'settings', icon: 'settings', href: '/settings', kind: 'screen' },
 ];
 
 /** Phone "More" menu for sections that don't fit the bottom bar. */

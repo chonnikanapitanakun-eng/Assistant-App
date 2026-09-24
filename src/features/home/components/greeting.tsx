@@ -15,7 +15,9 @@ export function Greeting() {
   const { t, i18n } = useTranslation();
   const { spacing } = useTheme();
   const { isMobile } = useBreakpoint();
-  const name = useProfile((p) => p.name);
+  // Drop trailing punctuation so "Proud A." doesn't become "Proud A..".
+  const name = useProfile((p) => p.name).replace(/[.!?。]+$/, '');
+  const interests = useProfile((p) => p.interests);
   const today = toDateKey();
   const now = new Date();
   const meetings = useEventsBetween(today, toDateKey(addDays(now, 1))).length;
@@ -23,6 +25,12 @@ export function Greeting() {
   const tasksToday = useAllTasks().filter((x) => !x.isDone && x.date === today).length;
   const date = now.toLocaleDateString(i18n.language === 'th' ? 'th-TH' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
   const emoji = greetingKey(now) === 'greeting_evening' ? '🌙' : '☀️';
+  // Summary mentions only the areas shown on Home.
+  const parts = [
+    interests.includes('calendar') ? t('home.part_events', { count: meetings }) : null,
+    interests.includes('tasks') ? t('home.part_tasks', { count: tasksToday }) : null,
+    interests.includes('money') ? t('home.part_bills', { count: billsToday }) : null,
+  ].filter((x): x is string => !!x);
 
   return (
     <View style={{ gap: spacing.lg }}>
@@ -31,17 +39,25 @@ export function Greeting() {
         <Text variant={isMobile ? 'title' : 'display'} accessibilityRole="header">
           {name ? `${t(`today.${greetingKey(now)}`)}, ${name}.` : `${t(`today.${greetingKey(now)}`)}.`} {emoji}
         </Text>
-        <Text variant="body" color="textSecondary">
-          {t('home.summary', { meetings, tasks: tasksToday, bills: billsToday })}
-        </Text>
+        {parts.length ? (
+          <Text variant="body" color="textSecondary">
+            {t('home.summary_list', { list: joinList(parts, t('home.list_sep'), t('home.list_and')) })}
+          </Text>
+        ) : null}
       </View>
       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-        <Stat icon="users" tint="meeting" value={meetings} label={t('home.stat_meetings')} />
-        <Stat icon="check-circle" tint="priorityLow" value={tasksToday} label={t('home.stat_tasks')} />
-        <Stat icon="file-text" tint="bill" value={billsToday} label={t('home.stat_bills')} />
+        {interests.includes('calendar') ? <Stat icon="users" tint="meeting" value={meetings} label={t('home.stat_meetings')} /> : null}
+        {interests.includes('tasks') ? <Stat icon="check-circle" tint="priorityLow" value={tasksToday} label={t('home.stat_tasks')} /> : null}
+        {interests.includes('money') ? <Stat icon="file-text" tint="bill" value={billsToday} label={t('home.stat_bills')} /> : null}
       </View>
     </View>
   );
+}
+
+/** "a", "a and b", "a, b and c" (separator and conjunction come from the locale). */
+function joinList(items: string[], sep: string, and: string): string {
+  if (items.length <= 1) return items.join('');
+  return `${items.slice(0, -1).join(sep)}${and}${items[items.length - 1]}`;
 }
 
 function Stat({ icon, tint, value, label }: { icon: IconName; tint: TintName; value: number; label: string }) {

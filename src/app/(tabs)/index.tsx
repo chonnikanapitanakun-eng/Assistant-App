@@ -5,7 +5,7 @@ import { View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
 import { VeyraLockup } from '@/components/brand/logo';
-import { Avatar, IconButton, Screen } from '@/components/ui';
+import { Avatar, IconButton, PressableScale, Screen } from '@/components/ui';
 import { AssistantCard } from '@/features/home/components/assistant-card';
 import { AttentionTasks } from '@/features/home/components/attention-tasks';
 import { Bills } from '@/features/home/components/bills';
@@ -44,7 +44,9 @@ export default function HomeScreen() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
         <IconButton icon="search" label="Search" />
         <IconButton icon="bell" label="Notifications" />
-        <Avatar name={name || 'V'} size={40} />
+        <PressableScale accessibilityRole="button" accessibilityLabel={t('settings.title')} onPress={() => router.push('/settings')} style={{ borderRadius: 22 }}>
+          <Avatar name={name || 'V'} size={40} />
+        </PressableScale>
       </View>
     </View>
   );

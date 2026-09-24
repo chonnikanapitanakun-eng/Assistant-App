@@ -212,7 +212,6 @@
     "settings": "ตั้งค่า"
   },
   "home": {
-    "summary": "วันนี้มีนัด {{meetings}} นัด งาน {{tasks}} รายการ และบิล {{bills}} รายการ",
     "stat_meetings": "นัดหมาย",
     "stat_tasks": "งาน",
     "stat_bills": "บิลครบกำหนด",
@@ -244,7 +243,16 @@
     "capture_send": "ส่งให้ Veyra",
     "all_caught_up": "เคลียร์หมดแล้ว",
     "all_caught_up_body": "เยี่ยมมาก วันนี้ไม่มีงานด่วนเหลือแล้ว",
-    "no_events": "วันนี้ไม่มีนัด แตะเพื่อเพิ่ม"
+    "no_events": "วันนี้ไม่มีนัด แตะเพื่อเพิ่ม",
+    "summary_list": "วันนี้มี{{list}}",
+    "list_sep": " ",
+    "list_and": " และ",
+    "part_events_one": "นัด {{count}} นัด",
+    "part_events_other": "นัด {{count}} นัด",
+    "part_tasks_one": "งาน {{count}} รายการ",
+    "part_tasks_other": "งาน {{count}} รายการ",
+    "part_bills_one": "บิล {{count}} รายการ",
+    "part_bills_other": "บิล {{count}} รายการ"
   },
   "assistant": {
     "hello": "สวัสดีตอนเช้า {{name}} จัดตารางวันนี้ให้เรียบร้อยแล้ว อยากให้ช่วยอะไรต่อ?",
@@ -441,6 +449,24 @@
     "fresh_title": "เริ่มใหม่ว่างๆ",
     "fresh_body": "พื้นที่ว่าง พร้อมใส่ข้อมูลของคุณเอง",
     "start": "เริ่มใช้ Veyra",
-    "progress": "ขั้นที่ {{step}} จาก {{total}}"
+    "progress": "ขั้นที่ {{step}} จาก {{total}}",
+    "ready_body_replay": "บันทึกการเปลี่ยนแปลงให้ทันทีระหว่างทาง"
+  },
+  "settings": {
+    "title": "ตั้งค่า",
+    "profile": "โปรไฟล์",
+    "name": "ชื่อ",
+    "preferences": "การใช้งาน",
+    "currency_hint": "ใช้กับงบประมาณ และเป็นค่าเริ่มต้นในหน้าการเงิน",
+    "home": "หน้าหลัก",
+    "home_hint": "หน้าหลักแสดงเฉพาะเรื่องที่เปิดไว้ ทุกหน้ายังเข้าได้ตามปกติ",
+    "notifications": "การแจ้งเตือน",
+    "notify_on": "เปิดอยู่ — เตือนงาน บิล และตัวจับเวลา",
+    "notify_off": "ปิดอยู่",
+    "notify_denied": "ถูกบล็อก — เปิดได้ในตั้งค่าของเครื่อง",
+    "help": "ช่วยเหลือ",
+    "replay": "ดูแนะนำการใช้งานอีกครั้ง",
+    "replay_body": "ตั้งค่าใหม่ทีละขั้น ข้อมูลเดิมไม่หาย",
+    "version": "เวอร์ชัน {{version}}"
   }
 }

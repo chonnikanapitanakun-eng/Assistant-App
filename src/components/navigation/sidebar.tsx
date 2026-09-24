@@ -56,7 +56,7 @@ export function Sidebar({ state, navigation }: BottomTabBarProps) {
       </PressableScale>
 
       <View style={{ flex: 1 }} />
-      <SidebarItem icon="settings" label={t('nav.settings')} focused={false} />
+      <SidebarItem icon="settings" label={t('nav.settings')} focused={false} onPress={() => router.push('/settings')} />
     </View>
   );
 }

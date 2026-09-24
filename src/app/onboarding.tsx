@@ -1,5 +1,5 @@
 import { LinearGradient } from 'expo-linear-gradient';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Platform, ScrollView, TextInput, View } from 'react-native';
@@ -18,11 +18,16 @@ import { useTheme } from '@/theme';
 const steps: MascotPose[] = ['wave', 'happy', 'thinking', 'idea', 'celebrate'];
 const interestIcons: Record<Interest, IconName> = { tasks: 'check-square', calendar: 'calendar', money: 'credit-card', notes: 'file-text', focus: 'target' };
 
-/** First-run setup: welcome → name → language & currency → interests → ready. Every step can be skipped. */
+/**
+ * First-run setup: welcome → name → language & currency → interests → ready. Every step can be skipped.
+ * `?replay=1` (from Settings) walks the same steps without the sample-data choice and returns back.
+ */
 export default function Onboarding() {
   const { t } = useTranslation();
   const { colors, spacing } = useTheme();
   const insets = useSafeAreaInsets();
+  const { replay } = useLocalSearchParams<{ replay?: string }>();
+  const replaying = replay === '1';
   const profile = useProfile();
   const [step, setStep] = useState(0);
   const [name, setName] = useState(profile.name);
@@ -34,13 +39,16 @@ export default function Onboarding() {
   const next = () => {
     if (step === 1) profile.update({ name: name.trim() });
     if (last) {
+      if (replaying) return leave();
       completeOnboarding({ sample });
       router.replace('/');
       return;
     }
     setStep(step + 1);
   };
+  const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const skipAll = () => {
+    if (replaying) return leave();
     completeOnboarding({ sample: false });
     router.replace('/');
   };
@@ -86,7 +94,7 @@ export default function Onboarding() {
         ))}
       </View>
     </Intro>,
-    <Intro key="4" title={name.trim() ? t('onboarding.ready_title_named', { name: name.trim() }) : t('onboarding.ready_title')} body={t('onboarding.ready_body')}>
+    <Intro key="4" title={name.trim() ? t('onboarding.ready_title_named', { name: name.trim() }) : t('onboarding.ready_title')} body={replaying ? t('onboarding.ready_body_replay') : t('onboarding.ready_body')}>
       {Platform.OS !== 'web' ? (
         <OptionCard
           icon="bell"
@@ -96,10 +104,12 @@ export default function Onboarding() {
           onPress={async () => setNotify((await requestPermission()) === 'granted' ? 'granted' : 'denied')}
         />
       ) : null}
-      <View accessibilityRole="radiogroup" style={{ alignSelf: 'stretch', gap: spacing.sm }}>
-        <OptionCard icon="compass" title={t('onboarding.sample_title')} body={t('onboarding.sample_body')} selected={sample} onPress={() => setSample(true)} />
-        <OptionCard icon="feather" title={t('onboarding.fresh_title')} body={t('onboarding.fresh_body')} selected={!sample} onPress={() => setSample(false)} />
-      </View>
+      {!replaying ? (
+        <View accessibilityRole="radiogroup" style={{ alignSelf: 'stretch', gap: spacing.sm }}>
+          <OptionCard icon="compass" title={t('onboarding.sample_title')} body={t('onboarding.sample_body')} selected={sample} onPress={() => setSample(true)} />
+          <OptionCard icon="feather" title={t('onboarding.fresh_title')} body={t('onboarding.fresh_body')} selected={!sample} onPress={() => setSample(false)} />
+        </View>
+      ) : null}
     </Intro>,
   ];
 
@@ -121,8 +131,8 @@ export default function Onboarding() {
           </View>
           <View style={{ width: 88, alignItems: 'flex-end' }}>
             {!last ? (
-              <PressableScale accessibilityRole="button" accessibilityLabel={step === 0 ? t('onboarding.skip_setup') : t('onboarding.skip')} onPress={step === 0 ? skipAll : next} style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm }}>
-                <Text variant="label" color="textSecondary">{step === 0 ? t('onboarding.skip_setup') : t('onboarding.skip')}</Text>
+              <PressableScale accessibilityRole="button" accessibilityLabel={step === 0 ? (replaying ? t('common.close') : t('onboarding.skip_setup')) : t('onboarding.skip')} onPress={step === 0 ? skipAll : next} style={{ minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.sm }}>
+                <Text variant="label" color="textSecondary">{step === 0 ? (replaying ? t('common.close') : t('onboarding.skip_setup')) : t('onboarding.skip')}</Text>
               </PressableScale>
             ) : null}
           </View>
@@ -141,7 +151,7 @@ export default function Onboarding() {
 
         <View style={{ paddingHorizontal: spacing.xl, alignItems: 'center' }}>
           <View style={{ width: '100%', maxWidth: 480 }}>
-            <Button fullWidth icon={last ? 'arrow-right' : undefined} label={step === 0 ? t('onboarding.get_started') : last ? t('onboarding.start') : t('onboarding.continue')} onPress={next} />
+            <Button fullWidth icon={last ? 'arrow-right' : undefined} label={step === 0 ? t('onboarding.get_started') : last ? (replaying ? t('common.done') : t('onboarding.start')) : t('onboarding.continue')} onPress={next} />
           </View>
         </View>
       </View>
