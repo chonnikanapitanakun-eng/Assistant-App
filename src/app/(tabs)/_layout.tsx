@@ -1,12 +1,16 @@
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 
 import { Sidebar } from '@/components/navigation/sidebar';
 import { TabBar } from '@/components/navigation/tab-bar';
+import { useProfile } from '@/features/profile/store';
 import { useBreakpoint, useTheme } from '@/theme';
 
 export default function TabLayout() {
   const { isDesktop } = useBreakpoint();
   const { colors } = useTheme();
+  const onboarded = useProfile((p) => p.onboarded);
+  // First run goes through onboarding before the main app.
+  if (!onboarded) return <Redirect href="/onboarding" />;
   return (
     <Tabs
       tabBar={(props) => (isDesktop ? <Sidebar {...props} /> : <TabBar {...props} />)}

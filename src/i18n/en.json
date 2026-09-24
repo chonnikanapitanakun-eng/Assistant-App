@@ -248,7 +248,8 @@
   },
   "assistant": {
     "hello": "Good morning, {{name}}. I've organised your day. What would you like to do next?",
-    "emails": "Summarise emails"
+    "emails": "Summarise emails",
+    "hello_anon": "Hi, I'm Veyra. What would you like to do next?"
   },
   "notifications": {
     "permission_banner": "Turn on notifications to get reminders when tasks are due",
@@ -400,5 +401,46 @@
     "notify_focus_body": "Nice work. Time for a short break.",
     "notify_break_title": "Break's over",
     "notify_break_body": "Ready for the next round?"
+  },
+  "onboarding": {
+    "welcome_title": "Hi, I'm Veyra.",
+    "welcome_body": "Your life, handled. I'll keep your day, tasks, money and notes in one calm place.",
+    "get_started": "Get started",
+    "skip_setup": "Skip setup",
+    "skip": "Skip",
+    "continue": "Continue",
+    "name_title": "What should I call you?",
+    "name_body": "Just a first name or nickname is perfect.",
+    "name_placeholder": "Your name",
+    "prefs_title": "A couple of basics",
+    "prefs_body": "You can change these any time.",
+    "language": "Language",
+    "currency": "Main currency",
+    "currency_hint": "Used for budgets. You can still track other currencies.",
+    "interests_title": "What should I help with?",
+    "interests_body": "Pick as many as you like — I'll keep Home focused on these.",
+    "interest_tasks": "Tasks",
+    "interest_tasks_body": "To-dos, priorities and reminders",
+    "interest_calendar": "Calendar",
+    "interest_calendar_body": "Meetings and your daily schedule",
+    "interest_money": "Money",
+    "interest_money_body": "Spending, budgets and bills",
+    "interest_notes": "Notes",
+    "interest_notes_body": "Ideas, meeting notes and plans",
+    "interest_focus": "Focus",
+    "interest_focus_body": "Timed deep-work sessions",
+    "ready_title": "You're all set",
+    "ready_title_named": "You're all set, {{name}}",
+    "ready_body": "One last thing — how would you like to start?",
+    "notify_title": "Reminders",
+    "notify_body": "Allow notifications for tasks, bills and focus timers.",
+    "notify_on": "Notifications are on.",
+    "notify_denied": "You can turn them on later in Settings.",
+    "sample_title": "Explore with examples",
+    "sample_body": "A few sample tasks, events, notes and money to try things out.",
+    "fresh_title": "Start fresh",
+    "fresh_body": "An empty space, ready for your own things.",
+    "start": "Start using Veyra",
+    "progress": "Step {{step}} of {{total}}"
   }
 }

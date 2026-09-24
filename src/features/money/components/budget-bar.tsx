@@ -2,10 +2,11 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { Icon, Text } from '@/components/ui';
+import { usePrimaryCurrency } from '@/features/profile/store';
 import { formatMoney } from '@/lib/currency';
 import { useTheme } from '@/theme';
 
-import { budgetStatus, PRIMARY_CURRENCY } from '../model';
+import { budgetStatus } from '../model';
 
 /** Budget progress. State is carried by icon + text, never by colour alone. */
 export function BudgetBar({ spent, budget }: { spent: number; budget: number }) {
@@ -13,7 +14,8 @@ export function BudgetBar({ spent, budget }: { spent: number; budget: number }) 
   const { colors, tints, spacing } = useTheme();
   const s = budgetStatus(spent, budget);
   const fill = s.state === 'over' ? tints.priorityHigh.fg : s.state === 'near' ? tints.priorityMedium.fg : colors.chart;
-  const fmt = (n: number) => formatMoney(n, PRIMARY_CURRENCY, 'en-GB');
+  const currency = usePrimaryCurrency();
+  const fmt = (n: number) => formatMoney(n, currency, 'en-GB');
 
   return (
     <View style={{ gap: 6 }}>

@@ -34,8 +34,9 @@ describe('balances and totals', () => {
       { categoryId: 'food', total: 200 },
     ]);
   });
-  it('lists currencies with THB first', () => {
-    expect(currenciesInUse([{ currency: 'GBP' }, { currency: 'THB' }, { currency: 'GBP' }])).toEqual(['THB', 'GBP']);
+  it('lists currencies with the primary first', () => {
+    expect(currenciesInUse([{ currency: 'GBP' }, { currency: 'THB' }, { currency: 'GBP' }], 'THB')).toEqual(['THB', 'GBP']);
+    expect(currenciesInUse([{ currency: 'THB' }, { currency: 'GBP' }], 'GBP')).toEqual(['GBP', 'THB']);
   });
 });
 

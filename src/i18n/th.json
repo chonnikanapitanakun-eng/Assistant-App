@@ -248,7 +248,8 @@
   },
   "assistant": {
     "hello": "สวัสดีตอนเช้า {{name}} จัดตารางวันนี้ให้เรียบร้อยแล้ว อยากให้ช่วยอะไรต่อ?",
-    "emails": "สรุปอีเมล"
+    "emails": "สรุปอีเมล",
+    "hello_anon": "สวัสดี ฉันคือ Veyra อยากให้ช่วยอะไรต่อ?"
   },
   "notifications": {
     "permission_banner": "เปิดการแจ้งเตือนเพื่อรับ reminder เมื่อถึงเวลางาน",
@@ -400,5 +401,46 @@
     "notify_focus_body": "เยี่ยมมาก พักสักครู่นะ",
     "notify_break_title": "หมดเวลาพัก",
     "notify_break_body": "พร้อมรอบต่อไปไหม?"
+  },
+  "onboarding": {
+    "welcome_title": "สวัสดี ฉันคือ Veyra",
+    "welcome_body": "Your life, handled. ช่วยจัดวัน งาน การเงิน และโน้ตไว้ในที่เดียวแบบสบายใจ",
+    "get_started": "เริ่มต้น",
+    "skip_setup": "ข้ามการตั้งค่า",
+    "skip": "ข้าม",
+    "continue": "ถัดไป",
+    "name_title": "ให้เรียกคุณว่าอะไรดี?",
+    "name_body": "ชื่อเล่นหรือชื่อจริงก็ได้",
+    "name_placeholder": "ชื่อของคุณ",
+    "prefs_title": "ตั้งค่าพื้นฐาน",
+    "prefs_body": "เปลี่ยนได้ทุกเมื่อ",
+    "language": "ภาษา",
+    "currency": "สกุลเงินหลัก",
+    "currency_hint": "ใช้สำหรับงบประมาณ ยังบันทึกสกุลอื่นได้ตามปกติ",
+    "interests_title": "อยากให้ช่วยเรื่องไหน?",
+    "interests_body": "เลือกได้หลายอย่าง หน้าหลักจะแสดงเฉพาะเรื่องที่เลือก",
+    "interest_tasks": "งาน",
+    "interest_tasks_body": "สิ่งที่ต้องทำ ลำดับความสำคัญ การเตือน",
+    "interest_calendar": "ปฏิทิน",
+    "interest_calendar_body": "นัดหมายและตารางวันนี้",
+    "interest_money": "การเงิน",
+    "interest_money_body": "รายจ่าย งบประมาณ และบิล",
+    "interest_notes": "โน้ต",
+    "interest_notes_body": "ไอเดีย บันทึกประชุม และแผนงาน",
+    "interest_focus": "โฟกัส",
+    "interest_focus_body": "จับเวลาทำงานแบบตั้งใจ",
+    "ready_title": "พร้อมแล้ว",
+    "ready_title_named": "พร้อมแล้ว {{name}}",
+    "ready_body": "ข้อสุดท้าย อยากเริ่มแบบไหน?",
+    "notify_title": "การเตือน",
+    "notify_body": "อนุญาตให้แจ้งเตือนงาน บิล และตัวจับเวลาโฟกัส",
+    "notify_on": "เปิดการแจ้งเตือนแล้ว",
+    "notify_denied": "เปิดทีหลังได้ในตั้งค่า",
+    "sample_title": "ลองใช้กับข้อมูลตัวอย่าง",
+    "sample_body": "มีงาน นัด โน้ต และรายการเงินตัวอย่างให้ลองเล่น",
+    "fresh_title": "เริ่มใหม่ว่างๆ",
+    "fresh_body": "พื้นที่ว่าง พร้อมใส่ข้อมูลของคุณเอง",
+    "start": "เริ่มใช้ Veyra",
+    "progress": "ขั้นที่ {{step}} จาก {{total}}"
   }
 }

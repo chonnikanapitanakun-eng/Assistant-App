@@ -6,8 +6,9 @@ import { TextInput, View } from 'react-native';
 import { Button, Field, FieldError, Sheet, Text, useInputStyle } from '@/components/ui';
 import type { Category } from '@/db';
 import { BudgetBar } from '@/features/money/components/budget-bar';
-import { PRIMARY_CURRENCY, spendingByCategory } from '@/features/money/model';
+import { spendingByCategory } from '@/features/money/model';
 import { setBudget, useCategory, useTransactions } from '@/features/money/queries';
+import { usePrimaryCurrency } from '@/features/profile/store';
 import { currencySymbol, parseAmount } from '@/lib/currency';
 import { toMonthKey } from '@/lib/date';
 import { useTheme } from '@/theme';
@@ -26,9 +27,10 @@ function BudgetForm({ category, onClose }: { category: Category; onClose: () => 
   const { colors, spacing } = useTheme();
   const input = useInputStyle();
   const txs = useTransactions();
+  const budgetCurrency = usePrimaryCurrency();
   const [amount, setAmount] = useState(category.budgetMonthly ? String(category.budgetMonthly) : '');
   const [showErrors, setShowErrors] = useState(false);
-  const spent = spendingByCategory(txs, toMonthKey(), PRIMARY_CURRENCY).find((r) => r.categoryId === category.id)?.total ?? 0;
+  const spent = spendingByCategory(txs, toMonthKey(), budgetCurrency).find((r) => r.categoryId === category.id)?.total ?? 0;
   const parsed = parseAmount(amount);
   const error = parsed === null || parsed <= 0 ? t('money.invalid_amount') : null;
   const name = i18n.language === 'th' ? category.nameTh : category.nameEn;
@@ -46,7 +48,7 @@ function BudgetForm({ category, onClose }: { category: Category; onClose: () => 
     <Sheet
       onClose={onClose}
       title={t('money.budget_for', { name })}
-      subtitle={t('money.budget_currency_note', { currency: PRIMARY_CURRENCY })}
+      subtitle={t('money.budget_currency_note', { currency: budgetCurrency })}
       footer={
         <View style={{ gap: spacing.sm }}>
           <Button fullWidth icon="check" label={t('common.save')} onPress={save} />
@@ -57,13 +59,13 @@ function BudgetForm({ category, onClose }: { category: Category; onClose: () => 
       <View style={{ padding: spacing.xl, gap: spacing.xl }}>
         <Field label={t('money.monthly_budget')} icon="target">
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <Text variant="title" color="textSecondary">{currencySymbol(PRIMARY_CURRENCY)}</Text>
+            <Text variant="title" color="textSecondary">{currencySymbol(budgetCurrency)}</Text>
             <TextInput autoFocus value={amount} onChangeText={setAmount} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('money.monthly_budget')} style={[input(error, showErrors), { flex: 1 }]} />
           </View>
           <FieldError message={showErrors ? error : null} />
         </Field>
         <Field label={t('money.this_month')} icon="bar-chart-2">
-          {parsed && parsed > 0 ? <BudgetBar spent={spent} budget={parsed} /> : <Text variant="bodySm" color="textSecondary">{t('money.spent_so_far', { amount: `${currencySymbol(PRIMARY_CURRENCY)}${spent.toLocaleString('en-GB')}` })}</Text>}
+          {parsed && parsed > 0 ? <BudgetBar spent={spent} budget={parsed} /> : <Text variant="bodySm" color="textSecondary">{t('money.spent_so_far', { amount: `${currencySymbol(budgetCurrency)}${spent.toLocaleString('en-GB')}` })}</Text>}
         </Field>
       </View>
     </Sheet>

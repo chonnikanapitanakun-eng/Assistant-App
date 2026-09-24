@@ -12,8 +12,9 @@ import { BillRow } from '@/features/money/components/bill-row';
 import { BudgetBar } from '@/features/money/components/budget-bar';
 import { SpendingChart } from '@/features/money/components/spending-chart';
 import { TransactionRow } from '@/features/money/components/transaction-row';
-import { billState, currenciesInUse, groupByDate, monthTotals, nextDueDate, PRIMARY_CURRENCY, spendingByCategory, walletBalance } from '@/features/money/model';
+import { billState, currenciesInUse, groupByDate, monthTotals, nextDueDate, spendingByCategory, walletBalance } from '@/features/money/model';
 import { useBills, useCategories, useTransactions, useWallets } from '@/features/money/queries';
+import { usePrimaryCurrency } from '@/features/profile/store';
 import { formatMoney } from '@/lib/currency';
 import { daysFromToday, toMonthKey } from '@/lib/date';
 import { useBreakpoint, useTheme } from '@/theme';
@@ -33,9 +34,10 @@ export default function MoneyScreen() {
   const txs = useTransactions();
   const categories = useCategories();
   const bills = useBills();
-  const currencies = currenciesInUse(wallets);
-  const [currencyPick, setCurrency] = useState(PRIMARY_CURRENCY);
-  const currency = currencies.includes(currencyPick) ? currencyPick : (currencies[0] ?? PRIMARY_CURRENCY);
+  const primary = usePrimaryCurrency();
+  const currencies = currenciesInUse(wallets, primary);
+  const [currencyPick, setCurrency] = useState<string>(primary);
+  const currency = currencies.includes(currencyPick) ? currencyPick : (currencies[0] ?? primary);
 
   const catById = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
   const walletById = useMemo(() => new Map(wallets.map((w) => [w.id, w])), [wallets]);
@@ -257,8 +259,9 @@ function Transactions({ month, currency, txs, catById, walletById }: Props) {
 
 function Budget({ month, txs, categories }: Props) {
   const { t, i18n } = useTranslation();
+  const budgetCurrency = usePrimaryCurrency();
   const { colors, spacing } = useTheme();
-  const spent = new Map(spendingByCategory(txs, month, PRIMARY_CURRENCY).map((r) => [r.categoryId, r.total]));
+  const spent = new Map(spendingByCategory(txs, month, budgetCurrency).map((r) => [r.categoryId, r.total]));
   const expenseCats = categories.filter((c) => c.type === 'expense');
   const budgeted = expenseCats.filter((c) => c.budgetMonthly && c.budgetMonthly > 0);
   const unbudgeted = expenseCats.filter((c) => !c.budgetMonthly);
@@ -270,7 +273,7 @@ function Budget({ month, txs, categories }: Props) {
   return (
     <>
       <Card>
-        <Text variant="overline" color="textSecondary">{t('money.budget_total', { currency: PRIMARY_CURRENCY }).toUpperCase()}</Text>
+        <Text variant="overline" color="textSecondary">{t('money.budget_total', { currency: budgetCurrency }).toUpperCase()}</Text>
         {budgeted.length ? <BudgetBar spent={totalSpent} budget={totalBudget} /> : <Text variant="bodySm" color="textSecondary">{t('money.no_budgets')}</Text>}
       </Card>
       {budgeted.length ? (
@@ -298,7 +301,7 @@ function Budget({ month, txs, categories }: Props) {
                 <View style={{ flex: 1 }}>
                   <CategoryTitle category={c} label={name(c)} />
                 </View>
-                <Text variant="caption" color="textSecondary" style={{ fontVariant: ['tabular-nums'] }}>{formatMoney(spent.get(c.id) ?? 0, PRIMARY_CURRENCY, 'en-GB')}</Text>
+                <Text variant="caption" color="textSecondary" style={{ fontVariant: ['tabular-nums'] }}>{formatMoney(spent.get(c.id) ?? 0, budgetCurrency, 'en-GB')}</Text>
                 <Text variant="label" color="primary">{t('money.set_budget')}</Text>
               </PressableScale>
             ))}

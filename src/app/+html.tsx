@@ -22,5 +22,6 @@ const css = `
 body { background-color: #F8FAFC; }
 @media (prefers-color-scheme: dark) { body { background-color: #0B1020; } }
 :focus-visible { outline: 2px solid #6366F1; outline-offset: 2px; border-radius: 12px; }
-input:focus-visible, textarea:focus-visible { outline: none; }
+/* Text fields draw their own focus border (primary) instead of the browser outline. */
+input:focus, textarea:focus, input:focus-visible, textarea:focus-visible { outline: none; }
 `;

@@ -1,8 +1,5 @@
 import { daysFromToday, toDateKey } from '@/lib/date';
 
-/** Budgets are set in the primary currency. */
-export const PRIMARY_CURRENCY = 'THB';
-
 type Tx = { walletId: string; toWalletId: string | null; amount: number; currency: string; type: 'income' | 'expense' | 'transfer'; date: string; categoryId: string | null };
 type WalletRow = { id: string; balance: number; currency: string };
 
@@ -51,10 +48,10 @@ export function budgetStatus(spent: number, budget: number) {
   return { ratio, state, remaining: round2(budget - spent) };
 }
 
-/** Currencies present across wallets, primary first. */
-export function currenciesInUse(wallets: { currency: string }[]): string[] {
+/** Currencies present across wallets, the user's primary currency first. */
+export function currenciesInUse(wallets: { currency: string }[], primary: string): string[] {
   const set = [...new Set(wallets.map((w) => w.currency))];
-  return set.sort((a, b) => (a === PRIMARY_CURRENCY ? -1 : b === PRIMARY_CURRENCY ? 1 : a.localeCompare(b)));
+  return set.sort((a, b) => (a === primary ? -1 : b === primary ? 1 : a.localeCompare(b)));
 }
 
 // ── Bills ──────────────────────────────────────────────────────────────

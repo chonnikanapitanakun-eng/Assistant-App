@@ -1,4 +1,4 @@
-import { count } from 'drizzle-orm';
+import { count, eq } from 'drizzle-orm';
 
 import { addDays, toDateKey } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
@@ -180,22 +180,52 @@ const sampleNotes = [
   },
 ];
 
+/** Reference data every install needs: life areas, categories and starter accounts. */
 export function seedIfEmpty(db: Db) {
   const [{ value: areaCount }] = db.select({ value: count() }).from(areas).all();
   if (areaCount > 0) return;
 
   db.transaction((tx) => {
-    const areaIds = new Map<string, string>();
     let order = 0;
     for (const a of defaultAreas) {
       const parentId = newId();
       tx.insert(areas).values({ id: parentId, nameTh: a.nameTh, nameEn: a.nameEn, color: a.color, icon: a.icon, sortOrder: order++, ...stamp() }).run();
       for (const c of a.children) {
-        const id = newId();
-        areaIds.set(c.nameEn, id);
-        tx.insert(areas).values({ id, nameTh: c.nameTh, nameEn: c.nameEn, parentId, color: a.color, sortOrder: order++, ...stamp() }).run();
+        tx.insert(areas).values({ id: newId(), nameTh: c.nameTh, nameEn: c.nameEn, parentId, color: a.color, sortOrder: order++, ...stamp() }).run();
       }
     }
+    defaultCategories.forEach((c, i) => {
+      tx.insert(categories).values({ id: newId(), ...c, sortOrder: i, ...stamp() }).run();
+    });
+    defaultWallets.forEach((w, i) => {
+      tx.insert(wallets).values({ id: newId(), ...w, sortOrder: i, ...stamp() }).run();
+    });
+  });
+}
+
+/**
+ * Optional sample content (chosen during onboarding): tasks, events, notes, a month
+ * of money, bills and budgets. Does nothing if the user already has any content.
+ * Returns whether anything was added.
+ */
+export function seedSampleData(db: Db): boolean {
+  const has = (t: typeof tasks | typeof notes | typeof transactions | typeof calendarEvents) => db.select({ value: count() }).from(t).all()[0].value > 0;
+  if (has(tasks) || has(notes) || has(transactions) || has(calendarEvents)) return false;
+
+  const areaIds = new Map(db.select({ id: areas.id, name: areas.nameEn }).from(areas).all().map((a) => [a.name, a.id]));
+  const catIds = new Map(db.select({ id: categories.id, name: categories.nameEn }).from(categories).all().map((c) => [c.name, c.id]));
+  const walletRows = db.select().from(wallets).orderBy(wallets.sortOrder).all();
+  if (walletRows.length < defaultWallets.length) return false;
+
+  db.transaction((tx) => {
+    walletRows.slice(0, defaultWallets.length).forEach((w, i) => {
+      tx.update(wallets).set({ balance: sampleOpening[i] ?? 0 }).where(eq(wallets.id, w.id)).run();
+    });
+    for (const [name, amount] of Object.entries(sampleBudgets)) {
+      const id = catIds.get(name);
+      if (id) tx.update(categories).set({ budgetMonthly: amount }).where(eq(categories.id, id)).run();
+    }
+
     const people = new Map<string, string>();
     sampleEvents(new Date()).forEach(({ with: person, ...e }) => {
       const s = stamp();
@@ -217,17 +247,8 @@ export function seedIfEmpty(db: Db) {
       const s = stamp();
       tx.insert(tasks).values({ id: newId(), ...task, areaId: areaIds.get(area) ?? null, isDone: !!isDone, doneAt: isDone ? s.createdAt : null, sortOrder: i, ...s }).run();
     });
-    const catIds = new Map<string, string>();
-    defaultCategories.forEach((c, i) => {
-      const id = newId();
-      catIds.set(c.nameEn, id);
-      tx.insert(categories).values({ id, ...c, budgetMonthly: sampleBudgets[c.nameEn] ?? null, sortOrder: i, ...stamp() }).run();
-    });
-    const walletIds = defaultWallets.map((w, i) => {
-      const id = newId();
-      tx.insert(wallets).values({ id, ...w, balance: sampleOpening[i] ?? 0, sortOrder: i, ...stamp() }).run();
-      return id;
-    });
+
+    const walletIds = walletRows.map((w) => w.id);
     const money = sampleMoney(new Date());
     money.txs.forEach((t) => {
       tx.insert(transactions)
@@ -236,7 +257,7 @@ export function seedIfEmpty(db: Db) {
           walletId: walletIds[t.w],
           toWalletId: t.to !== undefined ? walletIds[t.to] : null,
           amount: t.amount,
-          currency: defaultWallets[t.w].currency,
+          currency: walletRows[t.w].currency,
           type: t.type,
           categoryId: t.cat ? (catIds.get(t.cat) ?? null) : null,
           date: t.date,
@@ -249,4 +270,5 @@ export function seedIfEmpty(db: Db) {
       tx.insert(recurringBills).values({ id: newId(), ...b, walletId: walletIds[w], categoryId: catIds.get(cat) ?? null, ...stamp() }).run();
     });
   });
+  return true;
 }

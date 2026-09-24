@@ -5,16 +5,17 @@ import { Icon, PressableScale, Text, type IconName } from '@/components/ui';
 import { useEventsBetween } from '@/features/calendar/queries';
 import { billState, nextDueDate } from '@/features/money/model';
 import { useBills } from '@/features/money/queries';
+import { useProfile } from '@/features/profile/store';
 import { useAllTasks } from '@/features/tasks/queries';
 import { addDays, greetingKey, toDateKey } from '@/lib/date';
 import { useBreakpoint, useTheme, type TintName } from '@/theme';
 
-import { user } from '../mock';
 
 export function Greeting() {
   const { t, i18n } = useTranslation();
   const { spacing } = useTheme();
   const { isMobile } = useBreakpoint();
+  const name = useProfile((p) => p.name);
   const today = toDateKey();
   const now = new Date();
   const meetings = useEventsBetween(today, toDateKey(addDays(now, 1))).length;
@@ -28,7 +29,7 @@ export function Greeting() {
       <View style={{ gap: spacing.xs }}>
         <Text variant="overline" color="textSecondary">{date.toUpperCase()}</Text>
         <Text variant={isMobile ? 'title' : 'display'} accessibilityRole="header">
-          {t(`today.${greetingKey(now)}`)}, {user.firstName}. {emoji}
+          {name ? `${t(`today.${greetingKey(now)}`)}, ${name}.` : `${t(`today.${greetingKey(now)}`)}.`} {emoji}
         </Text>
         <Text variant="body" color="textSecondary">
           {t('home.summary', { meetings, tasks: tasksToday, bills: billsToday })}

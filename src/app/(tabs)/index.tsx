@@ -12,7 +12,7 @@ import { Bills } from '@/features/home/components/bills';
 import { Greeting } from '@/features/home/components/greeting';
 import { QuickCapture } from '@/features/home/components/quick-capture';
 import { Schedule } from '@/features/home/components/schedule';
-import { user } from '@/features/home/mock';
+import { useProfile } from '@/features/profile/store';
 import { useBreakpoint, useTheme } from '@/theme';
 
 /** Staggered, subtle entrance (≈300ms, ease-out). */
@@ -23,6 +23,10 @@ function Reveal({ children, index }: { children: ReactNode; index: number }) {
 
 export default function HomeScreen() {
   const { t } = useTranslation();
+  const name = useProfile((p) => p.name);
+  const interests = useProfile((p) => p.interests);
+  // Home only shows the areas picked during onboarding.
+  const show = { tasks: interests.includes('tasks'), calendar: interests.includes('calendar'), money: interests.includes('money') };
   const { bp, isDesktop } = useBreakpoint();
   const { spacing } = useTheme();
   const columns = bp !== 'mobile';
@@ -40,7 +44,7 @@ export default function HomeScreen() {
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
         <IconButton icon="search" label="Search" />
         <IconButton icon="bell" label="Notifications" />
-        <Avatar name={user.firstName} size={40} />
+        <Avatar name={name || 'V'} size={40} />
       </View>
     </View>
   );
@@ -53,12 +57,12 @@ export default function HomeScreen() {
         <Reveal index={1}><QuickCapture /></Reveal>
         <View style={{ flexDirection: 'row', gap: spacing.xxl, alignItems: 'flex-start' }}>
           <View style={{ flex: 1.35, gap: spacing.xxl }}>
-            <Reveal index={2}><Schedule /></Reveal>
-            <Reveal index={3}><Bills /></Reveal>
+            {show.calendar ? <Reveal index={2}><Schedule /></Reveal> : null}
+            {show.money ? <Reveal index={3}><Bills /></Reveal> : null}
           </View>
           <View style={{ flex: 1, gap: spacing.xxl }}>
             <Reveal index={2}><AssistantCard /></Reveal>
-            <Reveal index={3}><AttentionTasks /></Reveal>
+            {show.tasks ? <Reveal index={3}><AttentionTasks /></Reveal> : null}
           </View>
         </View>
       </Screen>
@@ -70,9 +74,9 @@ export default function HomeScreen() {
       <Screen bottomInset={96}>
         {header}
         <Reveal index={0}><Greeting /></Reveal>
-        <Reveal index={1}><Schedule /></Reveal>
-        <Reveal index={2}><AttentionTasks /></Reveal>
-        <Reveal index={3}><Bills /></Reveal>
+        {show.calendar ? <Reveal index={1}><Schedule /></Reveal> : null}
+        {show.tasks ? <Reveal index={2}><AttentionTasks /></Reveal> : null}
+        {show.money ? <Reveal index={3}><Bills /></Reveal> : null}
         <Reveal index={4}><AssistantCard /></Reveal>
       </Screen>
       <View pointerEvents="box-none" style={{ position: 'absolute', left: spacing.lg, right: spacing.lg, bottom: spacing.xxxl + spacing.xs }}>
