@@ -3,12 +3,13 @@ import { View } from 'react-native';
 
 import { Icon, PressableScale, Text, type IconName } from '@/components/ui';
 import { useAllTasks } from '@/features/tasks/queries';
-import { greetingKey, toDateKey } from '@/lib/date';
+import { addDays, greetingKey, toDateKey } from '@/lib/date';
 import { useBreakpoint, useTheme, type TintName } from '@/theme';
 
-import { bills, events, mockNow, user } from '../mock';
+import { useEventsBetween } from '@/features/calendar/queries';
 
-const meetings = events.filter((e) => e.kind === 'meeting').length;
+import { bills, user } from '../mock';
+
 const billsToday = bills.filter((b) => b.dueToday).length;
 
 export function Greeting() {
@@ -16,16 +17,18 @@ export function Greeting() {
   const { spacing } = useTheme();
   const { isMobile } = useBreakpoint();
   const today = toDateKey();
+  const now = new Date();
+  const meetings = useEventsBetween(today, toDateKey(addDays(now, 1))).length;
   const tasksToday = useAllTasks().filter((x) => !x.isDone && x.date === today).length;
-  const date = mockNow.toLocaleDateString(i18n.language === 'th' ? 'th-TH' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-  const emoji = greetingKey(mockNow) === 'greeting_evening' ? '🌙' : '☀️';
+  const date = now.toLocaleDateString(i18n.language === 'th' ? 'th-TH' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  const emoji = greetingKey(now) === 'greeting_evening' ? '🌙' : '☀️';
 
   return (
     <View style={{ gap: spacing.lg }}>
       <View style={{ gap: spacing.xs }}>
         <Text variant="overline" color="textSecondary">{date.toUpperCase()}</Text>
         <Text variant={isMobile ? 'title' : 'display'} accessibilityRole="header">
-          {t(`today.${greetingKey(mockNow)}`)}, {user.firstName}. {emoji}
+          {t(`today.${greetingKey(now)}`)}, {user.firstName}. {emoji}
         </Text>
         <Text variant="body" color="textSecondary">
           {t('home.summary', { meetings, tasks: tasksToday, bills: billsToday })}

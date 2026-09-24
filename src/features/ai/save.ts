@@ -1,6 +1,7 @@
-import { and, isNull, sql } from 'drizzle-orm';
+import { isNull } from 'drizzle-orm';
 
-import { calendarEvents, contacts, db, links, notes, tasks, transactions, wallets, type LinkableType } from '@/db';
+import { calendarEvents, db, notes, tasks, transactions, wallets, type LinkableType } from '@/db';
+import { findOrCreateContact, linkContact } from '@/features/contacts/links';
 import { syncTaskReminder } from '@/features/notifications';
 import { combineDateTime, toDateKey } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
@@ -32,21 +33,12 @@ export function saveCaptureItems(items: CaptureItem[]): number {
     const contactIds = new Map<string, string>();
     const contactId = (name: string) => {
       const key = name.toLowerCase();
-      const cached = contactIds.get(key);
-      if (cached) return cached;
-      const existing = tx
-        .select({ id: contacts.id })
-        .from(contacts)
-        .where(and(sql`lower(${contacts.name}) = ${key}`, isNull(contacts.deletedAt)))
-        .get();
-      const id = existing?.id ?? newId();
-      if (!existing) tx.insert(contacts).values({ ...stamp, id, name }).run();
+      const id = contactIds.get(key) ?? findOrCreateContact(tx, name);
       contactIds.set(key, id);
       return id;
     };
     const link = (fromType: LinkableType, fromId: string, name?: string) => {
-      if (!name) return;
-      tx.insert(links).values({ ...stamp, id: newId(), fromType, fromId, toType: 'contact', toId: contactId(name), relation: 'with' }).run();
+      if (name) linkContact(tx, fromType, fromId, contactId(name));
     };
 
     for (const item of items) {

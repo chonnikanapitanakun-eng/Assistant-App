@@ -78,8 +78,8 @@
     "settings": "Settings"
   },
   "home": {
-    "summary": "You have {{meetings}} meetings, {{tasks}} tasks and {{bills}} bills today.",
-    "stat_meetings": "Meetings",
+    "summary": "You have {{meetings}} events, {{tasks}} tasks and {{bills}} bills today.",
+    "stat_meetings": "Events",
     "stat_tasks": "Tasks",
     "stat_bills": "Bills due",
     "today": "Today",
@@ -109,7 +109,8 @@
     "capture_document": "Attach a document",
     "capture_send": "Send to Veyra",
     "all_caught_up": "All caught up",
-    "all_caught_up_body": "Nice work — nothing urgent left today."
+    "all_caught_up_body": "Nice work — nothing urgent left today.",
+    "no_events": "No events today — tap to add one"
   },
   "assistant": {
     "hello": "Good morning, {{name}}. I've organised your day. What would you like to do next?",
@@ -188,5 +189,28 @@
     "add_item": "Add checklist item",
     "delete_confirm": "Tap again to delete",
     "not_found_body": "It may have been deleted on another device."
+  },
+  "calendar": {
+    "previous": "Previous",
+    "next": "Next",
+    "today": "Today",
+    "new_event": "New event",
+    "edit_event": "Edit event",
+    "new_at": "New event at {{time}}",
+    "now": "Now",
+    "all_day": "All day",
+    "items_one": "{{count}} item",
+    "items_other": "{{count}} items",
+    "empty_title": "Nothing planned",
+    "empty_body": "A clear day. Tap + or a time slot to add something.",
+    "title_placeholder": "Event title",
+    "title_required": "Please enter a title",
+    "location": "Location",
+    "location_placeholder": "Office, Zoom, address…",
+    "with": "With",
+    "with_placeholder": "Person's name",
+    "with_hint": "Saved to contacts and linked to this event.",
+    "not_found": "Event not found",
+    "read_only": "Synced from {{source}} — edit it there."
   }
 }

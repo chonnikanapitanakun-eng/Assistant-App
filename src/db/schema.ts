@@ -194,3 +194,4 @@ export type Category = typeof categories.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
 export type Link = typeof links.$inferSelect;
+export type CalendarEvent = typeof calendarEvents.$inferSelect;

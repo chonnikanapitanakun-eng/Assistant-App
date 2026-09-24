@@ -78,8 +78,8 @@
     "settings": "ตั้งค่า"
   },
   "home": {
-    "summary": "วันนี้มีประชุม {{meetings}} นัด งาน {{tasks}} รายการ และบิล {{bills}} รายการ",
-    "stat_meetings": "ประชุม",
+    "summary": "วันนี้มีนัด {{meetings}} นัด งาน {{tasks}} รายการ และบิล {{bills}} รายการ",
+    "stat_meetings": "นัดหมาย",
     "stat_tasks": "งาน",
     "stat_bills": "บิลครบกำหนด",
     "today": "วันนี้",
@@ -109,7 +109,8 @@
     "capture_document": "แนบเอกสาร",
     "capture_send": "ส่งให้ Veyra",
     "all_caught_up": "เคลียร์หมดแล้ว",
-    "all_caught_up_body": "เยี่ยมมาก วันนี้ไม่มีงานด่วนเหลือแล้ว"
+    "all_caught_up_body": "เยี่ยมมาก วันนี้ไม่มีงานด่วนเหลือแล้ว",
+    "no_events": "วันนี้ไม่มีนัด แตะเพื่อเพิ่ม"
   },
   "assistant": {
     "hello": "สวัสดีตอนเช้า {{name}} จัดตารางวันนี้ให้เรียบร้อยแล้ว อยากให้ช่วยอะไรต่อ?",
@@ -188,5 +189,28 @@
     "add_item": "เพิ่มรายการ",
     "delete_confirm": "กดอีกครั้งเพื่อลบ",
     "not_found_body": "อาจถูกลบจากอุปกรณ์อื่นแล้ว"
+  },
+  "calendar": {
+    "previous": "ก่อนหน้า",
+    "next": "ถัดไป",
+    "today": "วันนี้",
+    "new_event": "นัดหมายใหม่",
+    "edit_event": "แก้ไขนัดหมาย",
+    "new_at": "เพิ่มนัดเวลา {{time}}",
+    "now": "ตอนนี้",
+    "all_day": "ทั้งวัน",
+    "items_one": "{{count}} รายการ",
+    "items_other": "{{count}} รายการ",
+    "empty_title": "ไม่มีนัด",
+    "empty_body": "วันนี้ว่าง กด + หรือแตะช่องเวลาเพื่อเพิ่มนัด",
+    "title_placeholder": "ชื่อนัดหมาย",
+    "title_required": "กรุณาใส่ชื่อนัด",
+    "location": "สถานที่",
+    "location_placeholder": "ออฟฟิศ, Zoom, ที่อยู่…",
+    "with": "กับใคร",
+    "with_placeholder": "ชื่อคน",
+    "with_hint": "บันทึกในรายชื่อและเชื่อมกับนัดนี้ให้",
+    "not_found": "ไม่พบนัดหมาย",
+    "read_only": "ซิงก์จาก {{source}} — แก้ไขที่ต้นทาง"
   }
 }

@@ -1,0 +1,160 @@
+import { addDays, toDateKey } from '@/lib/date';
+
+/** One thing on the calendar: a calendar event or a dated task. Times are local HH:mm. */
+export type CalItem = {
+  kind: 'event' | 'task';
+  id: string;
+  title: string;
+  date: string;
+  start?: string;
+  end?: string;
+  allDay: boolean;
+  location?: string | null;
+  done?: boolean;
+  priority?: number;
+};
+
+type EventRow = { id: string; title: string; start: number; end: number; isAllDay: boolean; location: string | null };
+type TaskRow = { id: string; title: string; date: string | null; startTime: string | null; endTime: string | null; isDone: boolean; priority: number };
+
+export const toMinutes = (hhmm: string) => {
+  const [h, m] = hhmm.split(':').map(Number);
+  return h * 60 + m;
+};
+export const fromMinutes = (mins: number) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+export const hhmm = (d: Date) => fromMinutes(d.getHours() * 60 + d.getMinutes());
+
+/** Parse a YYYY-MM-DD key as a local date. */
+export const fromDateKey = (key: string) => {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
+export function eventToItem(e: EventRow): CalItem {
+  const start = new Date(e.start);
+  const date = toDateKey(start);
+  if (e.isAllDay) return { kind: 'event', id: e.id, title: e.title, date, allDay: true, location: e.location };
+  const end = new Date(e.end);
+  // Events that run past midnight are clipped to the end of their start day.
+  const endStr = toDateKey(end) === date ? hhmm(end) : '23:59';
+  return { kind: 'event', id: e.id, title: e.title, date, start: hhmm(start), end: endStr, allDay: false, location: e.location };
+}
+
+/** Dated tasks appear on the calendar; untimed ones sit in the all-day row. Default length 30 min. */
+export function taskToItem(t: TaskRow): CalItem | null {
+  if (!t.date) return null;
+  const base = { kind: 'task' as const, id: t.id, title: t.title, date: t.date, done: t.isDone, priority: t.priority };
+  if (!t.startTime) return { ...base, allDay: true };
+  const end = t.endTime && toMinutes(t.endTime) > toMinutes(t.startTime) ? t.endTime : fromMinutes(Math.min(toMinutes(t.startTime) + 30, 23 * 60 + 59));
+  return { ...base, allDay: false, start: t.startTime, end };
+}
+
+export function mergeItems(events: EventRow[], tasks: TaskRow[]): CalItem[] {
+  const items = [...events.map(eventToItem), ...tasks.map(taskToItem).filter((x): x is CalItem => !!x)];
+  return items.sort(
+    (a, b) =>
+      a.date.localeCompare(b.date) ||
+      Number(b.allDay) - Number(a.allDay) ||
+      (a.start ?? '').localeCompare(b.start ?? '') ||
+      (a.kind === b.kind ? 0 : a.kind === 'event' ? -1 : 1),
+  );
+}
+
+export function itemsForDay(items: CalItem[], date: string) {
+  const day = items.filter((i) => i.date === date);
+  return { allDay: day.filter((i) => i.allDay), timed: day.filter((i) => !i.allDay) };
+}
+
+export function countByDay(items: CalItem[]) {
+  const map = new Map<string, { events: number; tasks: number }>();
+  for (const i of items) {
+    const c = map.get(i.date) ?? { events: 0, tasks: 0 };
+    if (i.kind === 'event') c.events++;
+    else if (!i.done) c.tasks++;
+    map.set(i.date, c);
+  }
+  return map;
+}
+
+/** Monday-first week containing `date`. */
+export function weekDays(date: string): string[] {
+  const d = fromDateKey(date);
+  const monday = addDays(d, -((d.getDay() + 6) % 7));
+  return Array.from({ length: 7 }, (_, i) => toDateKey(addDays(monday, i)));
+}
+
+/** 6×7 Monday-first grid for the month containing `date`. */
+export function monthGrid(date: string): { date: string; inMonth: boolean }[] {
+  const d = fromDateKey(date);
+  const first = new Date(d.getFullYear(), d.getMonth(), 1);
+  const start = addDays(first, -((first.getDay() + 6) % 7));
+  return Array.from({ length: 42 }, (_, i) => {
+    const day = addDays(start, i);
+    return { date: toDateKey(day), inMonth: day.getMonth() === d.getMonth() };
+  });
+}
+
+export function shiftDate(date: string, view: 'day' | 'week' | 'month', dir: 1 | -1): string {
+  const d = fromDateKey(date);
+  if (view === 'day') return toDateKey(addDays(d, dir));
+  if (view === 'week') return toDateKey(addDays(d, 7 * dir));
+  const target = new Date(d.getFullYear(), d.getMonth() + dir, 1);
+  const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+  return toDateKey(new Date(target.getFullYear(), target.getMonth(), Math.min(d.getDate(), lastDay)));
+}
+
+export type Positioned = CalItem & { top: number; height: number; col: number; cols: number };
+
+/**
+ * Lay timed items out on a vertical timeline. Overlapping items share the width
+ * in columns (greedy, per overlap cluster). `hourHeight` px per hour from `startHour`.
+ */
+export function layoutTimeline(timed: CalItem[], startHour: number, hourHeight: number, minHeight = 28): Positioned[] {
+  const sorted = [...timed].sort((a, b) => toMinutes(a.start!) - toMinutes(b.start!) || toMinutes(b.end!) - toMinutes(a.end!));
+  const out: Positioned[] = [];
+  let cluster: Positioned[] = [];
+  let colEnds: number[] = [];
+  let clusterEnd = -1;
+
+  const flush = () => {
+    const cols = colEnds.length;
+    cluster.forEach((p) => (p.cols = cols));
+    out.push(...cluster);
+    cluster = [];
+    colEnds = [];
+  };
+
+  for (const item of sorted) {
+    const s = toMinutes(item.start!);
+    const e = Math.max(toMinutes(item.end!), s + 15);
+    if (s >= clusterEnd && cluster.length) flush();
+    let col = colEnds.findIndex((end) => end <= s);
+    if (col === -1) {
+      col = colEnds.length;
+      colEnds.push(e);
+    } else colEnds[col] = e;
+    clusterEnd = Math.max(clusterEnd, e);
+    const top = ((s - startHour * 60) / 60) * hourHeight;
+    cluster.push({ ...item, top, height: Math.max(((e - s) / 60) * hourHeight, minHeight), col, cols: 1 });
+  }
+  flush();
+  return out;
+}
+
+/** Visible hour range: 07–21 by default, stretched to fit early/late items. */
+export function hourRange(timed: CalItem[]): [number, number] {
+  let start = 7;
+  let end = 21;
+  for (const i of timed) {
+    start = Math.min(start, Math.floor(toMinutes(i.start!) / 60));
+    end = Math.max(end, Math.ceil(toMinutes(i.end!) / 60));
+  }
+  return [start, Math.min(end, 24)];
+}
+
+/** Which timed item is happening now, and which is next (with minutes until it starts). */
+export function scheduleStatus(timed: CalItem[], nowMins: number) {
+  const current = timed.find((i) => toMinutes(i.start!) <= nowMins && nowMins < toMinutes(i.end!));
+  const next = timed.find((i) => toMinutes(i.start!) > nowMins);
+  return { currentId: current?.id, nextId: next?.id, nextIn: next ? toMinutes(next.start!) - nowMins : undefined };
+}
