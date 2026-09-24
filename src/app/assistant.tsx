@@ -18,6 +18,7 @@ import type { Card, Reply } from '@/features/assistant/types';
 import { useAssistantContext } from '@/features/assistant/use-context';
 import { MarkdownView } from '@/features/notes/components/markdown-view';
 import { useProfile } from '@/features/profile/store';
+import { background } from '@/lib/background';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme } from '@/theme';
 
@@ -43,7 +44,7 @@ export default function AssistantScreen() {
     if (!text || thinking) return;
     setDraft('');
     const history = [...messages.map((m) => ({ role: m.role, text: m.text })), { role: 'user' as const, text }];
-    addMessage('user', text);
+    background(addMessage('user', text), 'Save chat message');
     let reply: Reply;
     if (remoteEnabled) {
       setThinking(true);
@@ -58,7 +59,7 @@ export default function AssistantScreen() {
     } else {
       reply = respond(text, getContext(), t);
     }
-    addMessage('assistant', reply.text, { cards: reply.cards, suggestions: reply.suggestions, source: reply.source });
+    background(addMessage('assistant', reply.text, { cards: reply.cards, suggestions: reply.suggestions, source: reply.source }), 'Save chat reply');
   };
 
   // Chips on Home open the chat with a question (?q=...); send it once.
@@ -71,14 +72,15 @@ export default function AssistantScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  const onConfirm = (message: AssistantMessage, card: Extract<Card, { type: 'proposal' }>) => {
+  const onConfirm = async (message: AssistantMessage, card: Extract<Card, { type: 'proposal' }>) => {
     let ok = false;
     try {
-      ok = runProposal(card.proposal);
-    } catch {
+      ok = await runProposal(card.proposal);
+    } catch (e) {
+      console.error('Assistant proposal failed:', e);
       ok = false;
     }
-    updateCard(message, card.id, { state: ok ? 'done' : 'failed' });
+    await updateCard(message, card.id, { state: ok ? 'done' : 'failed' });
   };
 
   const last = [...messages].reverse().find((m) => m.role === 'assistant');
@@ -95,7 +97,7 @@ export default function AssistantScreen() {
             <Text variant="caption" color="textSecondary">{remoteEnabled ? t('assistant.mode_claude') : t('assistant.mode_local')}</Text>
           </View>
           {messages.length ? (
-            <PressableScale accessibilityRole="button" accessibilityLabel={armed ? t('assistant.clear_confirm') : t('assistant.clear')} onPress={() => confirm(clearChat)} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.sm }}>
+            <PressableScale accessibilityRole="button" accessibilityLabel={armed ? t('assistant.clear_confirm') : t('assistant.clear')} onPress={() => confirm(() => background(clearChat(), 'Clear chat'))} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.sm }}>
               <Icon name="trash-2" size={16} color={armed ? 'danger' : 'textSecondary'} />
               {armed ? <Text variant="caption" color="danger">{t('assistant.clear_confirm')}</Text> : null}
             </PressableScale>
@@ -115,7 +117,7 @@ export default function AssistantScreen() {
               <Text variant="bodySm" color="textSecondary" align="center" style={{ maxWidth: 420 }}>{t('assistant.intro')}</Text>
             </Animated.View>
           ) : (
-            messages.map((m) => (m.role === 'user' ? <UserBubble key={m.id} text={m.text} /> : <AssistantBubble key={m.id} message={m} onConfirm={onConfirm} />))
+            messages.map((m) => (m.role === 'user' ? <UserBubble key={m.id} text={m.text} /> : <AssistantBubble key={m.id} message={m} onConfirm={(msg, card) => background(onConfirm(msg, card), 'Confirm proposal')} />))
           )}
           {thinking ? (
             <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
@@ -198,7 +200,7 @@ function AssistantBubble({ message, onConfirm }: { message: AssistantMessage; on
           </View>
         ) : null}
         {payload.cards.map((c, i) => (
-          <CardView key={c.type === 'proposal' ? c.id : `${c.type}${i}`} card={c} onConfirm={(card) => onConfirm(message, card)} onDismiss={(card) => updateCard(message, card.id, { state: 'dismissed' })} />
+          <CardView key={c.type === 'proposal' ? c.id : `${c.type}${i}`} card={c} onConfirm={(card) => onConfirm(message, card)} onDismiss={(card) => background(updateCard(message, card.id, { state: 'dismissed' }), 'Dismiss proposal')} />
         ))}
         {payload.source === 'claude' ? <Tag label="Claude" tint="focus" icon="zap" /> : null}
         {payload.cards.some((c) => c.type === 'proposal' && c.state === 'pending') ? <Text variant="caption" color="textTertiary">{t('assistant.confirm_hint')}</Text> : null}

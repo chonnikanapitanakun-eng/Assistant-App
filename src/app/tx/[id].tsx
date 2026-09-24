@@ -12,6 +12,7 @@ import { createTransaction, deleteTransaction, updateTransaction, useCategories,
 import { isValidDate } from '@/features/tasks/model';
 import { currencySymbol, parseAmount } from '@/lib/currency';
 import { addDays, toDateKey } from '@/lib/date';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme, type TintName } from '@/theme';
 
@@ -38,6 +39,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
   const wallets = useWallets();
   const categories = useCategories();
   const { armed, confirm } = useConfirm();
+  const { busy, failed, run } = useAsyncAction();
   const th = i18n.language === 'th';
 
   const [kind, setKind] = useState<Kind>(existing?.type ?? 'expense');
@@ -78,9 +80,11 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
       date,
       note: note.trim() || null,
     };
-    if (existing) updateTransaction(existing.id, values);
-    else createTransaction(values);
-    onClose();
+    void run(async () => {
+      if (existing) await updateTransaction(existing.id, values);
+      else await createTransaction(values);
+      onClose();
+    });
   };
 
   const kindTint = tints[kinds.find((k) => k.key === kind)!.tint];
@@ -91,8 +95,18 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
       title={existing ? t('money.edit_transaction') : t('money.add')}
       footer={
         <View style={{ gap: spacing.sm }}>
-          <Button fullWidth icon="check" label={t('common.save')} onPress={save} />
-          {existing ? <Button fullWidth variant="ghost" icon="trash-2" label={armed ? t('tasks.delete_confirm') : t('common.delete')} onPress={() => confirm(() => (deleteTransaction(existing.id), onClose()))} /> : null}
+          <FieldError message={failed ? t('common.save_failed') : null} />
+          <Button fullWidth icon="check" label={t('common.save')} disabled={busy} onPress={save} />
+          {existing ? (
+            <Button
+              fullWidth
+              variant="ghost"
+              icon="trash-2"
+              label={armed ? t('tasks.delete_confirm') : t('common.delete')}
+              disabled={busy}
+              onPress={() => confirm(() => void run(async () => { await deleteTransaction(existing.id); onClose(); }))}
+            />
+          ) : null}
         </View>
       }
     >

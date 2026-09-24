@@ -9,6 +9,7 @@ import type { RecurringBill } from '@/db';
 import { categoryIcon } from '@/features/money/category-icon';
 import { createBill, deleteBill, updateBill, useBill, useCategories, useWallets } from '@/features/money/queries';
 import { currencySymbol, parseAmount, supportedCurrencies } from '@/lib/currency';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme } from '@/theme';
 
@@ -30,6 +31,7 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
   const wallets = useWallets();
   const categories = useCategories().filter((c) => c.type === 'expense');
   const { armed, confirm } = useConfirm();
+  const { busy, failed, run } = useAsyncAction();
   const th = i18n.language === 'th';
   const locale = th ? 'th-TH' : 'en-GB';
 
@@ -71,9 +73,11 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
       remindDaysBefore: remind,
       isSubscription,
     };
-    if (existing) updateBill(existing.id, values);
-    else createBill(values);
-    onClose();
+    void run(async () => {
+      if (existing) await updateBill(existing.id, values);
+      else await createBill(values);
+      onClose();
+    });
   };
 
   return (
@@ -83,8 +87,18 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
       title={existing ? t('money.edit_bill') : t('money.add_bill')}
       footer={
         <View style={{ gap: spacing.sm }}>
-          <Button fullWidth icon="check" label={t('common.save')} onPress={save} />
-          {existing ? <Button fullWidth variant="ghost" icon="trash-2" label={armed ? t('tasks.delete_confirm') : t('common.delete')} onPress={() => confirm(() => (deleteBill(existing.id), onClose()))} /> : null}
+          <FieldError message={failed ? t('common.save_failed') : null} />
+          <Button fullWidth icon="check" label={t('common.save')} disabled={busy} onPress={save} />
+          {existing ? (
+            <Button
+              fullWidth
+              variant="ghost"
+              icon="trash-2"
+              label={armed ? t('tasks.delete_confirm') : t('common.delete')}
+              disabled={busy}
+              onPress={() => confirm(() => void run(async () => { await deleteBill(existing.id); onClose(); }))}
+            />
+          ) : null}
         </View>
       }
     >

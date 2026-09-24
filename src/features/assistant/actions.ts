@@ -4,25 +4,25 @@ import { getTask, rescheduleTask, toggleTaskDone } from '@/features/tasks/querie
 
 import type { Proposal } from './types';
 
-/** Carry out a proposal the user confirmed. Returns false when it couldn't be done (e.g. the item is gone). */
-export function runProposal(p: Proposal): boolean {
+/** Carry out a proposal the user confirmed. Resolves false when it couldn't be done (e.g. the item is gone). */
+export async function runProposal(p: Proposal): Promise<boolean> {
   switch (p.kind) {
     case 'create':
-      return saveCaptureItems(p.items) > 0;
+      return (await saveCaptureItems(p.items)) > 0;
     case 'complete_task': {
-      const task = getTask(p.taskId);
+      const task = await getTask(p.taskId);
       if (!task) return false;
-      if (!task.isDone) toggleTaskDone(task);
+      if (!task.isDone) await toggleTaskDone(task);
       return true;
     }
     case 'reschedule_task': {
-      const task = getTask(p.taskId);
+      const task = await getTask(p.taskId);
       if (!task) return false;
-      rescheduleTask(task, p.date, p.startTime, p.endTime);
+      await rescheduleTask(task, p.date, p.startTime, p.endTime);
       return true;
     }
     case 'pay_bill': {
-      const bill = getBill(p.billId);
+      const bill = await getBill(p.billId);
       return bill ? markBillPaid(bill) : false;
     }
   }

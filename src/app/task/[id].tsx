@@ -11,6 +11,7 @@ import { RelatedSection } from '@/features/links/components/related-section';
 import { createTask, deleteTask, updateTask, useAreas, useTask, type ChecklistItem, type TaskFormValues } from '@/features/tasks/queries';
 import { addDays, toDateKey } from '@/lib/date';
 import { newId } from '@/lib/ids';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useTheme } from '@/theme';
 
 const levels: PriorityLevel[] = ['high', 'medium', 'low'];
@@ -50,6 +51,7 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
   const [newItem, setNewItem] = useState('');
   const [showErrors, setShowErrors] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { busy, failed, run } = useAsyncAction();
 
   const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
@@ -90,9 +92,11 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
       checklist: checklist.length ? checklist : null,
       remind: remind && canRemind,
     };
-    if (existing) updateTask(existing, values);
-    else createTask(values);
-    onClose();
+    void run(async () => {
+      if (existing) await updateTask(existing, values);
+      else await createTask(values);
+      onClose();
+    });
   };
 
   const onDelete = () => {
@@ -102,8 +106,10 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
       confirmTimer.current = setTimeout(() => setConfirmDelete(false), 4000);
       return;
     }
-    deleteTask(existing);
-    onClose();
+    void run(async () => {
+      await deleteTask(existing);
+      onClose();
+    });
   };
 
   const addItem = () => {
@@ -133,7 +139,8 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
       title={existing ? t('task.edit_title') : t('task.new_title')}
       footer={
         <View style={{ gap: spacing.sm }}>
-          <Button fullWidth icon="check" label={t('common.save')} onPress={onSave} />
+          <FieldError message={failed ? t('common.save_failed') : null} />
+          <Button fullWidth icon="check" label={t('common.save')} disabled={busy} onPress={onSave} />
           {existing ? (
             <Button
               fullWidth
@@ -141,6 +148,7 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
               icon="trash-2"
               label={confirmDelete ? t('tasks.delete_confirm') : t('common.delete')}
               accessibilityHint={t('task.delete_confirm_message')}
+              disabled={busy}
               onPress={onDelete}
             />
           ) : null}

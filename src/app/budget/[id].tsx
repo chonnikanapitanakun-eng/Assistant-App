@@ -11,6 +11,7 @@ import { setBudget, useCategory, useTransactions } from '@/features/money/querie
 import { usePrimaryCurrency } from '@/features/profile/store';
 import { currencySymbol, parseAmount } from '@/lib/currency';
 import { toMonthKey } from '@/lib/date';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useTheme } from '@/theme';
 
 /** Monthly budget for one expense category (in the primary currency). */
@@ -30,6 +31,7 @@ function BudgetForm({ category, onClose }: { category: Category; onClose: () => 
   const budgetCurrency = usePrimaryCurrency();
   const [amount, setAmount] = useState(category.budgetMonthly ? String(category.budgetMonthly) : '');
   const [showErrors, setShowErrors] = useState(false);
+  const { busy, failed, run } = useAsyncAction();
   const spent = spendingByCategory(txs, toMonthKey(), budgetCurrency).find((r) => r.categoryId === category.id)?.total ?? 0;
   const parsed = parseAmount(amount);
   const error = parsed === null || parsed <= 0 ? t('money.invalid_amount') : null;
@@ -40,8 +42,10 @@ function BudgetForm({ category, onClose }: { category: Category; onClose: () => 
       setShowErrors(true);
       return;
     }
-    setBudget(category.id, parsed);
-    onClose();
+    void run(async () => {
+      await setBudget(category.id, parsed);
+      onClose();
+    });
   };
 
   return (
@@ -51,8 +55,11 @@ function BudgetForm({ category, onClose }: { category: Category; onClose: () => 
       subtitle={t('money.budget_currency_note', { currency: budgetCurrency })}
       footer={
         <View style={{ gap: spacing.sm }}>
-          <Button fullWidth icon="check" label={t('common.save')} onPress={save} />
-          {category.budgetMonthly ? <Button fullWidth variant="ghost" icon="x-circle" label={t('money.remove_budget')} onPress={() => (setBudget(category.id, null), onClose())} /> : null}
+          <FieldError message={failed ? t('common.save_failed') : null} />
+          <Button fullWidth icon="check" label={t('common.save')} disabled={busy} onPress={save} />
+          {category.budgetMonthly ? (
+            <Button fullWidth variant="ghost" icon="x-circle" label={t('money.remove_budget')} disabled={busy} onPress={() => void run(async () => { await setBudget(category.id, null); onClose(); })} />
+          ) : null}
         </View>
       }
     >

@@ -1,37 +1,48 @@
 import { and, eq, isNull, sql } from 'drizzle-orm';
 
-import { contacts, db, links, type LinkableType } from '@/db';
+import { contacts, db, links, type LinkableType, type Write } from '@/db';
 import { newId, now } from '@/lib/ids';
 
-/** The db itself or an open transaction. */
-export type Writer = typeof db | Parameters<Parameters<typeof db.transaction>[0]>[0];
+/*
+ * These helpers read now and *return* the writes, so callers can commit them together with their
+ * own inserts in one `commit([...])` (an atomic db.batch — see src/db/client.ts for why not db.transaction).
+ */
 
-/** Find a live contact by name (case-insensitive) or create it. Returns its id. */
-export function findOrCreateContact(w: Writer, name: string): string {
-  const existing = w
+/**
+ * Find a live contact by name (case-insensitive). If there is none, pick a new id and return the
+ * insert in `create` for the caller's batch.
+ */
+export async function resolveContact(name: string): Promise<{ id: string; create: Write | null }> {
+  const existing = await db
     .select({ id: contacts.id })
     .from(contacts)
     .where(and(sql`lower(${contacts.name}) = ${name.toLowerCase()}`, isNull(contacts.deletedAt)))
     .get();
-  if (existing) return existing.id;
+  if (existing) return { id: existing.id, create: null };
   const id = newId();
   const t = now();
-  w.insert(contacts).values({ id, name, createdAt: t, updatedAt: t }).run();
-  return id;
+  return { id, create: db.insert(contacts).values({ id, name, createdAt: t, updatedAt: t }) };
 }
 
-export function linkContact(w: Writer, fromType: LinkableType, fromId: string, contactId: string) {
+export function linkContact(fromType: LinkableType, fromId: string, contactId: string): Write {
   const t = now();
-  w.insert(links).values({ id: newId(), fromType, fromId, toType: 'contact', toId: contactId, relation: 'with', createdAt: t, updatedAt: t }).run();
+  return db.insert(links).values({ id: newId(), fromType, fromId, toType: 'contact', toId: contactId, relation: 'with', createdAt: t, updatedAt: t });
 }
 
-/** Replace the "with" contact of a record (soft-deletes previous links). Empty name clears it. */
-export function setLinkedContact(w: Writer, fromType: LinkableType, fromId: string, name: string | null) {
+/** Writes that replace the "with" contact of a record (soft-deleting previous links). Empty name clears it. */
+export async function linkedContactWrites(fromType: LinkableType, fromId: string, name: string | null): Promise<Write[]> {
   const t = now();
-  w.update(links)
-    .set({ deletedAt: t, updatedAt: t })
-    .where(and(eq(links.fromType, fromType), eq(links.fromId, fromId), eq(links.toType, 'contact'), isNull(links.deletedAt)))
-    .run();
+  const writes: Write[] = [
+    db
+      .update(links)
+      .set({ deletedAt: t, updatedAt: t })
+      .where(and(eq(links.fromType, fromType), eq(links.fromId, fromId), eq(links.toType, 'contact'), isNull(links.deletedAt))),
+  ];
   const trimmed = name?.trim();
-  if (trimmed) linkContact(w, fromType, fromId, findOrCreateContact(w, trimmed));
+  if (trimmed) {
+    const contact = await resolveContact(trimmed);
+    if (contact.create) writes.push(contact.create);
+    writes.push(linkContact(fromType, fromId, contact.id));
+  }
+  return writes;
 }

@@ -42,6 +42,7 @@ export default function CaptureScreen() {
   const [moneyType, setMoneyType] = useState<Record<string, 'income' | 'expense'>>({});
   const [mediaHint, setMediaHint] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
+  const [saving, setSaving] = useState(false);
 
   const detected = useMemo(() => {
     return parseCaptureLocally(text).map((item, i) => {
@@ -69,13 +70,17 @@ export default function CaptureScreen() {
       return next;
     });
 
-  const save = () => {
-    if (!selected.length) return;
+  const save = async () => {
+    if (!selected.length || saving) return;
+    setSaving(true);
     try {
-      const count = saveCaptureItems(selected.map((d) => d.item));
+      const count = await saveCaptureItems(selected.map((d) => d.item));
       setPhase({ kind: 'saved', count });
-    } catch {
+    } catch (e) {
+      console.error('Quick capture save failed:', e);
       setPhase({ kind: 'error' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -90,8 +95,8 @@ export default function CaptureScreen() {
             fullWidth
             icon="check"
             label={selected.length ? t('capture.save_count', { count: selected.length }) : t('capture.save')}
-            disabled={!selected.length}
-            onPress={save}
+            disabled={!selected.length || saving}
+            onPress={() => void save()}
           />
         ) : undefined
       }

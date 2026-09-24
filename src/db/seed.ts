@@ -3,7 +3,7 @@ import { count, eq } from 'drizzle-orm';
 import { addDays, toDateKey } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
 
-import type { Db } from './client';
+import { commit, type Db, type Write } from './client';
 import { areas, calendarEvents, categories, contacts, links, notes, recurringBills, tasks, transactions, wallets } from './schema';
 
 const stamp = () => {
@@ -181,26 +181,24 @@ const sampleNotes = [
 ];
 
 /** Reference data every install needs: life areas, categories and starter accounts. */
-export function seedIfEmpty(db: Db) {
-  const [{ value: areaCount }] = db.select({ value: count() }).from(areas).all();
+export async function seedIfEmpty(db: Db) {
+  const [{ value: areaCount }] = await db.select({ value: count() }).from(areas).all();
   if (areaCount > 0) return;
 
-  db.transaction((tx) => {
-    let order = 0;
-    for (const a of defaultAreas) {
-      const parentId = newId();
-      tx.insert(areas).values({ id: parentId, nameTh: a.nameTh, nameEn: a.nameEn, color: a.color, icon: a.icon, sortOrder: order++, ...stamp() }).run();
-      for (const c of a.children) {
-        tx.insert(areas).values({ id: newId(), nameTh: c.nameTh, nameEn: c.nameEn, parentId, color: a.color, sortOrder: order++, ...stamp() }).run();
-      }
+  const areaRows: (typeof areas.$inferInsert)[] = [];
+  let order = 0;
+  for (const a of defaultAreas) {
+    const parentId = newId();
+    areaRows.push({ id: parentId, nameTh: a.nameTh, nameEn: a.nameEn, color: a.color, icon: a.icon, sortOrder: order++, ...stamp() });
+    for (const c of a.children) {
+      areaRows.push({ id: newId(), nameTh: c.nameTh, nameEn: c.nameEn, parentId, color: a.color, sortOrder: order++, ...stamp() });
     }
-    defaultCategories.forEach((c, i) => {
-      tx.insert(categories).values({ id: newId(), ...c, sortOrder: i, ...stamp() }).run();
-    });
-    defaultWallets.forEach((w, i) => {
-      tx.insert(wallets).values({ id: newId(), ...w, sortOrder: i, ...stamp() }).run();
-    });
-  });
+  }
+  await commit([
+    db.insert(areas).values(areaRows),
+    db.insert(categories).values(defaultCategories.map((c, i) => ({ id: newId(), ...c, sortOrder: i, ...stamp() }))),
+    db.insert(wallets).values(defaultWallets.map((w, i) => ({ id: newId(), ...w, sortOrder: i, ...stamp() }))),
+  ], db);
 }
 
 /**
@@ -208,67 +206,68 @@ export function seedIfEmpty(db: Db) {
  * of money, bills and budgets. Does nothing if the user already has any content.
  * Returns whether anything was added.
  */
-export function seedSampleData(db: Db): boolean {
-  const has = (t: typeof tasks | typeof notes | typeof transactions | typeof calendarEvents) => db.select({ value: count() }).from(t).all()[0].value > 0;
-  if (has(tasks) || has(notes) || has(transactions) || has(calendarEvents)) return false;
+export async function seedSampleData(db: Db): Promise<boolean> {
+  const has = async (t: typeof tasks | typeof notes | typeof transactions | typeof calendarEvents) => (await db.select({ value: count() }).from(t).all())[0].value > 0;
+  if ((await has(tasks)) || (await has(notes)) || (await has(transactions)) || (await has(calendarEvents))) return false;
 
-  const areaIds = new Map(db.select({ id: areas.id, name: areas.nameEn }).from(areas).all().map((a) => [a.name, a.id]));
-  const catIds = new Map(db.select({ id: categories.id, name: categories.nameEn }).from(categories).all().map((c) => [c.name, c.id]));
-  const walletRows = db.select().from(wallets).orderBy(wallets.sortOrder).all();
+  const areaIds = new Map((await db.select({ id: areas.id, name: areas.nameEn }).from(areas).all()).map((a) => [a.name, a.id]));
+  const catIds = new Map((await db.select({ id: categories.id, name: categories.nameEn }).from(categories).all()).map((c) => [c.name, c.id]));
+  const walletRows = await db.select().from(wallets).orderBy(wallets.sortOrder).all();
   if (walletRows.length < defaultWallets.length) return false;
 
-  db.transaction((tx) => {
-    walletRows.slice(0, defaultWallets.length).forEach((w, i) => {
-      tx.update(wallets).set({ balance: sampleOpening[i] ?? 0 }).where(eq(wallets.id, w.id)).run();
-    });
-    for (const [name, amount] of Object.entries(sampleBudgets)) {
-      const id = catIds.get(name);
-      if (id) tx.update(categories).set({ budgetMonthly: amount }).where(eq(categories.id, id)).run();
-    }
-
-    const people = new Map<string, string>();
-    sampleEvents(new Date()).forEach(({ with: person, ...e }) => {
-      const s = stamp();
-      const id = newId();
-      tx.insert(calendarEvents).values({ id, externalId: id, source: 'veyra', location: null, isAllDay: false, ...e, ...s }).run();
-      if (!person) return;
-      if (!people.has(person)) {
-        people.set(person, newId());
-        tx.insert(contacts).values({ id: people.get(person)!, name: person, ...s }).run();
-      }
-      tx.insert(links).values({ id: newId(), fromType: 'event', fromId: id, toType: 'contact', toId: people.get(person)!, relation: 'with', ...s }).run();
-    });
-    sampleNotes.forEach((n, i) => {
-      const s = stamp();
-      // Stagger updatedAt so "recently edited" ordering looks natural.
-      tx.insert(notes).values({ id: newId(), ...n, createdAt: s.createdAt - i * 3_600_000, updatedAt: s.updatedAt - i * 3_600_000 }).run();
-    });
-    sampleTasks(new Date()).forEach(({ area, isDone, ...task }, i) => {
-      const s = stamp();
-      tx.insert(tasks).values({ id: newId(), ...task, areaId: areaIds.get(area) ?? null, isDone: !!isDone, doneAt: isDone ? s.createdAt : null, sortOrder: i, ...s }).run();
-    });
-
-    const walletIds = walletRows.map((w) => w.id);
-    const money = sampleMoney(new Date());
-    money.txs.forEach((t) => {
-      tx.insert(transactions)
-        .values({
-          id: newId(),
-          walletId: walletIds[t.w],
-          toWalletId: t.to !== undefined ? walletIds[t.to] : null,
-          amount: t.amount,
-          currency: walletRows[t.w].currency,
-          type: t.type,
-          categoryId: t.cat ? (catIds.get(t.cat) ?? null) : null,
-          date: t.date,
-          note: t.note,
-          ...stamp(),
-        })
-        .run();
-    });
-    money.bills.forEach(({ w, cat, ...b }) => {
-      tx.insert(recurringBills).values({ id: newId(), ...b, walletId: walletIds[w], categoryId: catIds.get(cat) ?? null, ...stamp() }).run();
-    });
+  const writes: Write[] = [];
+  walletRows.slice(0, defaultWallets.length).forEach((w, i) => {
+    writes.push(db.update(wallets).set({ balance: sampleOpening[i] ?? 0 }).where(eq(wallets.id, w.id)));
   });
+  for (const [name, amount] of Object.entries(sampleBudgets)) {
+    const id = catIds.get(name);
+    if (id) writes.push(db.update(categories).set({ budgetMonthly: amount }).where(eq(categories.id, id)));
+  }
+
+  const people = new Map<string, string>();
+  sampleEvents(new Date()).forEach(({ with: person, ...e }) => {
+    const s = stamp();
+    const id = newId();
+    writes.push(db.insert(calendarEvents).values({ id, externalId: id, source: 'veyra', location: null, isAllDay: false, ...e, ...s }));
+    if (!person) return;
+    if (!people.has(person)) {
+      people.set(person, newId());
+      writes.push(db.insert(contacts).values({ id: people.get(person)!, name: person, ...s }));
+    }
+    writes.push(db.insert(links).values({ id: newId(), fromType: 'event', fromId: id, toType: 'contact', toId: people.get(person)!, relation: 'with', ...s }));
+  });
+  sampleNotes.forEach((n, i) => {
+    const s = stamp();
+    // Stagger updatedAt so "recently edited" ordering looks natural.
+    writes.push(db.insert(notes).values({ id: newId(), ...n, createdAt: s.createdAt - i * 3_600_000, updatedAt: s.updatedAt - i * 3_600_000 }));
+  });
+  sampleTasks(new Date()).forEach(({ area, isDone, ...task }, i) => {
+    const s = stamp();
+    writes.push(db.insert(tasks).values({ id: newId(), ...task, areaId: areaIds.get(area) ?? null, isDone: !!isDone, doneAt: isDone ? s.createdAt : null, sortOrder: i, ...s }));
+  });
+
+  const walletIds = walletRows.map((w) => w.id);
+  const money = sampleMoney(new Date());
+  money.txs.forEach((t) => {
+    writes.push(
+      db.insert(transactions).values({
+        id: newId(),
+        walletId: walletIds[t.w],
+        toWalletId: t.to !== undefined ? walletIds[t.to] : null,
+        amount: t.amount,
+        currency: walletRows[t.w].currency,
+        type: t.type,
+        categoryId: t.cat ? (catIds.get(t.cat) ?? null) : null,
+        date: t.date,
+        note: t.note,
+        ...stamp(),
+      }),
+    );
+  });
+  money.bills.forEach(({ w, cat, ...b }) => {
+    writes.push(db.insert(recurringBills).values({ id: newId(), ...b, walletId: walletIds[w], categoryId: catIds.get(cat) ?? null, ...stamp() }));
+  });
+
+  await commit(writes, db);
   return true;
 }

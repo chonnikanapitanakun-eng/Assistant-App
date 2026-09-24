@@ -9,6 +9,7 @@ import { NoteEditor } from '@/features/notes/components/note-editor';
 import { NoteRow } from '@/features/notes/components/note-row';
 import { allTags, matchesQuery } from '@/features/notes/model';
 import { createNote, useNotes } from '@/features/notes/queries';
+import { background } from '@/lib/background';
 import { useBreakpoint, useTheme } from '@/theme';
 
 export default function NotesScreen() {
@@ -31,7 +32,7 @@ export default function NotesScreen() {
     if (isDesktop) setSelected({ id, fresh });
     else router.push({ pathname: '/note/[id]', params: fresh ? { id, edit: '1' } : { id } });
   };
-  const add = () => open(createNote(tag ? { tags: [tag] } : {}), true);
+  const add = () => background(createNote(tag ? { tags: [tag] } : {}).then((id) => open(id, true)), 'Create note');
 
   const list = (
     <View style={{ gap: spacing.lg }}>

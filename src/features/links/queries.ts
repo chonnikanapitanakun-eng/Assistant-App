@@ -1,10 +1,8 @@
 import { and, desc, eq, inArray, isNull, like, or } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { areas, calendarEvents, contacts, db, links, notes, tasks, transactions, type LinkableType } from '@/db';
-import type { Writer } from '@/features/contacts/links';
+import { areas, calendarEvents, contacts, db, links, notes, tasks, transactions, useDbQuery, type LinkableType } from '@/db';
 import { newId, now } from '@/lib/ids';
 
 import { defaultRelation, describe, otherEnd, refKey, sameRef, sortRelated, type Candidate, type LinkRef, type LinkableRow, type RelatedItem } from './model';
@@ -28,13 +26,13 @@ function linksTouching(self: LinkRef) {
 }
 
 /** Resolve refs to labels in one query per type. Deleted targets are left out. */
-export function resolveRefs(refs: LinkRef[], lang: string): Map<string, { title: string; subtitle: string | null }> {
+export async function resolveRefs(refs: LinkRef[], lang: string): Promise<Map<string, { title: string; subtitle: string | null }>> {
   const out = new Map<string, { title: string; subtitle: string | null }>();
   const byType = new Map<LinkableType, string[]>();
   for (const r of refs) byType.set(r.type, [...(byType.get(r.type) ?? []), r.id]);
   for (const [type, ids] of byType) {
     const table = tableFor[type];
-    const rows = db.select().from(table).where(and(inArray(table.id, ids), isNull(table.deletedAt))).all();
+    const rows = await db.select().from(table).where(and(inArray(table.id, ids), isNull(table.deletedAt))).all();
     for (const row of rows) out.set(refKey({ type, id: row.id }), describe({ type, row } as LinkableRow, lang));
   }
   return out;
@@ -42,12 +40,14 @@ export function resolveRefs(refs: LinkRef[], lang: string): Map<string, { title:
 
 type LinkRow = typeof links.$inferSelect;
 
-function toRelated(rows: LinkRow[], self: LinkRef, lang: string): RelatedItem[] {
+const NONE: RelatedItem[] = [];
+
+async function toRelated(rows: LinkRow[], self: LinkRef, lang: string): Promise<RelatedItem[]> {
   const ends = rows.flatMap((link) => {
     const end = otherEnd(link, self);
     return end ? [{ link, ...end }] : [];
   });
-  const labels = resolveRefs(ends.map((e) => e.ref), lang);
+  const labels = await resolveRefs(ends.map((e) => e.ref), lang);
   const items: RelatedItem[] = [];
   const seen = new Set<string>();
   for (const e of ends) {
@@ -60,24 +60,23 @@ function toRelated(rows: LinkRow[], self: LinkRef, lang: string): RelatedItem[] 
   return sortRelated(items);
 }
 
-/** Sync read (for actions and AI context outside React). */
-export function getRelated(self: LinkRef, lang = 'th'): RelatedItem[] {
-  return toRelated(linksTouching(self).all(), self, lang);
+/** One-off read (for actions and AI context outside React). */
+export async function getRelated(self: LinkRef, lang = 'th'): Promise<RelatedItem[]> {
+  return toRelated(await linksTouching(self).all(), self, lang);
 }
 
 /**
- * Live "Related" list for a record. Re-runs when the `links` table changes;
- * labels are resolved on each run (see docs/LINKS.md for the trade-off).
- * Pass `null` for unsaved records — returns [].
+ * Live "Related" list for a record. Re-runs after any DB write (links or the linked records),
+ * resolving labels on each run (see docs/LINKS.md). Pass `null` for unsaved records — returns [].
  */
 export function useRelated(self: LinkRef | null): RelatedItem[] {
   const { i18n } = useTranslation();
   // Depend on the primitive parts so callers can pass an inline `{ type, id }` without re-resolving every render.
   const type = self?.type ?? 'task';
   const id = self?.id ?? '';
-  const { data } = useLiveQuery(linksTouching({ type, id }), [type, id]);
   const lang = i18n.language;
-  return useMemo(() => (id ? toRelated(data, { type, id }, lang) : []), [data, type, id, lang]);
+  const data = useDbQuery(['related', type, id, lang], async () => (id ? toRelated(await linksTouching({ type, id }).all(), { type, id }, lang) : []));
+  return data ?? NONE;
 }
 
 /** Records of `type` matching `q` (substring on the name field), newest first. */
@@ -102,23 +101,29 @@ function candidatesQuery(type: LinkableType, q: string, limit: number) {
 /** Live picker results for the "Link…" flow. Excludes `self`. */
 export function useLinkCandidates(type: LinkableType, q: string, self: LinkRef, limit = 12): Candidate[] {
   const { i18n } = useTranslation();
-  const query = useMemo(() => candidatesQuery(type, q.trim(), limit), [type, q, limit]);
-  const { data } = useLiveQuery(query as ReturnType<typeof candidatesQuery>, [type, q, limit]);
+  const term = q.trim();
+  // Keep the previous results on screen while the next keystroke's query runs; they carry their
+  // own type so rows are never described as the newly selected type.
+  const data = useDbQuery(
+    ['link-candidates', type, term, limit],
+    async () => ({ type, rows: (await candidatesQuery(type, term, limit).all()) as LinkableRow['row'][] }),
+    { keepPrevious: true },
+  );
   const lang = i18n.language;
   const selfType = self.type;
   const selfId = self.id;
-  return useMemo(
-    () =>
-      (data as LinkableRow['row'][])
-        .map((row) => ({ ref: { type, id: row.id }, ...describe({ type, row } as LinkableRow, lang) }))
-        .filter((c) => !sameRef(c.ref, { type: selfType, id: selfId })),
-    [data, type, selfType, selfId, lang],
-  );
+  return useMemo(() => {
+    if (!data) return [];
+    const rowType = data.type;
+    return data.rows
+      .map((row) => ({ ref: { type: rowType, id: row.id }, ...describe({ type: rowType, row } as LinkableRow, lang) }))
+      .filter((c) => !sameRef(c.ref, { type: selfType, id: selfId }));
+  }, [data, selfType, selfId, lang]);
 }
 
 /** Live link between two records in either direction (any relation). */
-function findLink(w: Writer, a: LinkRef, b: LinkRef) {
-  return w
+function findLink(a: LinkRef, b: LinkRef) {
+  return db
     .select({ id: links.id })
     .from(links)
     .where(
@@ -134,18 +139,18 @@ function findLink(w: Writer, a: LinkRef, b: LinkRef) {
 }
 
 /** Link two records. Idempotent: an existing live link (either direction) is reused. Returns the link id. */
-export function addLink(from: LinkRef, to: LinkRef, relation: string = defaultRelation(to.type), w: Writer = db): string {
+export async function addLink(from: LinkRef, to: LinkRef, relation: string = defaultRelation(to.type)): Promise<string> {
   if (sameRef(from, to)) throw new Error('Cannot link a record to itself');
-  const existing = findLink(w, from, to);
+  const existing = await findLink(from, to);
   if (existing) return existing.id;
   const id = newId();
   const t = now();
-  w.insert(links).values({ id, fromType: from.type, fromId: from.id, toType: to.type, toId: to.id, relation, createdAt: t, updatedAt: t }).run();
+  await db.insert(links).values({ id, fromType: from.type, fromId: from.id, toType: to.type, toId: to.id, relation, createdAt: t, updatedAt: t });
   return id;
 }
 
 /** Soft-delete one link (keeps sync history). */
-export function removeLink(linkId: string, w: Writer = db) {
+export async function removeLink(linkId: string) {
   const t = now();
-  w.update(links).set({ deletedAt: t, updatedAt: t }).where(eq(links.id, linkId)).run();
+  await db.update(links).set({ deletedAt: t, updatedAt: t }).where(eq(links.id, linkId));
 }
