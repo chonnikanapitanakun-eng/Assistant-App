@@ -1,21 +1,27 @@
 import { db, notes, tasks, transactions, wallets } from '@/db';
+import { syncTaskReminder } from '@/features/notifications';
 import { newId, now } from '@/lib/ids';
-import { toDateKey } from '@/lib/date';
+import { combineDateTime, toDateKey } from '@/lib/date';
 
 import type { CaptureItem } from './types';
 
-/** บันทึก CaptureItem[] ที่ user ยืนยันแล้วลง DB */
+/** บันทึก CaptureItem[] ที่ user ยืนยันแล้วลง DB — task ที่มีวัน+เวลาจะตั้ง reminder ให้อัตโนมัติ */
 export function saveCaptureItems(items: CaptureItem[]) {
   const t = now();
   const base = { id: newId(), createdAt: t, updatedAt: t };
   const defaultWallet = db.select().from(wallets).orderBy(wallets.sortOrder).limit(1).get();
+  const newTaskReminders: { id: string; title: string; reminderAt: number }[] = [];
 
   db.transaction((tx) => {
     for (const item of items) {
       switch (item.type) {
-        case 'task':
-          tx.insert(tasks).values({ ...base, id: newId(), title: item.title, date: item.date, startTime: item.startTime, endTime: item.endTime }).run();
+        case 'task': {
+          const id = newId();
+          const reminderAt = combineDateTime(item.date, item.startTime);
+          tx.insert(tasks).values({ ...base, id, title: item.title, date: item.date, startTime: item.startTime, endTime: item.endTime, reminderAt }).run();
+          if (reminderAt) newTaskReminders.push({ id, title: item.title, reminderAt });
           break;
+        }
         case 'expense':
         case 'income':
           if (!defaultWallet) break;
@@ -37,4 +43,8 @@ export function saveCaptureItems(items: CaptureItem[]) {
       }
     }
   });
+
+  for (const task of newTaskReminders) {
+    void syncTaskReminder({ ...task, reminderNotificationId: null });
+  }
 }
