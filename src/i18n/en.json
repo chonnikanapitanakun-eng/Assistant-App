@@ -565,5 +565,23 @@
     "rel_extracted": "extracted from this note",
     "rel_extracted_in": "from note",
     "rel_related": "related"
+  },
+  "search": {
+    "title": "Search",
+    "placeholder": "Search tasks, notes, money, events…",
+    "hint_title": "Find anything",
+    "hint_body": "One search across tasks, events, notes, transactions and contacts. Thai works too.",
+    "no_results": "Nothing found",
+    "no_results_body": "Try a different word or a shorter part of it.",
+    "all": "All",
+    "group_task": "Tasks",
+    "group_event": "Events",
+    "group_note": "Notes",
+    "group_transaction": "Money",
+    "group_contact": "Contacts",
+    "see_all": "See all {{count}}",
+    "results_one": "{{count}} result",
+    "results_other": "{{count}} results",
+    "all_day": "All day"
   }
 }
