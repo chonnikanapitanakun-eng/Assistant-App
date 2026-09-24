@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
@@ -8,6 +9,7 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { Text } from '@/components/ui';
 import type { Task } from '@/db';
 import { toDateKey } from '@/lib/date';
+import { showAlert } from '@/lib/dialog';
 import { useTheme } from '@/theme';
 
 import { rescheduleTask } from './queries';
@@ -52,6 +54,7 @@ export function DayTimeline({ date, tasks }: { date: string; tasks: Task[] }) {
 }
 
 function TaskBlock({ p, laneWidth }: { p: Positioned<Task>; laneWidth: number }) {
+  const { t } = useTranslation();
   const { colors, radius } = useTheme();
   const translateY = useSharedValue(0);
   const dragging = useSharedValue(false);
@@ -70,7 +73,11 @@ function TaskBlock({ p, laneWidth }: { p: Positioned<Task>; laneWidth: number })
       translateY.value = withSpring(0);
       return;
     }
-    rescheduleTask(p.item.id, p.item.date, next.startTime, next.endTime);
+    // สำเร็จ → query refetch แล้ว block ใหม่ mount ที่ตำแหน่งใหม่ (key เปลี่ยน); ล้มเหลว → เด้งกลับที่เดิม
+    rescheduleTask(p.item.id, p.item.date, next.startTime, next.endTime).catch((e: unknown) => {
+      translateY.value = withSpring(0);
+      showAlert(t('common.save_failed'), String(e));
+    });
   };
 
   const pan = Gesture.Pan()

@@ -1,12 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Pressable, Switch, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, Switch, TextInput, View } from 'react-native';
 
 import { Card, Screen, Text } from '@/components/ui';
 import { createTask, deleteTask, updateTask, useTask, type ChecklistItem } from '@/features/tasks/queries';
 import { toDateKey } from '@/lib/date';
+import { confirmDestructive, showAlert } from '@/lib/dialog';
+import { closeScreen } from '@/lib/navigation';
 import { newId } from '@/lib/ids';
 import { useTheme } from '@/theme';
 
@@ -20,6 +22,7 @@ export default function TaskDetailScreen() {
   const { colors, radius, spacing } = useTheme();
   const existing = useTask(isNew ? '' : id);
   const hydrated = useRef(false);
+  const [saving, setSaving] = useState(false);
 
   const [title, setTitle] = useState('');
   const [notes, setNotes] = useState('');
@@ -47,6 +50,14 @@ export default function TaskDetailScreen() {
     }
   }, [existing]);
 
+  if (!isNew && existing === undefined) {
+    return (
+      <Screen>
+        <ActivityIndicator color={colors.primary} style={{ marginTop: 24 }} />
+      </Screen>
+    );
+  }
+
   if (!isNew && !existing) {
     return (
       <Screen>
@@ -70,10 +81,11 @@ export default function TaskDetailScreen() {
     setChecklist((prev) => prev.filter((item) => item.id !== itemId));
   };
 
-  const onSave = () => {
+  const onSave = async () => {
+    if (saving) return;
     const trimmedTitle = title.trim();
     if (!trimmedTitle) {
-      Alert.alert(t('task.title_required'));
+      showAlert(t('task.title_required'));
       return;
     }
     const values = {
@@ -87,26 +99,34 @@ export default function TaskDetailScreen() {
       isDone,
       checklist: checklist.length > 0 ? checklist : null,
     };
-    if (isNew) {
-      createTask(values);
-    } else {
-      updateTask(id, values);
+    setSaving(true);
+    try {
+      if (isNew) {
+        await createTask(values);
+      } else {
+        await updateTask(id, values);
+      }
+      closeScreen();
+    } catch (e) {
+      setSaving(false);
+      showAlert(t('common.save_failed'), e instanceof Error ? e.message : String(e));
     }
-    router.back();
   };
 
-  const onDelete = () => {
-    Alert.alert(t('task.delete_confirm_title'), t('task.delete_confirm_message'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: () => {
-          deleteTask(id);
-          router.back();
-        },
-      },
-    ]);
+  const onDelete = async () => {
+    const confirmed = await confirmDestructive({
+      title: t('task.delete_confirm_title'),
+      message: t('task.delete_confirm_message'),
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
+    });
+    if (!confirmed) return;
+    try {
+      await deleteTask(id);
+      closeScreen();
+    } catch (e) {
+      showAlert(t('common.save_failed'), e instanceof Error ? e.message : String(e));
+    }
   };
 
   const inputStyle = {
@@ -220,10 +240,10 @@ export default function TaskDetailScreen() {
       </View>
 
       <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
-        <Pressable onPress={() => router.back()} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, alignItems: 'center' }}>
+        <Pressable onPress={closeScreen} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, alignItems: 'center' }}>
           <Text>{t('common.cancel')}</Text>
         </Pressable>
-        <Pressable onPress={onSave} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center' }}>
+        <Pressable onPress={onSave} disabled={saving} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center', opacity: saving ? 0.6 : 1 }}>
           <Text color="onPrimary">{t('common.save')}</Text>
         </Pressable>
       </View>

@@ -13,6 +13,7 @@ import { setTaskDone, useTasksForDate } from '@/features/tasks/queries';
 import { minutesToY } from '@/features/tasks/timeline';
 import { shiftDateKey, shiftMonth, weekDays } from '@/lib/calendar';
 import { toDateKey } from '@/lib/date';
+import { showAlert } from '@/lib/dialog';
 import { useTheme } from '@/theme';
 
 const views = ['day', 'week', 'month'] as const;
@@ -99,7 +100,7 @@ function DayView({ date, onTimelineLayout }: { date: string; onTimelineLayout: (
           {unscheduled.map((task) => (
             <Pressable
               key={task.id}
-              onPress={() => setTaskDone(task.id, !task.isDone)}
+              onPress={() => setTaskDone(task.id, !task.isDone).catch((e: unknown) => showAlert(t('common.save_failed'), String(e)))}
               accessibilityRole="checkbox"
               accessibilityState={{ checked: task.isDone }}
               style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}

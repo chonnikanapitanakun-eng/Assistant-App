@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, TextInput, View } from 'react-native';
@@ -7,6 +6,8 @@ import { Card, Screen, Text } from '@/components/ui';
 import { parseCaptureLocally } from '@/features/ai/capture';
 import { saveCaptureItems } from '@/features/ai/save';
 import type { CaptureItem } from '@/features/ai/types';
+import { showAlert } from '@/lib/dialog';
+import { closeScreen } from '@/lib/navigation';
 import { useTheme } from '@/theme';
 
 export default function CaptureScreen() {
@@ -14,6 +15,7 @@ export default function CaptureScreen() {
   const { colors, radius, spacing } = useTheme();
   const [text, setText] = useState('');
   const [preview, setPreview] = useState<CaptureItem[] | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const onSubmit = () => {
     if (!text.trim()) return;
@@ -21,10 +23,16 @@ export default function CaptureScreen() {
     setPreview(parseCaptureLocally(text));
   };
 
-  const onConfirm = () => {
-    if (!preview) return;
-    saveCaptureItems(preview);
-    router.back();
+  const onConfirm = async () => {
+    if (!preview || saving) return;
+    setSaving(true);
+    try {
+      await saveCaptureItems(preview);
+      closeScreen();
+    } catch (e) {
+      setSaving(false);
+      showAlert(t('common.save_failed'), e instanceof Error ? e.message : String(e));
+    }
   };
 
   return (
@@ -51,10 +59,10 @@ export default function CaptureScreen() {
         </View>
       ) : null}
       <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: 'auto' }}>
-        <Pressable onPress={() => router.back()} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, alignItems: 'center' }}>
+        <Pressable onPress={closeScreen} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.surfaceAlt, alignItems: 'center' }}>
           <Text>{t('capture.cancel')}</Text>
         </Pressable>
-        <Pressable onPress={preview ? onConfirm : onSubmit} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center' }}>
+        <Pressable onPress={preview ? onConfirm : onSubmit} disabled={saving} style={{ flex: 1, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.primary, alignItems: 'center', opacity: saving ? 0.6 : 1 }}>
           <Text color="onPrimary">{preview ? t('common.save') : t('capture.preview')}</Text>
         </Pressable>
       </View>
