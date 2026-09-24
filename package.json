@@ -50,5 +50,8 @@
     "eslint-config-expo": "~57.0.2",
     "typescript": "~6.0.3",
     "vitest": "^3.0.0"
+  },
+  "overrides": {
+    "@expo/metro-config": "57.0.10"
   }
 }
