@@ -2,6 +2,7 @@ import { create } from 'zustand';
 
 import { cancelTimerEnd, scheduleTimerEnd } from '@/features/notifications';
 import i18n from '@/i18n';
+import { background } from '@/lib/background';
 
 import { logSession } from './queries';
 import * as T from './timer';
@@ -78,14 +79,14 @@ export const useFocus = create<FocusStore>((set, get) => {
       const after = T.settle(before, Date.now());
       if (after === before || after.status !== 'finished') return;
       const minutes = Math.round(after.durationMs / T.MIN);
-      if (after.phase === 'focus') logSession({ taskId: after.taskId, startedAt: after.startedAt, durationMin: minutes, completed: true });
+      if (after.phase === 'focus') background(logSession({ taskId: after.taskId, startedAt: after.startedAt, durationMin: minutes, completed: true }), 'Log focus session');
       set({ timer: { status: 'idle' }, finished: { phase: after.phase, minutes, taskId: after.taskId }, notificationId: null });
     },
     stop: () => {
       const { timer, notificationId } = get();
       if (timer.status === 'running' || timer.status === 'paused') {
         const spent = Math.floor(T.elapsed(timer, Date.now()) / T.MIN);
-        if (timer.phase === 'focus' && spent >= 1) logSession({ taskId: timer.taskId, startedAt: timer.startedAt, durationMin: spent, completed: false });
+        if (timer.phase === 'focus' && spent >= 1) background(logSession({ taskId: timer.taskId, startedAt: timer.startedAt, durationMin: spent, completed: false }), 'Log focus session');
       }
       void cancelTimerEnd(notificationId);
       set({ timer: { status: 'idle' }, notificationId: null });

@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { Icon, PressableScale, Tag, Text } from '@/components/ui';
 import type { Task } from '@/db';
+import { background } from '@/lib/background';
 import { daysFromToday } from '@/lib/date';
 import { useTheme } from '@/theme';
 
@@ -32,7 +33,7 @@ export function TaskRow({ task, areaName, showDate, overdue }: Props) {
         accessibilityRole="checkbox"
         accessibilityState={{ checked: task.isDone }}
         accessibilityLabel={t('tasks.toggle_done', { title: task.title })}
-        onPress={() => toggleTaskDone(task)}
+        onPress={() => background(toggleTaskDone(task), 'Toggle task')}
         style={{ width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' }}
       >
         <View

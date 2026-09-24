@@ -6,6 +6,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Button, Chip, Field, Icon, IconButton, PressableScale, Text, useInputStyle } from '@/components/ui';
 import type { LinkableType } from '@/db';
+import { background } from '@/lib/background';
 import { useTheme } from '@/theme';
 
 import { linkableInPicker, refKey, relationKey, routeFor, typeStyle, type Candidate, type LinkRef, type RelatedItem } from '../model';
@@ -73,7 +74,7 @@ function RelatedRow({ item }: { item: RelatedItem }) {
         </View>
         {route ? <Icon name="chevron-right" size={16} color="textTertiary" /> : null}
       </PressableScale>
-      <IconButton icon="x" label={t('links.remove', { title })} onPress={() => removeLink(item.linkId)} />
+      <IconButton icon="x" label={t('links.remove', { title })} onPress={() => background(removeLink(item.linkId), 'Remove link')} />
     </View>
   );
 }
@@ -89,7 +90,7 @@ function LinkPicker({ self, types, linked, onDone }: PickerProps) {
   const candidates = useLinkCandidates(type, q, self).filter((c) => !linked.has(refKey(c.ref)));
 
   const pick = (c: Candidate) => {
-    addLink(self, c.ref);
+    background(addLink(self, c.ref), 'Add link');
     setQ('');
     onDone();
   };

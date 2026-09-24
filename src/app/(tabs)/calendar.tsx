@@ -12,13 +12,17 @@ import { MonthGrid } from '@/features/calendar/components/month-grid';
 import { HourGutter, nowMinutes, TimelineColumn } from '@/features/calendar/components/timeline';
 import { WeekStrip } from '@/features/calendar/components/week-strip';
 import { countByDay, fromDateKey, hourRange, itemsForDay, mergeItems, monthGrid, shiftDate, weekDays, type CalItem } from '@/features/calendar/model';
-import { moveItem, useEventsBetween } from '@/features/calendar/queries';
+import { moveItem as moveItemAsync, useEventsBetween } from '@/features/calendar/queries';
 import { useAllTasks } from '@/features/tasks/queries';
+import { background } from '@/lib/background';
 import { addDays, toDateKey } from '@/lib/date';
 import { useBreakpoint, useTheme } from '@/theme';
 
 type View_ = 'day' | 'week' | 'month';
 const views: View_[] = ['day', 'week', 'month'];
+
+/** Timeline drag-drop: save the new time in the background (the timeline re-reads after the write). */
+const moveItem = (item: CalItem, start: string, end: string) => background(moveItemAsync(item, start, end), 'Move calendar item');
 
 export default function CalendarScreen() {
   const { t, i18n } = useTranslation();

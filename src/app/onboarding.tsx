@@ -12,6 +12,7 @@ import { requestPermission } from '@/features/notifications';
 import { completeOnboarding } from '@/features/onboarding/complete';
 import { setLanguage } from '@/features/profile/language';
 import { ALL_INTERESTS, useProfile, type Interest } from '@/features/profile/store';
+import { background } from '@/lib/background';
 import { currencySymbol, supportedCurrencies } from '@/lib/currency';
 import { useTheme } from '@/theme';
 
@@ -34,14 +35,14 @@ export default function Onboarding() {
   const [sample, setSample] = useState(true);
   const [notify, setNotify] = useState<'idle' | 'granted' | 'denied'>('idle');
   const [nameFocused, setNameFocused] = useState(false);
+  const [finishing, setFinishing] = useState(false);
 
   const last = step === steps.length - 1;
   const next = () => {
     if (step === 1) profile.update({ name: name.trim() });
     if (last) {
       if (replaying) return leave();
-      completeOnboarding({ sample });
-      router.replace('/');
+      finish(sample);
       return;
     }
     setStep(step + 1);
@@ -49,8 +50,13 @@ export default function Onboarding() {
   const leave = () => (router.canGoBack() ? router.back() : router.replace('/'));
   const skipAll = () => {
     if (replaying) return leave();
-    completeOnboarding({ sample: false });
-    router.replace('/');
+    finish(false);
+  };
+  // Adding sample data is async; enter the app once it's in (completeOnboarding never throws).
+  const finish = (withSample: boolean) => {
+    if (finishing) return;
+    setFinishing(true);
+    background(completeOnboarding({ sample: withSample }).finally(() => router.replace('/')), 'Finish onboarding');
   };
 
   const toggleInterest = (i: Interest) => {
@@ -151,7 +157,7 @@ export default function Onboarding() {
 
         <View style={{ paddingHorizontal: spacing.xl, alignItems: 'center' }}>
           <View style={{ width: '100%', maxWidth: 480 }}>
-            <Button fullWidth icon={last ? 'arrow-right' : undefined} label={step === 0 ? t('onboarding.get_started') : last ? (replaying ? t('common.done') : t('onboarding.start')) : t('onboarding.continue')} onPress={next} />
+            <Button fullWidth icon={last ? 'arrow-right' : undefined} label={step === 0 ? t('onboarding.get_started') : last ? (replaying ? t('common.done') : t('onboarding.start')) : t('onboarding.continue')} disabled={finishing} onPress={next} />
           </View>
         </View>
       </View>

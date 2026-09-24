@@ -200,7 +200,8 @@
     "close": "Close",
     "coming_soon": "Designing this next",
     "coming_soon_body": "This screen is on the way. Home is ready to explore.",
-    "back": "Back"
+    "back": "Back",
+    "save_failed": "Couldn’t save. Please try again."
   },
   "nav": {
     "home": "Home",

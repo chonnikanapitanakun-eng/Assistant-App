@@ -1,37 +1,31 @@
 import { and, asc, eq, isNull } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 
-import { areas, db, tasks, type Task } from '@/db';
+import { areas, db, tasks, useRows, type Task } from '@/db';
 import { cancelTaskReminder, syncTaskReminder } from '@/features/notifications';
+import { background } from '@/lib/background';
 import { combineDateTime } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
 
 export type ChecklistItem = { id: string; text: string; done: boolean };
 
 export function useTasksForDate(date: string) {
-  const { data } = useLiveQuery(
-    db.select().from(tasks).where(and(eq(tasks.date, date), isNull(tasks.deletedAt))).orderBy(asc(tasks.startTime), asc(tasks.sortOrder)),
-    [date],
-  );
-  return data;
+  return useRows(db.select().from(tasks).where(and(eq(tasks.date, date), isNull(tasks.deletedAt))).orderBy(asc(tasks.startTime), asc(tasks.sortOrder))).data;
 }
 
 /** Every live task — the Tasks screen groups and filters in memory (see model.ts). */
 export function useAllTasks(): Task[] {
-  const { data } = useLiveQuery(db.select().from(tasks).where(isNull(tasks.deletedAt)));
-  return data;
+  return useRows(db.select().from(tasks).where(isNull(tasks.deletedAt))).data;
 }
 
 /** Single task for task/[id]. `loaded` separates "still loading" from "not found". */
 export function useTask(id: string): { task: Task | undefined; loaded: boolean } {
-  const { data, updatedAt } = useLiveQuery(db.select().from(tasks).where(and(eq(tasks.id, id), isNull(tasks.deletedAt))), [id]);
-  return { task: data[0], loaded: updatedAt !== undefined };
+  const { data, loaded } = useRows(db.select().from(tasks).where(and(eq(tasks.id, id), isNull(tasks.deletedAt))));
+  return { task: data[0], loaded };
 }
 
 /** Life areas, parents first, used as task "projects". */
 export function useAreas() {
-  const { data } = useLiveQuery(db.select().from(areas).where(isNull(areas.deletedAt)).orderBy(asc(areas.sortOrder)));
-  return data;
+  return useRows(db.select().from(areas).where(isNull(areas.deletedAt)).orderBy(asc(areas.sortOrder))).data;
 }
 
 export type TaskFormValues = {
@@ -54,55 +48,53 @@ function reminderFor(values: Pick<TaskFormValues, 'date' | 'startTime' | 'isDone
   return combineDateTime(values.date ?? undefined, values.startTime ?? undefined) ?? null;
 }
 
-export function createTask(values: TaskFormValues): string {
+export async function createTask(values: TaskFormValues): Promise<string> {
   const id = newId();
   const t = now();
   const { remind: _remind, ...rest } = values;
   const reminderAt = reminderFor(values);
-  db.insert(tasks)
-    .values({ id, createdAt: t, updatedAt: t, doneAt: values.isDone ? t : null, reminderAt, ...rest })
-    .run();
-  void syncTaskReminder({ id, title: values.title, reminderAt, reminderNotificationId: null });
+  await db.insert(tasks).values({ id, createdAt: t, updatedAt: t, doneAt: values.isDone ? t : null, reminderAt, ...rest });
+  background(syncTaskReminder({ id, title: values.title, reminderAt, reminderNotificationId: null }), 'Task reminder');
   return id;
 }
 
-export function updateTask(existing: Task, values: TaskFormValues) {
+export async function updateTask(existing: Task, values: TaskFormValues) {
   const { remind: _remind, ...rest } = values;
   const reminderAt = reminderFor(values);
   const t = now();
-  db.update(tasks)
+  await db
+    .update(tasks)
     .set({ ...rest, reminderAt, doneAt: values.isDone ? (existing.doneAt ?? t) : null, updatedAt: t })
-    .where(eq(tasks.id, existing.id))
-    .run();
-  void syncTaskReminder({ id: existing.id, title: values.title, reminderAt, reminderNotificationId: existing.reminderNotificationId });
+    .where(eq(tasks.id, existing.id));
+  background(syncTaskReminder({ id: existing.id, title: values.title, reminderAt, reminderNotificationId: existing.reminderNotificationId }), 'Task reminder');
 }
 
 /** Tick / untick from a list. Completing cancels the reminder; reopening restores it. */
-export function toggleTaskDone(task: Task) {
+export async function toggleTaskDone(task: Task) {
   const isDone = !task.isDone;
   const t = now();
-  db.update(tasks).set({ isDone, doneAt: isDone ? t : null, updatedAt: t }).where(eq(tasks.id, task.id)).run();
+  await db.update(tasks).set({ isDone, doneAt: isDone ? t : null, updatedAt: t }).where(eq(tasks.id, task.id));
   const reminderAt = isDone ? null : task.reminderAt;
-  void syncTaskReminder({ id: task.id, title: task.title, reminderAt, reminderNotificationId: task.reminderNotificationId });
+  background(syncTaskReminder({ id: task.id, title: task.title, reminderAt, reminderNotificationId: task.reminderNotificationId }), 'Task reminder');
 }
 
-export function deleteTask(task: Task) {
+export async function deleteTask(task: Task) {
   const t = now();
-  db.update(tasks).set({ deletedAt: t, updatedAt: t }).where(eq(tasks.id, task.id)).run();
-  void cancelTaskReminder(task.reminderNotificationId);
+  await db.update(tasks).set({ deletedAt: t, updatedAt: t }).where(eq(tasks.id, task.id));
+  background(cancelTaskReminder(task.reminderNotificationId), 'Cancel task reminder');
 }
 
-/** Sync read by id (for actions outside React). */
-export function getTask(id: string): Task | undefined {
+/** Read by id (for actions outside React). */
+export function getTask(id: string): Promise<Task | undefined> {
   return db.select().from(tasks).where(and(eq(tasks.id, id), isNull(tasks.deletedAt))).get();
 }
 
 /** Move a task to a date (and optional time). Keeps its reminder in sync. */
-export function rescheduleTask(task: Task, date: string, startTime?: string | null, endTime?: string | null) {
+export async function rescheduleTask(task: Task, date: string, startTime?: string | null, endTime?: string | null) {
   const reminderAt = !task.isDone && startTime ? (combineDateTime(date, startTime) ?? null) : null;
-  db.update(tasks)
+  await db
+    .update(tasks)
     .set({ date, startTime: startTime ?? null, endTime: endTime ?? null, reminderAt, updatedAt: now() })
-    .where(eq(tasks.id, task.id))
-    .run();
-  void syncTaskReminder({ id: task.id, title: task.title, reminderAt, reminderNotificationId: task.reminderNotificationId });
+    .where(eq(tasks.id, task.id));
+  background(syncTaskReminder({ id: task.id, title: task.title, reminderAt, reminderNotificationId: task.reminderNotificationId }), 'Task reminder');
 }
