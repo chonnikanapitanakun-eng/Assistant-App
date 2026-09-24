@@ -24,7 +24,7 @@
 ## Phase 1 — MVP
 
 - [ ] Today screen
-- [ ] Tasks: CRUD, checklist, reminder (expo-notifications)
+- [x] Tasks: CRUD, checklist, reminder (expo-notifications)
 - [x] Timeline drag-drop (กดค้าง ลากย้ายเวลา snap 15 นาที)
 - [x] Plan: day / week / month
 - [ ] Notes: CRUD, markdown, tags, pin

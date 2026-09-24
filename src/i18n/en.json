@@ -9,7 +9,7 @@
     "spent_month": "Spent this month",
     "empty": "Nothing yet today. Tap + to start."
   },
-  "plan": { "day": "Day", "week": "Week", "month": "Month", "today": "Today", "previous": "Previous", "next": "Next", "anytime": "Anytime", "no_tasks": "No tasks", "drag_hint": "Long-press a task and drag to change its time" },
+  "plan": { "day": "Day", "week": "Week", "month": "Month", "today": "Today", "previous": "Previous", "next": "Next", "anytime": "Anytime", "no_tasks": "No tasks", "drag_hint": "Tap a task to open · long-press and drag to change its time" },
   "task": {
     "new_title": "New Task",
     "edit_title": "Edit Task",

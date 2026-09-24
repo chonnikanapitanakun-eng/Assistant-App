@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -69,7 +70,7 @@ function TaskBlock({ p, laneWidth }: { p: Positioned<Task>; laneWidth: number })
       translateY.value = withSpring(0);
       return;
     }
-    rescheduleTask(p.item.id, next.startTime, next.endTime);
+    rescheduleTask(p.item.id, p.item.date, next.startTime, next.endTime);
   };
 
   const pan = Gesture.Pan()
@@ -97,6 +98,13 @@ function TaskBlock({ p, laneWidth }: { p: Positioned<Task>; laneWidth: number })
     });
 
   const restOpacity = p.item.isDone ? 0.5 : 1;
+  const openTask = () => router.push(`/task/${p.item.id}`);
+  // tap สั้น = เปิดรายละเอียด, กดค้าง 250ms = เริ่มลาก (ตัวไหน activate ก่อนชนะ)
+  const tap = Gesture.Tap().onEnd((_e, success) => {
+    if (success) scheduleOnRN(openTask);
+  });
+  const gesture = Gesture.Race(pan, tap);
+
   const animated = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }, { scale: dragging.value ? 1.02 : 1 }],
     zIndex: dragging.value ? 10 : 1,
@@ -107,7 +115,7 @@ function TaskBlock({ p, laneWidth }: { p: Positioned<Task>; laneWidth: number })
   const bg = p.item.color ?? colors.primary;
 
   return (
-    <GestureDetector gesture={pan}>
+    <GestureDetector gesture={gesture}>
       <Animated.View
         accessibilityLabel={`${p.item.title} ${label}`}
         style={[
