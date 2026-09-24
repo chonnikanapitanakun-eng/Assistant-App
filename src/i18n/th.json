@@ -544,5 +544,23 @@
     "replay": "ดูแนะนำการใช้งานอีกครั้ง",
     "replay_body": "ตั้งค่าใหม่ทีละขั้น ข้อมูลเดิมไม่หาย",
     "version": "เวอร์ชัน {{version}}"
+  },
+  "search": {
+    "title": "ค้นหา",
+    "placeholder": "ค้นงาน โน้ต รายการเงิน นัด…",
+    "hint_title": "ค้นได้ทุกอย่าง",
+    "hint_body": "ค้นทีเดียวเจอทั้งงาน นัด โน้ต รายการเงิน และผู้ติดต่อ",
+    "no_results": "ไม่พบผลลัพธ์",
+    "no_results_body": "ลองคำอื่น หรือพิมพ์แค่บางส่วนของคำ",
+    "all": "ทั้งหมด",
+    "group_task": "งาน",
+    "group_event": "นัดหมาย",
+    "group_note": "โน้ต",
+    "group_transaction": "การเงิน",
+    "group_contact": "ผู้ติดต่อ",
+    "see_all": "ดูทั้งหมด {{count}}",
+    "results_one": "{{count}} รายการ",
+    "results_other": "{{count}} รายการ",
+    "all_day": "ทั้งวัน"
   }
 }
