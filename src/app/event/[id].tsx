@@ -8,6 +8,7 @@ import { Button, Chip, Field, FieldError, Sheet, Text, Toggle } from '@/componen
 import type { CalendarEvent } from '@/db';
 import { eventToItem, fromMinutes, toMinutes } from '@/features/calendar/model';
 import { createEvent, deleteEvent, updateEvent, useEvent, type EventFormValues } from '@/features/calendar/queries';
+import { RelatedSection } from '@/features/links/components/related-section';
 import { isValidDate, isValidTime } from '@/features/tasks/model';
 import { addDays, toDateKey } from '@/lib/date';
 import { useTheme } from '@/theme';
@@ -164,6 +165,8 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
           <TextInput editable={!readOnly} value={person} onChangeText={setPerson} placeholder={t('calendar.with_placeholder')} placeholderTextColor={colors.textTertiary} accessibilityLabel={t('calendar.with')} style={input()} />
           <Text variant="caption" color="textTertiary">{t('calendar.with_hint')}</Text>
         </Field>
+
+        {existing ? <RelatedSection self={{ type: 'event', id: existing.id }} types={['task', 'note', 'transaction']} /> : null}
       </ScrollView>
     </Sheet>
   );

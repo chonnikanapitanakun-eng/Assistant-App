@@ -7,6 +7,7 @@ import { Mascot } from '@/components/brand/mascot';
 import { Button, Chip, Field, FieldError, Icon, IconButton, PressableScale, Sheet, Text, Toggle, type IconName } from '@/components/ui';
 import type { Task } from '@/db';
 import { isValidDate, isValidTime, priorityLevel, priorityTint, priorityValue, type PriorityLevel } from '@/features/tasks/model';
+import { RelatedSection } from '@/features/links/components/related-section';
 import { createTask, deleteTask, updateTask, useAreas, useTask, type ChecklistItem, type TaskFormValues } from '@/features/tasks/queries';
 import { addDays, toDateKey } from '@/lib/date';
 import { newId } from '@/lib/ids';
@@ -266,6 +267,8 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
             <IconButton icon="plus" label={t('tasks.add_item')} color="primary" filled onPress={addItem} />
           </View>
         </Field>
+
+        {existing ? <RelatedSection self={{ type: 'task', id: existing.id }} /> : null}
 
         {existing && !existing.isDone ? (
           <Button variant="secondary" icon="target" label={t('focus.start_for_task')} onPress={() => router.push({ pathname: '/focus', params: { taskId: existing.id } })} />

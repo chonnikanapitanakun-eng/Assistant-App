@@ -544,5 +544,26 @@
     "replay": "Replay the welcome tour",
     "replay_body": "Walk through setup again. Your data stays as it is.",
     "version": "version {{version}}"
+  },
+  "links": {
+    "title": "Related",
+    "add": "Link",
+    "search_placeholder": "Type a name to search…",
+    "empty": "Nothing linked yet",
+    "no_results": "No matches",
+    "open": "Open {{title}}",
+    "remove": "Unlink {{title}}",
+    "link_to": "Link to {{title}}",
+    "type_task": "Task",
+    "type_event": "Event",
+    "type_note": "Note",
+    "type_transaction": "Transaction",
+    "type_contact": "Contact",
+    "type_area": "Area",
+    "rel_with": "with",
+    "rel_with_in": "involved",
+    "rel_extracted": "extracted from this note",
+    "rel_extracted_in": "from note",
+    "rel_related": "related"
   }
 }

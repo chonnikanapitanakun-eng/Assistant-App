@@ -6,6 +6,7 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Chip, Field, FieldError, PressableScale, Sheet, Text, useInputStyle } from '@/components/ui';
 import type { Transaction } from '@/db';
+import { RelatedSection } from '@/features/links/components/related-section';
 import { categoryIcon } from '@/features/money/category-icon';
 import { createTransaction, deleteTransaction, updateTransaction, useCategories, useTransaction, useWallets } from '@/features/money/queries';
 import { isValidDate } from '@/features/tasks/model';
@@ -179,6 +180,8 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
         <Field label={t('money.note')} icon="edit-3">
           <TextInput value={note} onChangeText={setNote} placeholder={t('money.note_placeholder')} placeholderTextColor={colors.textTertiary} accessibilityLabel={t('money.note')} style={[input(), { fontSize: typography.body.fontSize }]} />
         </Field>
+
+        {existing ? <RelatedSection self={{ type: 'transaction', id: existing.id }} /> : null}
       </ScrollView>
     </Sheet>
   );
