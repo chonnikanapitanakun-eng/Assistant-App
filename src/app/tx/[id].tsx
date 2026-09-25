@@ -6,6 +6,7 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Chip, Field, FieldError, PressableScale, Sheet, Text, useInputStyle } from '@/components/ui';
 import type { Transaction } from '@/db';
+import { DateField } from '@/features/calendar/components/date-field';
 import { RelatedSection } from '@/features/links/components/related-section';
 import { categoryIcon } from '@/features/money/category-icon';
 import { createTransaction, deleteTransaction, updateTransaction, useCategories, useTransaction, useWallets } from '@/features/money/queries';
@@ -13,6 +14,7 @@ import { isValidDate } from '@/features/tasks/model';
 import { currencySymbol, parseAmount } from '@/lib/currency';
 import { addDays, toDateKey } from '@/lib/date';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useDirty } from '@/lib/use-dirty';
 import { useDraft } from '@/lib/use-draft';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme, type TintName } from '@/theme';
@@ -52,6 +54,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
   const [date, setDate] = useDraft(`${draft}:date`, existing?.date ?? toDateKey());
   const [note, setNote] = useDraft(`${draft}:note`, existing?.note ?? '');
   const [showErrors, setShowErrors] = useState(false);
+  const dirty = useDirty({ kind, amount, walletId, toWalletId, categoryId, date, note });
 
   // Wallets load asynchronously; fall back to the first one until the user picks.
   const from = wallets.find((w) => w.id === walletId) ?? wallets[0];
@@ -94,6 +97,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
   return (
     <Sheet
       onClose={onClose}
+      dirty={dirty}
       title={existing ? t('money.edit_transaction') : t('money.add')}
       footer={
         <View style={{ gap: spacing.sm }}>
@@ -189,7 +193,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
             <Chip label={t('capture.today')} selected={date === toDateKey()} onPress={() => setDate(toDateKey())} />
             <Chip label={t('tasks.yesterday')} selected={date === toDateKey(addDays(new Date(), -1))} onPress={() => setDate(toDateKey(addDays(new Date(), -1)))} />
           </View>
-          <TextInput value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.date')} style={input(errors.date, showErrors)} />
+          <DateField value={date} onChange={setDate} invalid={showErrors && !!errors.date} />
           <FieldError message={showErrors ? errors.date : null} />
         </Field>
 

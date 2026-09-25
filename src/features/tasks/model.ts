@@ -64,4 +64,10 @@ export function attentionTasks<T extends Groupable>(tasks: T[], today: string, l
 }
 
 export const isValidTime = (v: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
-export const isValidDate = (v: string) => /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v);
+/** Real calendar date in YYYY-MM-DD (rejects 2026-02-30, which JS Date would roll into March). */
+export function isValidDate(v: string): boolean {
+  const m = /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.exec(v);
+  if (!m) return false;
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  return d <= new Date(y, mo, 0).getDate();
+}

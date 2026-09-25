@@ -1,17 +1,20 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollView, TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Button, Chip, Field, FieldError, Icon, IconButton, PressableScale, Sheet, Text, Toggle, type IconName } from '@/components/ui';
+import { Button, Chip, Field, FieldError, Icon, IconButton, PressableScale, Sheet, Text, Toggle, useInputStyle, type IconName } from '@/components/ui';
 import type { Task } from '@/db';
+import { DateField, TimeRangeField } from '@/features/calendar/components/date-field';
 import { isValidDate, isValidTime, priorityLevel, priorityTint, priorityValue, type PriorityLevel } from '@/features/tasks/model';
 import { RelatedSection } from '@/features/links/components/related-section';
 import { createTask, deleteTask, updateTask, useAreas, useTask, type ChecklistItem, type TaskFormValues } from '@/features/tasks/queries';
 import { addDays, toDateKey } from '@/lib/date';
 import { newId } from '@/lib/ids';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useConfirm } from '@/lib/use-confirm';
+import { useDirty } from '@/lib/use-dirty';
 import { useDraft } from '@/lib/use-draft';
 import { useTheme } from '@/theme';
 
@@ -35,6 +38,7 @@ export default function TaskDetailScreen() {
 function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initialDate?: string; onClose: () => void }) {
   const { t, i18n } = useTranslation();
   const { colors, tints, spacing, radius, typography, fontFamily } = useTheme();
+  const inputStyle = useInputStyle();
   const areas = useAreas().filter((a) => a.parentId);
   const th = i18n.language === 'th';
 
@@ -52,13 +56,9 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
   const [checklist, setChecklist] = useDraft<ChecklistItem[]>(`${draft}:checklist`, existing?.checklist ?? []);
   const [newItem, setNewItem] = useDraft(`${draft}:newItem`, '');
   const [showErrors, setShowErrors] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const { armed: confirmDelete, confirm } = useConfirm();
   const { busy, failed, run } = useAsyncAction();
-
-  const confirmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (confirmTimer.current) clearTimeout(confirmTimer.current);
-  }, []);
+  const dirty = useDirty({ title, notes, date, startTime, endTime, priority, energy, areaId, isDone, remind, checklist, newItem });
 
   const errors = {
     title: !title.trim() ? t('task.title_required') : null,
@@ -103,15 +103,12 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
 
   const onDelete = () => {
     if (!existing) return;
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      confirmTimer.current = setTimeout(() => setConfirmDelete(false), 4000);
-      return;
-    }
-    void run(async () => {
-      await deleteTask(existing);
-      onClose();
-    });
+    confirm(() =>
+      void run(async () => {
+        await deleteTask(existing);
+        onClose();
+      }),
+    );
   };
 
   const addItem = () => {
@@ -121,23 +118,13 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
     setNewItem('');
   };
 
-  const input = (focusedError?: string | null) => ({
-    backgroundColor: colors.surfaceMuted,
-    color: colors.text,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    minHeight: 44,
-    minWidth: 0,
-    borderWidth: 1.5,
-    borderColor: showErrors && focusedError ? tints.priorityHigh.fg : colors.border,
-    fontSize: typography.body.fontSize,
-    fontFamily: fontFamily.regular,
-  });
+  const input = (error?: string | null) => inputStyle(error, showErrors);
 
   return (
     <Sheet
       wide="side"
       onClose={onClose}
+      dirty={dirty}
       title={existing ? t('task.edit_title') : t('task.new_title')}
       footer={
         <View style={{ gap: spacing.sm }}>
@@ -186,16 +173,12 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
               <Chip key={q.key} label={t(`tasks.date_${q.key}`)} selected={date === q.value} onPress={() => setDate(q.value)} />
             ))}
           </View>
-          <TextInput value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.date')} style={input(errors.date)} />
+          <DateField value={date} onChange={setDate} invalid={showErrors && !!errors.date} />
           <FieldError message={showErrors ? errors.date : null} />
         </Field>
 
         <Field label={t('tasks.time')} icon="clock">
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <TextInput value={startTime} onChangeText={setStartTime} placeholder="09:00" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.start_time')} style={[input(errors.startTime), { flex: 1 }]} />
-            <Text color="textTertiary">–</Text>
-            <TextInput value={endTime} onChangeText={setEndTime} placeholder="10:00" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.end_time')} style={[input(errors.endTime), { flex: 1 }]} />
-          </View>
+          <TimeRangeField start={startTime} end={endTime} onChangeStart={setStartTime} onChangeEnd={setEndTime} invalid={showErrors && !!(errors.startTime ?? errors.endTime)} clearable />
           <FieldError message={showErrors ? (errors.startTime ?? errors.endTime) : null} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 44 }}>
             <Icon name="bell" size={16} color={canRemind ? 'primary' : 'textTertiary'} />

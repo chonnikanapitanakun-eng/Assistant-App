@@ -63,5 +63,6 @@ describe('helpers', () => {
   it('validates time and date', () => {
     expect([isValidTime('09:30'), isValidTime('24:00'), isValidTime('9:30')]).toEqual([true, false, false]);
     expect([isValidDate('2026-09-24'), isValidDate('2026-13-01')]).toEqual([true, false]);
+    expect([isValidDate('2026-02-30'), isValidDate('2026-02-28'), isValidDate('2028-02-29'), isValidDate('2026-04-31')]).toEqual([false, true, true, false]);
   });
 });

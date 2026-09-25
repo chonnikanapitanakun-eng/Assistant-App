@@ -4,6 +4,7 @@ import { ActivityIndicator, ScrollView, TextInput, View } from 'react-native';
 
 import { Card, Chip, FieldError, PressableScale, Text, Toggle } from '@/components/ui';
 import type { Category, Wallet } from '@/db';
+import { DateField } from '@/features/calendar/components/date-field';
 import { categoryIcon } from '@/features/money/category-icon';
 import { currencySymbol } from '@/lib/currency';
 import { useTheme, type TintName } from '@/theme';
@@ -84,16 +85,16 @@ export function SlipCard({ draft: d, wallets, categories, showErrors, onChange }
             })}
           </View>
 
-          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <View style={{ flex: 1, gap: spacing.xs }}>
+          <View style={{ gap: spacing.sm }}>
+            <View style={{ gap: spacing.xs }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, ...input, borderColor: showErr && errors.amount ? tints.priorityHigh.fg : colors.border }}>
                 <Text variant="label" color="textSecondary">{currencySymbol(from?.currency ?? 'THB')}</Text>
                 <TextInput value={d.amount} onChangeText={(amount) => onChange({ amount })} keyboardType="decimal-pad" placeholder="0" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('money.amount')} style={{ flex: 1, minWidth: 0, color: colors.text, fontFamily: fontFamily.bold, fontSize: typography.body.fontSize + 2, fontVariant: ['tabular-nums'] }} />
               </View>
               <FieldError message={showErr && errors.amount ? t('money.invalid_amount') : null} />
             </View>
-            <View style={{ width: 132, gap: spacing.xs }}>
-              <TextInput value={d.date} onChangeText={(date) => onChange({ date })} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.date')} style={[input, showErr && errors.date ? { borderColor: tints.priorityHigh.fg } : null]} />
+            <View style={{ gap: spacing.xs }}>
+              <DateField value={d.date} onChange={(date) => onChange({ date })} invalid={showErr && !!errors.date} />
               <FieldError message={showErr && errors.date ? t('tasks.invalid_date') : null} />
             </View>
           </View>

@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
-import { Icon, PressableScale, Tag, Text } from '@/components/ui';
+import { Icon, PressableScale, showToast, Tag, Text } from '@/components/ui';
 import type { Task } from '@/db';
 import { background } from '@/lib/background';
 import { daysFromToday } from '@/lib/date';
@@ -33,7 +33,15 @@ export function TaskRow({ task, areaName, showDate, overdue }: Props) {
         accessibilityRole="checkbox"
         accessibilityState={{ checked: task.isDone }}
         accessibilityLabel={t('tasks.toggle_done', { title: task.title })}
-        onPress={() => background(toggleTaskDone(task), 'Toggle task')}
+        onPress={() => {
+          background(toggleTaskDone(task), 'Toggle task');
+          if (!task.isDone) {
+            showToast(t('tasks.completed_toast', { title: task.title }), {
+              label: t('common.undo'),
+              onPress: () => background(toggleTaskDone({ ...task, isDone: true }), 'Undo complete task'),
+            });
+          }
+        }}
         style={{ width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' }}
       >
         <View

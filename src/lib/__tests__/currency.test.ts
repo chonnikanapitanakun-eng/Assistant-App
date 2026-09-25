@@ -26,4 +26,9 @@ describe('parseAmount', () => {
     expect(parseAmount('abc')).toBeNull();
     expect(parseAmount('1.2.3')).toBeNull();
   });
+  it('rejects amounts beyond the cap', () => {
+    expect(parseAmount('1,000,000,000')).toBe(1_000_000_000);
+    expect(parseAmount('99999999999999')).toBeNull();
+    expect(parseAmount('-99999999999999')).toBeNull();
+  });
 });

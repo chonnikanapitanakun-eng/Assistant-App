@@ -124,7 +124,7 @@
     "edit_transaction": "Edit transaction",
     "not_found": "Not found",
     "amount": "Amount",
-    "invalid_amount": "Enter an amount greater than 0",
+    "invalid_amount": "Enter an amount above 0, up to 1,000,000,000",
     "need_account": "Add an account first",
     "pick_destination": "Pick the account to move money to",
     "account": "Account",
@@ -162,7 +162,9 @@
     "section_networth": "Net worth",
     "net_worth": "Net worth · {{currency}}",
     "missing_fx_rate": "Set an exchange rate for {{currencies}} in Settings to include it.",
-    "networth_convert": "≈ {{amount}}"
+    "networth_convert": "≈ {{amount}}",
+    "invalid_number": "Enter a number up to ±1,000,000,000",
+    "remove_budget_confirm": "Tap again to remove the budget"
   },
   "capture": {
     "title": "Quick capture",
@@ -208,7 +210,9 @@
     "coming_soon": "Designing this next",
     "coming_soon_body": "This screen is on the way. Home is ready to explore.",
     "back": "Back",
-    "save_failed": "Couldn’t save. Please try again."
+    "save_failed": "Couldn’t save. Please try again.",
+    "undo": "Undo",
+    "unsaved": "Unsaved changes — tap close again to discard"
   },
   "nav": {
     "home": "Home",
@@ -399,7 +403,7 @@
     "empty_upcoming_body": "Tasks with a future date will appear here.",
     "empty_done_title": "No completed tasks yet",
     "empty_done_body": "Tick something off and it will show up here.",
-    "invalid_date": "Use the format YYYY-MM-DD",
+    "invalid_date": "Pick a real date",
     "invalid_time": "Use 24-hour time, e.g. 09:30",
     "invalid_end": "End time must be after the start time",
     "date_today": "Today",
@@ -414,7 +418,8 @@
     "remove_item": "Remove “{{text}}”",
     "add_item": "Add checklist item",
     "delete_confirm": "Tap again to delete",
-    "not_found_body": "It may have been deleted on another device."
+    "not_found_body": "It may have been deleted on another device.",
+    "completed_toast": "Done: {{title}}"
   },
   "calendar": {
     "previous": "Previous",
@@ -634,7 +639,8 @@
   },
   "db": {
     "locked_title": "Veyra is open in another tab",
-    "locked_body": "Close the other tab, then reload this page."
+    "locked_body": "Close the other tab, then reload this page.",
+    "error_title": "Database error"
   },
   "slip": {
     "title": "Scan slips",
@@ -662,5 +668,15 @@
     "wallet_digits": "Account number",
     "wallet_digits_placeholder": "e.g. 1234 or the full number",
     "wallet_digits_hint": "The digits your slips show (xxx-x-x1234-x → 1234), used to match slips to this account."
+  },
+  "picker": {
+    "choose_date": "Pick a date",
+    "prev_month": "Previous month",
+    "next_month": "Next month",
+    "hour": "Hour",
+    "minute": "Minute",
+    "start": "Start",
+    "end": "End",
+    "no_time": "No time"
   }
 }

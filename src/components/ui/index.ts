@@ -13,3 +13,4 @@ export { Sheet } from './sheet';
 export { Tag } from './tag';
 export { Text } from './text';
 export { Toggle } from './toggle';
+export { showToast, Toaster } from './toast';

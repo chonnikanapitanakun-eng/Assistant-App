@@ -124,7 +124,7 @@
     "edit_transaction": "แก้ไขรายการ",
     "not_found": "ไม่พบข้อมูล",
     "amount": "จำนวนเงิน",
-    "invalid_amount": "ใส่จำนวนเงินมากกว่า 0",
+    "invalid_amount": "ใส่จำนวนเงินมากกว่า 0 และไม่เกิน 1,000 ล้าน",
     "need_account": "เพิ่มบัญชีก่อน",
     "pick_destination": "เลือกบัญชีปลายทาง",
     "account": "บัญชี",
@@ -162,7 +162,9 @@
     "section_networth": "มูลค่าสุทธิ",
     "net_worth": "มูลค่าสุทธิ · {{currency}}",
     "missing_fx_rate": "ตั้งอัตราแลกเปลี่ยนของ {{currencies}} ในตั้งค่าเพื่อให้นับรวมด้วย",
-    "networth_convert": "≈ {{amount}}"
+    "networth_convert": "≈ {{amount}}",
+    "invalid_number": "ใส่ตัวเลขไม่เกิน ±1,000 ล้าน",
+    "remove_budget_confirm": "กดอีกครั้งเพื่อลบงบ"
   },
   "capture": {
     "title": "จดเร็ว",
@@ -208,7 +210,9 @@
     "coming_soon": "กำลังออกแบบหน้านี้",
     "coming_soon_body": "หน้านี้กำลังจะมา ลองใช้หน้าหลักก่อนได้เลย",
     "back": "กลับ",
-    "save_failed": "บันทึกไม่สำเร็จ ลองอีกครั้ง"
+    "save_failed": "บันทึกไม่สำเร็จ ลองอีกครั้ง",
+    "undo": "เลิกทำ",
+    "unsaved": "ยังไม่ได้บันทึก — แตะปิดอีกครั้งเพื่อทิ้งการแก้ไข"
   },
   "nav": {
     "home": "หน้าหลัก",
@@ -399,7 +403,7 @@
     "empty_upcoming_body": "งานที่ตั้งวันในอนาคตจะขึ้นที่นี่",
     "empty_done_title": "ยังไม่มีงานที่เสร็จ",
     "empty_done_body": "ติ๊กงานเสร็จแล้วจะมาอยู่ที่นี่",
-    "invalid_date": "ใช้รูปแบบ YYYY-MM-DD",
+    "invalid_date": "เลือกวันที่ที่มีอยู่จริง",
     "invalid_time": "ใช้เวลาแบบ 24 ชม. เช่น 09:30",
     "invalid_end": "เวลาจบต้องหลังเวลาเริ่ม",
     "date_today": "วันนี้",
@@ -414,7 +418,8 @@
     "remove_item": "ลบ “{{text}}”",
     "add_item": "เพิ่มรายการ",
     "delete_confirm": "กดอีกครั้งเพื่อลบ",
-    "not_found_body": "อาจถูกลบจากอุปกรณ์อื่นแล้ว"
+    "not_found_body": "อาจถูกลบจากอุปกรณ์อื่นแล้ว",
+    "completed_toast": "เสร็จแล้ว: {{title}}"
   },
   "calendar": {
     "previous": "ก่อนหน้า",
@@ -634,7 +639,8 @@
   },
   "db": {
     "locked_title": "Veyra เปิดอยู่ในแท็บอื่น",
-    "locked_body": "ปิดแท็บอื่นก่อน แล้วโหลดหน้านี้ใหม่"
+    "locked_body": "ปิดแท็บอื่นก่อน แล้วโหลดหน้านี้ใหม่",
+    "error_title": "ฐานข้อมูลมีปัญหา"
   },
   "slip": {
     "title": "สแกนสลิป",
@@ -662,5 +668,15 @@
     "wallet_digits": "เลขบัญชี",
     "wallet_digits_placeholder": "เช่น 1234 หรือเลขเต็ม",
     "wallet_digits_hint": "เลขที่เห็นบนสลิป (xxx-x-x1234-x → 1234) ใช้จับคู่สลิปกับบัญชีนี้"
+  },
+  "picker": {
+    "choose_date": "เลือกวันที่",
+    "prev_month": "เดือนก่อน",
+    "next_month": "เดือนถัดไป",
+    "hour": "ชั่วโมง",
+    "minute": "นาที",
+    "start": "เริ่ม",
+    "end": "จบ",
+    "no_time": "ไม่ระบุเวลา"
   }
 }

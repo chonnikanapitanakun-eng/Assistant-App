@@ -10,6 +10,7 @@ import { categoryIcon } from '@/features/money/category-icon';
 import { createBill, deleteBill, updateBill, useBill, useCategories, useWallets } from '@/features/money/queries';
 import { currencySymbol, parseAmount, supportedCurrencies } from '@/lib/currency';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useDirty } from '@/lib/use-dirty';
 import { useDraft } from '@/lib/use-draft';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme } from '@/theme';
@@ -50,6 +51,7 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
   const [showErrors, setShowErrors] = useState(false);
 
   const parsed = parseAmount(amount);
+  const dirty = useDirty({ name, amount, currency, walletId, categoryId, frequency, dueDay, dueMonth, remind, isSubscription });
   const day = Number(dueDay);
   const walletOptions = wallets.filter((w) => w.currency === currency);
   const errors = {
@@ -86,6 +88,7 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
     <Sheet
       wide="side"
       onClose={onClose}
+      dirty={dirty}
       title={existing ? t('money.edit_bill') : t('money.add_bill')}
       footer={
         <View style={{ gap: spacing.sm }}>

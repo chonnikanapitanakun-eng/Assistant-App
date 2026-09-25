@@ -11,7 +11,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { isDatabaseLocked, queryClient, useDatabase } from '@/db';
-import { Text } from '@/components/ui';
+import { Text, Toaster } from '@/components/ui';
 import { GoogleCalendarAutoSync } from '@/features/google-calendar';
 import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
 import { SyncAutoRun } from '@/features/sync';
@@ -36,7 +36,7 @@ export default function RootLayout() {
   if (error) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.background }}>
-        <Text variant="heading" color="danger">{isDatabaseLocked(error) ? t('db.locked_title') : 'Database error'}</Text>
+        <Text variant="heading" color="danger">{isDatabaseLocked(error) ? t('db.locked_title') : t('db.error_title')}</Text>
         <Text color="textSecondary" style={{ textAlign: 'center' }}>{isDatabaseLocked(error) ? t('db.locked_body') : error.message}</Text>
       </View>
     );
@@ -72,6 +72,7 @@ export default function RootLayout() {
             <Stack.Screen name="more" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="focus" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           </Stack>
+          <Toaster />
           <GoogleCalendarAutoSync />
           <SyncAutoRun />
           <StatusBar style={isDark ? 'light' : 'dark'} />
