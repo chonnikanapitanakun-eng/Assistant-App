@@ -126,7 +126,7 @@ describe('deleteTask', () => {
 
 describe('rescheduleTask', () => {
   it('moves date/time and recomputes the reminder for an open task', async () => {
-    const id = await createTask(values({ date: '2026-09-25', startTime: '09:00' }));
+    const id = await createTask(values({ date: '2026-09-25', startTime: '09:00', remind: true }));
     const task = await getTask(id);
     await rescheduleTask(task!, '2026-09-26', '11:00', '12:00');
     const after = await getTask(id);

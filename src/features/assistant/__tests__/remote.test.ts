@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import { localIsoString, sanitizeProposals, windowHistory } from '../remote';
+
 // '../remote' pulls in @/features/auth (Supabase session + Google sign-in), which imports
 // react-native directly; Vite/Rollup can't parse its Flow syntax outside of Metro (see
 // vitest.setup.ts). getSession isn't exercised by these pure-function tests, so a stub is enough.
+// vi.mock calls are hoisted above imports by vitest's transform, so this still runs first.
 vi.mock('@/features/auth', () => ({ getSession: vi.fn().mockResolvedValue(null) }));
-
-import { localIsoString, sanitizeProposals, windowHistory } from '../remote';
 
 type Turn = { role: 'user' | 'assistant'; text: string };
 
