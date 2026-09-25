@@ -12,6 +12,7 @@ import { createTask, deleteTask, updateTask, useAreas, useTask, type ChecklistIt
 import { addDays, toDateKey } from '@/lib/date';
 import { newId } from '@/lib/ids';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useDraft } from '@/lib/use-draft';
 import { useTheme } from '@/theme';
 
 const levels: PriorityLevel[] = ['high', 'medium', 'low'];
@@ -37,18 +38,19 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
   const areas = useAreas().filter((a) => a.parentId);
   const th = i18n.language === 'th';
 
-  const [title, setTitle] = useState(existing?.title ?? '');
-  const [notes, setNotes] = useState(existing?.notes ?? '');
-  const [date, setDate] = useState(existing ? (existing.date ?? '') : (initialDate ?? toDateKey()));
-  const [startTime, setStartTime] = useState(existing?.startTime ?? '');
-  const [endTime, setEndTime] = useState(existing?.endTime ?? '');
-  const [priority, setPriority] = useState<PriorityLevel>(priorityLevel(existing?.priority ?? 2));
-  const [energy, setEnergy] = useState(existing?.energy ?? null);
-  const [areaId, setAreaId] = useState(existing?.areaId ?? null);
-  const [isDone, setIsDone] = useState(existing?.isDone ?? false);
-  const [remind, setRemind] = useState(existing ? !!existing.reminderAt : true);
-  const [checklist, setChecklist] = useState<ChecklistItem[]>(existing?.checklist ?? []);
-  const [newItem, setNewItem] = useState('');
+  const draft = `task:${existing?.id ?? 'new'}`;
+  const [title, setTitle] = useDraft(`${draft}:title`, existing?.title ?? '');
+  const [notes, setNotes] = useDraft(`${draft}:notes`, existing?.notes ?? '');
+  const [date, setDate] = useDraft(`${draft}:date`, existing ? (existing.date ?? '') : (initialDate ?? toDateKey()));
+  const [startTime, setStartTime] = useDraft(`${draft}:startTime`, existing?.startTime ?? '');
+  const [endTime, setEndTime] = useDraft(`${draft}:endTime`, existing?.endTime ?? '');
+  const [priority, setPriority] = useDraft<PriorityLevel>(`${draft}:priority`, priorityLevel(existing?.priority ?? 2));
+  const [energy, setEnergy] = useDraft(`${draft}:energy`, existing?.energy ?? null);
+  const [areaId, setAreaId] = useDraft(`${draft}:areaId`, existing?.areaId ?? null);
+  const [isDone, setIsDone] = useDraft(`${draft}:isDone`, existing?.isDone ?? false);
+  const [remind, setRemind] = useDraft(`${draft}:remind`, existing ? !!existing.reminderAt : true);
+  const [checklist, setChecklist] = useDraft<ChecklistItem[]>(`${draft}:checklist`, existing?.checklist ?? []);
+  const [newItem, setNewItem] = useDraft(`${draft}:newItem`, '');
   const [showErrors, setShowErrors] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { busy, failed, run } = useAsyncAction();

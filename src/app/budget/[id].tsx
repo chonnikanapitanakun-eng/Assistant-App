@@ -12,6 +12,7 @@ import { usePrimaryCurrency } from '@/features/profile/store';
 import { currencySymbol, parseAmount } from '@/lib/currency';
 import { toMonthKey } from '@/lib/date';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useDraft } from '@/lib/use-draft';
 import { useTheme } from '@/theme';
 
 /** Monthly budget for one expense category (in the primary currency). */
@@ -29,7 +30,8 @@ function BudgetForm({ category, onClose }: { category: Category; onClose: () => 
   const input = useInputStyle();
   const txs = useTransactions();
   const budgetCurrency = usePrimaryCurrency();
-  const [amount, setAmount] = useState(category.budgetMonthly ? String(category.budgetMonthly) : '');
+  const draft = `budget:${category.id}`;
+  const [amount, setAmount] = useDraft(`${draft}:amount`, category.budgetMonthly ? String(category.budgetMonthly) : '');
   const [showErrors, setShowErrors] = useState(false);
   const { busy, failed, run } = useAsyncAction();
   const spent = spendingByCategory(txs, toMonthKey(), budgetCurrency).find((r) => r.categoryId === category.id)?.total ?? 0;

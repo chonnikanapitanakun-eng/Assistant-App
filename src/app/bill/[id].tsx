@@ -10,6 +10,7 @@ import { categoryIcon } from '@/features/money/category-icon';
 import { createBill, deleteBill, updateBill, useBill, useCategories, useWallets } from '@/features/money/queries';
 import { currencySymbol, parseAmount, supportedCurrencies } from '@/lib/currency';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useDraft } from '@/lib/use-draft';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme } from '@/theme';
 
@@ -35,16 +36,17 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
   const th = i18n.language === 'th';
   const locale = th ? 'th-TH' : 'en-GB';
 
-  const [name, setName] = useState(existing?.name ?? '');
-  const [amount, setAmount] = useState(existing ? String(existing.amount) : '');
-  const [currency, setCurrency] = useState(existing?.currency ?? 'THB');
-  const [walletId, setWalletId] = useState<string | null>(existing?.walletId ?? null);
-  const [categoryId, setCategoryId] = useState<string | null>(existing?.categoryId ?? null);
-  const [frequency, setFrequency] = useState<'monthly' | 'yearly'>(existing?.frequency ?? 'monthly');
-  const [dueDay, setDueDay] = useState(existing ? String(existing.dueDay) : String(new Date().getDate()));
-  const [dueMonth, setDueMonth] = useState<number>(existing?.dueMonth ?? new Date().getMonth() + 1);
-  const [remind, setRemind] = useState(existing?.remindDaysBefore ?? 3);
-  const [isSubscription, setIsSubscription] = useState(existing?.isSubscription ?? false);
+  const draft = `bill:${existing?.id ?? 'new'}`;
+  const [name, setName] = useDraft(`${draft}:name`, existing?.name ?? '');
+  const [amount, setAmount] = useDraft(`${draft}:amount`, existing ? String(existing.amount) : '');
+  const [currency, setCurrency] = useDraft(`${draft}:currency`, existing?.currency ?? 'THB');
+  const [walletId, setWalletId] = useDraft<string | null>(`${draft}:walletId`, existing?.walletId ?? null);
+  const [categoryId, setCategoryId] = useDraft<string | null>(`${draft}:categoryId`, existing?.categoryId ?? null);
+  const [frequency, setFrequency] = useDraft<'monthly' | 'yearly'>(`${draft}:frequency`, existing?.frequency ?? 'monthly');
+  const [dueDay, setDueDay] = useDraft(`${draft}:dueDay`, existing ? String(existing.dueDay) : String(new Date().getDate()));
+  const [dueMonth, setDueMonth] = useDraft<number>(`${draft}:dueMonth`, existing?.dueMonth ?? new Date().getMonth() + 1);
+  const [remind, setRemind] = useDraft(`${draft}:remind`, existing?.remindDaysBefore ?? 3);
+  const [isSubscription, setIsSubscription] = useDraft(`${draft}:isSubscription`, existing?.isSubscription ?? false);
   const [showErrors, setShowErrors] = useState(false);
 
   const parsed = parseAmount(amount);
