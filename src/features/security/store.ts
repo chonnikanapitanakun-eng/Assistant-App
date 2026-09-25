@@ -17,7 +17,7 @@ type Store = {
   setPin: (pin: string) => Promise<void>;
   /** Check a PIN against the stored hash. */
   verifyPin: (pin: string) => Promise<boolean>;
-  /** Turn app lock off entirely — also the "forgot PIN" escape hatch. */
+  /** Turn app lock off entirely (Settings, or after "forgot PIN" has erased the device — see forgot-pin.ts). */
   disable: () => void;
   setBiometricEnabled: (on: boolean) => void;
   lock: () => void;

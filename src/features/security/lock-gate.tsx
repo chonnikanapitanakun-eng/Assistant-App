@@ -7,7 +7,8 @@ import { useSecurity } from './store';
 /**
  * Full-screen overlay mounted once at the app root. Re-locks whenever the app is backgrounded
  * (if a PIN is set) and blocks Android's back button while locked — the only way out is a
- * correct PIN, Face ID/Touch ID, or "forgot PIN" (which turns app lock off).
+ * correct PIN, Face ID/Touch ID, or "forgot PIN" — which erases this device's data (PDPA erase,
+ * features/privacy) and starts over at onboarding; it never unlocks the existing data.
  */
 export function LockGate() {
   const enabled = useSecurity((s) => s.pinHash !== null);
