@@ -32,7 +32,7 @@ export function AllDayRow({ items, onOpen, compact }: { items: CalItem[]; onOpen
               opacity: i.done ? 0.55 : 1,
             }}
           >
-            <Icon name={isEvent ? 'sun' : i.done ? 'check-circle' : 'circle'} size={12} tone={isEvent ? tints.meeting.fg : colors.textSecondary} />
+            <Icon name={isEvent ? 'sun' : i.done ? 'check-circle' : 'circle'} size={12} tone={isEvent ? (i.color ?? tints.meeting.fg) : colors.textSecondary} />
             <Text variant="caption" weight="semibold" tone={isEvent ? tints.meeting.fg : colors.text} numberOfLines={1} style={[{ flex: 1 }, i.done ? { textDecorationLine: 'line-through' } : null]}>
               {i.title}
             </Text>

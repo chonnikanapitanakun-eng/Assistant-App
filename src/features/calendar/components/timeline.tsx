@@ -153,7 +153,7 @@ function Block({ p, compact, onOpen, onMove }: { p: Positioned; compact?: boolea
             opacity: p.done ? 0.55 : 1,
           }}
         >
-          <View style={{ width: 3, backgroundColor: isEvent ? tint.fg : colors.borderStrong }} />
+          <View style={{ width: 3, backgroundColor: isEvent ? (p.color ?? tint.fg) : colors.borderStrong }} />
           <View style={{ flex: 1, paddingHorizontal: compact ? 6 : 8, paddingVertical: tiny ? 2 : 6, gap: 1, flexDirection: tiny ? 'row' : 'column', alignItems: tiny ? 'center' : 'stretch' }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 1 }}>
               {!isEvent ? <Icon name={p.done ? 'check-circle' : 'circle'} size={12} color="textSecondary" /> : null}

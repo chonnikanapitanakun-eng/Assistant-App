@@ -1,14 +1,18 @@
 import Constants from 'expo-constants';
-import { router } from 'expo-router';
-import { useState, type ReactNode } from 'react';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Linking, Platform, TextInput, View } from 'react-native';
+import { create } from 'zustand';
 
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Card, Chip, Icon, IconButton, PressableScale, Screen, Text, Toggle, type IconName } from '@/components/ui';
+import { completeGoogleConnect, connectGoogle, disconnectGoogle, gcalEnabled, syncGoogleCalendars, useCalendarAccounts, type AuthReturn, type ConnectResult } from '@/features/google-calendar';
 import { useNotificationPermission } from '@/features/notifications';
 import { setLanguage } from '@/features/profile/language';
 import { ALL_INTERESTS, useProfile, type Interest } from '@/features/profile/store';
+import type { CalendarAccount } from '@/db';
+import { useConfirm } from '@/lib/use-confirm';
 import { currencySymbol, parseAmount, supportedCurrencies, type Currency } from '@/lib/currency';
 import { useTheme } from '@/theme';
 
@@ -84,6 +88,8 @@ export default function SettingsScreen() {
         })}
       </Section>
 
+      <GoogleCalendarSection />
+
       <FxRatesSection />
 
       {Platform.OS !== 'web' ? <NotificationsSection /> : null}
@@ -102,6 +108,109 @@ export default function SettingsScreen() {
         <Text variant="caption" color="textTertiary">Your life, handled.</Text>
       </View>
     </Screen>
+  );
+}
+
+type Notice = { text: string; error?: boolean } | null;
+
+/** Busy flag + last result, outside the component so they survive Settings remounting after the OAuth redirect. */
+const useGcalUi = create<{ busy: boolean; notice: Notice }>(() => ({ busy: false, notice: null }));
+let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+
+const GCAL_ERRORS = ['denied', 'scope', 'too_many_accounts', 'not_configured'];
+
+/** Linked Google accounts (P2-07): add, re-link, remove, sync now. Imported events are read-only. */
+function GoogleCalendarSection() {
+  const { t, i18n } = useTranslation();
+  const { spacing } = useTheme();
+  const accounts = useCalendarAccounts();
+  const params = useLocalSearchParams<AuthReturn>();
+  const { busy, notice } = useGcalUi();
+
+  const errorText = (code: string) => t(`gcal.error_${GCAL_ERRORS.includes(code) ? code : 'failed'}`);
+  const act = async (work: () => Promise<ConnectResult | void>) => {
+    clearTimeout(noticeTimer);
+    useGcalUi.setState({ busy: true, notice: null });
+    let next: Notice = null;
+    try {
+      const r = await work();
+      if (r && 'email' in r) next = { text: t('gcal.linked', { email: r.email }) };
+      else if (r && 'error' in r) next = { text: errorText(r.error), error: true };
+    } catch (e) {
+      console.error('Google Calendar failed:', e);
+      next = { text: errorText(e instanceof Error ? e.message : ''), error: true };
+    }
+    useGcalUi.setState({ busy: false, notice: next });
+    noticeTimer = setTimeout(() => useGcalUi.setState({ notice: null }), 8000);
+  };
+
+  // Back from Google (web, or Android's deep link): ?gcal=<ticket> | ?gcal_error=<code>.
+  const { gcal, gcal_error } = params;
+  useEffect(() => {
+    if (!gcal && !gcal_error) return;
+    // Drop the params so a reload doesn't re-claim a used ticket. This remounts the screen, hence the store.
+    router.replace('/settings');
+    void act(() => completeGoogleConnect({ gcal, gcal_error }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per redirect; `act` only sets local state
+  }, [gcal, gcal_error]);
+
+  if (!gcalEnabled) {
+    return (
+      <Section title={t('gcal.title')}>
+        <Row icon="calendar" label={t('gcal.title')} sub={t('gcal.unavailable')}>
+          {null}
+        </Row>
+      </Section>
+    );
+  }
+
+  const locale = i18n.language === 'th' ? 'th-TH' : 'en-GB';
+  return (
+    <Section title={t('gcal.title')} hint={t('gcal.hint')}>
+      {accounts.map((a, idx) => (
+        <View key={a.id}>
+          {idx ? <Divider /> : null}
+          <AccountRow account={a} locale={locale} busy={busy} onReconnect={() => void act(() => connectGoogle(a.email))} onRemove={() => void act(() => disconnectGoogle(a.id))} />
+        </View>
+      ))}
+      {accounts.length ? <Divider /> : null}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm }}>
+        <Button size="sm" variant="secondary" icon="plus" label={accounts.length ? t('gcal.add_another') : t('gcal.add')} disabled={busy} onPress={() => void act(() => connectGoogle())} />
+        {accounts.length ? <Button size="sm" variant="ghost" icon="refresh-cw" label={busy ? t('gcal.syncing') : t('gcal.sync_now')} disabled={busy} onPress={() => void act(() => syncGoogleCalendars({ force: true }))} /> : null}
+      </View>
+      {notice ? (
+        <Text variant="caption" color={notice.error ? 'danger' : 'success'} accessibilityLiveRegion="polite" style={{ paddingBottom: spacing.sm }}>
+          {notice.text}
+        </Text>
+      ) : null}
+    </Section>
+  );
+}
+
+function AccountRow({ account, locale, busy, onReconnect, onRemove }: { account: CalendarAccount; locale: string; busy: boolean; onReconnect: () => void; onRemove: () => void }) {
+  const { t } = useTranslation();
+  const { colors, spacing } = useTheme();
+  const { armed, confirm } = useConfirm();
+  const sub =
+    account.status === 'reauth'
+      ? t('gcal.needs_reauth')
+      : account.status === 'error'
+        ? t('gcal.sync_error')
+        : account.lastSyncedAt
+          ? t('gcal.synced_at', { time: new Date(account.lastSyncedAt).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })
+          : t('gcal.not_synced');
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 56, paddingVertical: spacing.xs }}>
+      <View style={{ width: 36, alignItems: 'center' }}>
+        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: account.color }} />
+      </View>
+      <View style={{ flex: 1, minWidth: 0, gap: 2 }}>
+        <Text variant="subheading" numberOfLines={1}>{account.email}</Text>
+        <Text variant="caption" tone={account.status === 'ok' ? colors.textSecondary : colors.danger}>{sub}</Text>
+      </View>
+      {account.status === 'reauth' ? <Button size="sm" variant="secondary" label={t('gcal.reconnect')} disabled={busy} onPress={onReconnect} /> : null}
+      <Button size="sm" variant="ghost" label={armed ? t('gcal.remove_confirm') : t('gcal.remove')} accessibilityHint={t('gcal.remove_hint', { email: account.email })} disabled={busy} onPress={() => confirm(onRemove)} />
+    </View>
   );
 }
 

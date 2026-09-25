@@ -14,9 +14,11 @@ export type CalItem = {
   priority?: number;
   /** Synced from another calendar — edit it there, not here. */
   readOnly?: boolean;
+  /** Linked-account colour for imported events (Google Calendar). */
+  color?: string;
 };
 
-type EventRow = { id: string; title: string; start: number; end: number; isAllDay: boolean; location: string | null; source?: string };
+type EventRow = { id: string; title: string; start: number; end: number; isAllDay: boolean; location: string | null; source?: string; color?: string | null };
 type TaskRow = { id: string; title: string; date: string | null; startTime: string | null; endTime: string | null; isDone: boolean; priority: number };
 
 export const toMinutes = (hhmm: string) => {
@@ -36,11 +38,12 @@ export function eventToItem(e: EventRow): CalItem {
   const start = new Date(e.start);
   const date = toDateKey(start);
   const readOnly = e.source !== undefined && e.source !== 'veyra';
-  if (e.isAllDay) return { kind: 'event', id: e.id, title: e.title, date, allDay: true, location: e.location, readOnly };
+  const color = e.color ?? undefined;
+  if (e.isAllDay) return { kind: 'event', id: e.id, title: e.title, date, allDay: true, location: e.location, readOnly, color };
   const end = new Date(e.end);
   // Events that run past midnight are clipped to the end of their start day.
   const endStr = toDateKey(end) === date ? hhmm(end) : '23:59';
-  return { kind: 'event', id: e.id, title: e.title, date, start: hhmm(start), end: endStr, allDay: false, location: e.location, readOnly };
+  return { kind: 'event', id: e.id, title: e.title, date, start: hhmm(start), end: endStr, allDay: false, location: e.location, readOnly, color };
 }
 
 /** Dated tasks appear on the calendar; untimed ones sit in the all-day row. Default length 30 min. */

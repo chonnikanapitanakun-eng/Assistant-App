@@ -596,5 +596,28 @@
     "results_one": "{{count}} รายการ",
     "results_other": "{{count}} รายการ",
     "all_day": "ทั้งวัน"
+  },
+  "gcal": {
+    "title": "Google Calendar",
+    "hint": "อ่านอย่างเดียว — Veyra ดึงปฏิทินที่ติ๊กไว้ใน Google Calendar ย้อนหลัง 30 วัน ล่วงหน้า 90 วัน และอัปเดตทุกครั้งที่เปิดแอป แก้ไขนัดได้ที่ Google",
+    "unavailable": "ต้องเชื่อมต่อ Veyra cloud (Supabase) ก่อน ซึ่ง build นี้ยังไม่ได้ตั้งค่า",
+    "add": "เชื่อมบัญชี Google",
+    "add_another": "เชื่อมบัญชีเพิ่ม",
+    "sync_now": "ซิงก์ตอนนี้",
+    "syncing": "กำลังทำงาน…",
+    "linked": "เชื่อม {{email}} แล้ว นัดขึ้นในปฏิทินเรียบร้อย",
+    "synced_at": "ซิงก์ล่าสุด {{time}}",
+    "not_synced": "ยังไม่ได้ซิงก์",
+    "needs_reauth": "สิทธิ์หมดอายุ — กดเชื่อมใหม่เพื่อซิงก์ต่อ",
+    "sync_error": "ซิงก์ครั้งล่าสุดไม่สำเร็จ — ลองกดซิงก์ตอนนี้",
+    "reconnect": "เชื่อมใหม่",
+    "remove": "ยกเลิกการเชื่อม",
+    "remove_confirm": "แตะอีกครั้งเพื่อยืนยัน",
+    "remove_hint": "ยกเลิกการเชื่อม {{email}} และลบนัดของบัญชีนี้ออกจาก Veyra",
+    "error_denied": "ยกเลิกการเชื่อมแล้ว",
+    "error_scope": "กรุณาอนุญาตให้ Veyra ดูปฏิทิน แล้วลองอีกครั้ง",
+    "error_too_many_accounts": "เชื่อมบัญชี Google ได้สูงสุด 10 บัญชี",
+    "error_not_configured": "เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า Google sign-in",
+    "error_failed": "เชื่อมต่อ Google ไม่ได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่"
   }
 }
