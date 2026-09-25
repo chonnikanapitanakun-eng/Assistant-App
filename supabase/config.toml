@@ -13,19 +13,20 @@ major_version = 17
 
 [auth]
 enabled = true
-# Phase 2 adds Apple / Google sign-in; until then the anon key is enough for Edge Functions.
+# Google sign-in (features/auth) shipped in Phase 2. Enable the Google provider in the dashboard
+# too (Authentication → Providers) — this file only carries settings the CLI can push.
 
 [edge_runtime]
 enabled = true
 policy = "per_worker"
 
-# Phase 1: no login yet, so the app calls with the anon key only.
-# Flip to true in Phase 2 once Supabase Auth ships and the app sends a user JWT.
+# The app sends the signed-in user's JWT when there is one, the anon key otherwise (both verify
+# fine here) — see src/features/ai/remote.ts, src/features/assistant/remote.ts.
 [functions.ai-capture]
-verify_jwt = false
+verify_jwt = true
 
 [functions.assistant]
-verify_jwt = false
+verify_jwt = true
 
 # Google's OAuth redirect lands on /gcal/callback with no Supabase JWT; the function checks the
 # signed state / device key itself.

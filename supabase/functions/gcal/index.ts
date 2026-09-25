@@ -8,9 +8,11 @@
 //   POST { action: 'finish', key, ticket }                → { account }   claim the ticket (same device only)
 //   POST { action: 'sync', key, timeMin, timeMax }        → { accounts: SyncAccount[] }  (src/features/google-calendar/types.ts)
 //   POST { action: 'disconnect', key, accountId }         → { ok: true }  revoke at Google + delete
+//   POST { action: 'claim', key }, Authorization: Bearer <user JWT> → { ok: true }
+//     attach every account still owned only by sha256(key) to the signed-in user (idempotent)
 //
-// `key` is the device key (src/features/google-calendar/device-key.ts). Accounts belong to
-// sha256(key) until Supabase Auth ships.
+// `key` is the device key (src/features/google-calendar/device-key.ts). An account belongs to
+// sha256(key) until it is claimed by a signed-in user (Phase 2 Supabase Auth), which fills `user_id`.
 //
 // Secrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GCAL_TOKEN_KEY (32+ random bytes, base64),
 //          GCAL_RETURN_PREFIXES (comma list of allowed return URLs, default "veyra://"),
@@ -271,6 +273,20 @@ async function sync(owner: string, body: Record<string, unknown>) {
   return json({ accounts });
 }
 
+/** Attach this device's not-yet-claimed accounts to the signed-in user. Safe to call repeatedly. */
+async function claim(owner: string, req: Request) {
+  const token = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
+  const { data, error } = await admin.auth.getUser(token);
+  if (error || !data.user) return json({ error: 'bad_token' }, 401);
+  const { error: updateError } = await admin
+    .from('gcal_accounts')
+    .update({ user_id: data.user.id, updated_at: new Date().toISOString() })
+    .eq('owner', owner)
+    .is('user_id', null);
+  if (updateError) throw updateError;
+  return json({ ok: true });
+}
+
 async function disconnect(owner: string, body: Record<string, unknown>) {
   const { data: account } = await admin.from('gcal_accounts').select('id, refresh_token').eq('owner', owner).eq('id', String(body.accountId)).maybeSingle();
   if (account) {
@@ -304,6 +320,8 @@ Deno.serve(async (req) => {
         return await sync(owner, body);
       case 'disconnect':
         return await disconnect(owner, body);
+      case 'claim':
+        return await claim(owner, req);
     }
     return json({ error: 'unknown_action' }, 400);
   } catch (err) {

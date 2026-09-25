@@ -1,3 +1,5 @@
+import { getSession } from '@/features/auth';
+
 import type { CaptureItem, CaptureResponse } from './types';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -28,7 +30,8 @@ const isTime = (v: unknown): v is string => typeof v === 'string' && /^([01]\d|2
 export async function captureRemote(text: string, ctx: CaptureContext, signal?: AbortSignal): Promise<CaptureResponse> {
   const res = await fetch(`${url}/functions/v1/ai-capture`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${anonKey}`, apikey: anonKey! },
+    // Signed in: the user's JWT, so ai_usage logs the real user_id (supabase/functions/_shared/usage.ts).
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${getSession()?.access_token ?? anonKey}`, apikey: anonKey! },
     signal,
     body: JSON.stringify({
       text,

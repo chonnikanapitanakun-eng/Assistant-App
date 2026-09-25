@@ -619,5 +619,18 @@
     "error_too_many_accounts": "You can link up to 10 Google accounts.",
     "error_not_configured": "Google sign-in isn't set up on the server yet.",
     "error_failed": "Couldn't reach Google. Check your connection and try again."
+  },
+  "sync": {
+    "title": "Cloud sync",
+    "hint": "Sign in to keep your tasks, notes, money and more the same across every device you use.",
+    "unavailable": "Needs Veyra's cloud connection (Supabase), which isn't set up in this build.",
+    "sign_in": "Sign in with Google",
+    "signed_in": "Signed in",
+    "sync_now": "Sync now",
+    "synced_at": "Synced {{time}}",
+    "not_synced": "Not synced yet",
+    "sync_error": "Last sync failed — try Sync now",
+    "sign_out": "Sign out",
+    "error_failed": "Sign-in failed. Check your connection and try again."
   }
 }

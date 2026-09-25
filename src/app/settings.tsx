@@ -7,10 +7,12 @@ import { create } from 'zustand';
 
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Card, Chip, Icon, IconButton, PressableScale, Screen, Text, Toggle, type IconName } from '@/components/ui';
+import { authEnabled, signInWithGoogle, signOut, useSession } from '@/features/auth';
 import { completeGoogleConnect, connectGoogle, disconnectGoogle, gcalEnabled, syncGoogleCalendars, useCalendarAccounts, type AuthReturn, type ConnectResult } from '@/features/google-calendar';
 import { useNotificationPermission } from '@/features/notifications';
 import { setLanguage } from '@/features/profile/language';
 import { ALL_INTERESTS, useProfile, type Interest } from '@/features/profile/store';
+import { runSync, useSyncStatus } from '@/features/sync';
 import type { CalendarAccount } from '@/db';
 import { useConfirm } from '@/lib/use-confirm';
 import { currencySymbol, parseAmount, supportedCurrencies, type Currency } from '@/lib/currency';
@@ -42,6 +44,8 @@ export default function SettingsScreen() {
         <IconButton icon="chevron-left" label={t('common.back')} onPress={back} />
         <Text variant="title" accessibilityRole="header">{t('settings.title')}</Text>
       </View>
+
+      <AccountSection />
 
       <Section title={t('settings.profile')}>
         <Row icon="user" label={t('settings.name')}>
@@ -112,6 +116,75 @@ export default function SettingsScreen() {
 }
 
 type Notice = { text: string; error?: boolean } | null;
+
+/** Sign in with Google, cloud sync status, sign out. Local data works the same either way — this
+ * only turns on syncing it across devices (P2, `src/features/auth`, `src/features/sync`). */
+function AccountSection() {
+  const { t, i18n } = useTranslation();
+  const { spacing } = useTheme();
+  const session = useSession();
+  const { busy, lastSyncedAt, error } = useSyncStatus();
+  const [signingIn, setSigningIn] = useState(false);
+  const [notice, setNotice] = useState<Notice>(null);
+
+  if (!authEnabled) {
+    return (
+      <Section title={t('sync.title')}>
+        <Row icon="cloud-off" label={t('sync.title')} sub={t('sync.unavailable')}>
+          {null}
+        </Row>
+      </Section>
+    );
+  }
+
+  const doSignIn = async () => {
+    setSigningIn(true);
+    setNotice(null);
+    try {
+      const r = await signInWithGoogle();
+      if (r && 'error' in r) setNotice({ text: t('sync.error_failed'), error: true });
+    } catch (e) {
+      console.error('Sign-in failed:', e);
+      setNotice({ text: t('sync.error_failed'), error: true });
+    }
+    setSigningIn(false);
+  };
+
+  if (!session) {
+    return (
+      <Section title={t('sync.title')} hint={t('sync.hint')}>
+        <View style={{ paddingVertical: spacing.sm }}>
+          <Button variant="secondary" icon="log-in" label={signingIn ? t('gcal.syncing') : t('sync.sign_in')} disabled={signingIn} onPress={() => void doSignIn()} />
+        </View>
+        {notice ? (
+          <Text variant="caption" color={notice.error ? 'danger' : 'success'} accessibilityLiveRegion="polite" style={{ paddingBottom: spacing.sm }}>
+            {notice.text}
+          </Text>
+        ) : null}
+      </Section>
+    );
+  }
+
+  const locale = i18n.language === 'th' ? 'th-TH' : 'en-GB';
+  const syncSub = error
+    ? t('sync.sync_error')
+    : lastSyncedAt
+      ? t('sync.synced_at', { time: new Date(lastSyncedAt).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })
+      : t('sync.not_synced');
+
+  return (
+    <Section title={t('sync.title')}>
+      <Row icon="user-check" label={session.user.email ?? t('sync.signed_in')} sub={syncSub}>
+        {null}
+      </Row>
+      <Divider />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm }}>
+        <Button size="sm" variant="secondary" icon="refresh-cw" label={busy ? t('gcal.syncing') : t('sync.sync_now')} disabled={busy} onPress={() => void runSync()} />
+        <Button size="sm" variant="ghost" icon="log-out" label={t('sync.sign_out')} onPress={() => void signOut()} />
+      </View>
+    </Section>
+  );
+}
 
 /** Busy flag + last result, outside the component so they survive Settings remounting after the OAuth redirect. */
 const useGcalUi = create<{ busy: boolean; notice: Notice }>(() => ({ busy: false, notice: null }));
