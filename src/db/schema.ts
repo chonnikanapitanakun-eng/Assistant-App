@@ -213,3 +213,4 @@ export type Link = typeof links.$inferSelect;
 export type CalendarEvent = typeof calendarEvents.$inferSelect;
 export type RecurringBill = typeof recurringBills.$inferSelect;
 export type AssistantMessage = typeof assistantMessages.$inferSelect;
+export type Checkin = typeof checkins.$inferSelect;
