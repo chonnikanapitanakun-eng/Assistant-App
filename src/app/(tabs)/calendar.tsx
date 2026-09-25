@@ -16,7 +16,8 @@ import { moveItem as moveItemAsync, useEventsBetween } from '@/features/calendar
 import { useCalendarAccounts } from '@/features/google-calendar';
 import { useAllTasks } from '@/features/tasks/queries';
 import { background } from '@/lib/background';
-import { addDays, toDateKey } from '@/lib/date';
+import { addDays, toBuddhistYear, toDateKey } from '@/lib/date';
+import { thaiHolidayOnDate } from '@/lib/thai-holidays';
 import { useBreakpoint, useTheme } from '@/theme';
 
 type View_ = 'day' | 'week' | 'month';
@@ -51,10 +52,15 @@ export default function CalendarScreen() {
     i.kind === 'event' ? router.push({ pathname: '/event/[id]', params: { id: i.id } }) : router.push({ pathname: '/task/[id]', params: { id: i.id } });
   const createAt = (date: string, start?: string) => router.push({ pathname: '/event/[id]', params: start ? { id: 'new', date, start } : { id: 'new', date } });
 
+  const isThaiLocale = locale === 'th-TH';
   const title =
     view === 'day'
       ? fromDateKey(selected).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })
-      : fromDateKey(selected).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+      : isThaiLocale
+        ? `${fromDateKey(selected).toLocaleDateString(locale, { month: 'long' })} ${toBuddhistYear(fromDateKey(selected).getFullYear())}`
+        : fromDateKey(selected).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
+  const selectedHoliday = thaiHolidayOnDate(selected);
+  const selectedHolidayLabel = selectedHoliday ? (isThaiLocale ? selectedHoliday.nameTh : selectedHoliday.nameEn) : null;
 
   const header = (
     <View style={{ gap: spacing.lg }}>
@@ -62,6 +68,9 @@ export default function CalendarScreen() {
         <View style={{ flex: 1 }}>
           <Text variant="overline" color="textSecondary">{t('nav.calendar').toUpperCase()}</Text>
           <Text variant="title" accessibilityRole="header" numberOfLines={1}>{title}</Text>
+          {view === 'day' && selectedHolidayLabel ? (
+            <Text variant="caption" color="danger" numberOfLines={1}>{selectedHolidayLabel}</Text>
+          ) : null}
         </View>
         <IconButton icon="chevron-left" label={t('calendar.previous')} onPress={() => setSelected(shiftDate(selected, view, -1))} />
         <IconButton icon="chevron-right" label={t('calendar.next')} onPress={() => setSelected(shiftDate(selected, view, 1))} />

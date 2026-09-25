@@ -7,7 +7,9 @@ import { billState, nextDueDate } from '@/features/money/model';
 import { useBills } from '@/features/money/queries';
 import { useProfile } from '@/features/profile/store';
 import { useAllTasks } from '@/features/tasks/queries';
-import { addDays, greetingKey, toDateKey } from '@/lib/date';
+import { addDays, greetingKey, toBuddhistYear, toDateKey } from '@/lib/date';
+import { isWanPhraDateKey } from '@/lib/thai-lunar';
+import { thaiHolidayOnDate } from '@/lib/thai-holidays';
 import { useBreakpoint, useTheme, type TintName } from '@/theme';
 
 
@@ -23,7 +25,12 @@ export function Greeting() {
   const meetings = useEventsBetween(today, toDateKey(addDays(now, 1))).length;
   const billsToday = useBills().filter((b) => ['overdue', 'today'].includes(billState(nextDueDate(b), b.remindDaysBefore).state)).length;
   const tasksToday = useAllTasks().filter((x) => !x.isDone && x.date === today).length;
-  const date = now.toLocaleDateString(i18n.language === 'th' ? 'th-TH' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  const isThaiLocale = i18n.language === 'th';
+  const date = now.toLocaleDateString(isThaiLocale ? 'th-TH' : 'en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+  const dateLabel = isThaiLocale ? `${date} พ.ศ. ${toBuddhistYear(now.getFullYear())}` : date;
+  const holiday = thaiHolidayOnDate(today);
+  const holidayLabel = holiday ? (isThaiLocale ? holiday.nameTh : holiday.nameEn) : null;
+  const wanPhra = isWanPhraDateKey(today);
   const emoji = greetingKey(now) === 'greeting_evening' ? '🌙' : '☀️';
   // Summary mentions only the areas shown on Home.
   const parts = [
@@ -35,10 +42,15 @@ export function Greeting() {
   return (
     <View style={{ gap: spacing.lg }}>
       <View style={{ gap: spacing.xs }}>
-        <Text variant="overline" color="textSecondary">{date.toUpperCase()}</Text>
+        <Text variant="overline" color="textSecondary">{dateLabel.toUpperCase()}</Text>
         <Text variant={isMobile ? 'title' : 'display'} accessibilityRole="header">
           {name ? `${t(`today.${greetingKey(now)}`)}, ${name}.` : `${t(`today.${greetingKey(now)}`)}.`} {emoji}
         </Text>
+        {holidayLabel || wanPhra ? (
+          <Text variant="caption" color="danger">
+            {[holidayLabel, wanPhra ? t('calendar.wan_phra') : null].filter(Boolean).join(' · ')}
+          </Text>
+        ) : null}
         {parts.length ? (
           <Text variant="body" color="textSecondary">
             {t('home.summary_list', { list: joinList(parts, t('home.list_sep'), t('home.list_and')) })}

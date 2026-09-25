@@ -438,7 +438,8 @@
     "with_hint": "Saved to contacts and linked to this event.",
     "not_found": "Event not found",
     "read_only": "Synced from {{source}} — edit it there.",
-    "drag_hint": "Long-press and drag to change the time"
+    "drag_hint": "Long-press and drag to change the time",
+    "wan_phra": "Buddhist observance day"
   },
   "more": {
     "title": "More",
