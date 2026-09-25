@@ -1,6 +1,8 @@
 import { scanFromURLAsync } from 'expo-camera';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
+import { aiAllowed } from '@/features/premium';
+
 import { parseSlipQr, type SlipQr } from './qr';
 import { readSlipRemote, slipRemoteEnabled } from './remote';
 import type { SlipResult } from './types';
@@ -39,7 +41,7 @@ export async function scanSlip(image: { uri: string; width?: number }, knownRefs
   const { uri } = image;
   const qr = await readQr(uri);
   if (qr && knownRefs.has(qr.ref)) return { kind: 'duplicate', ref: qr.ref, qr };
-  if (!slipRemoteEnabled) return { kind: 'offline', qr };
+  if (!slipRemoteEnabled || !aiAllowed()) return { kind: 'offline', qr }; // free tier: fill by hand (P4-06)
 
   let base64: string | undefined;
   try {

@@ -32,3 +32,11 @@ verify_jwt = true
 # signed state / device key itself.
 [functions.gcal]
 verify_jwt = false
+
+[functions.slip-ocr]
+verify_jwt = true
+
+# RevenueCat's webhook carries its own Authorization secret, not a Supabase JWT; /premium/refresh
+# verifies the user's JWT itself (supabase/functions/premium/index.ts).
+[functions.premium]
+verify_jwt = false

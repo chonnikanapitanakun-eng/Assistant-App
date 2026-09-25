@@ -1,4 +1,5 @@
 import { getSession } from '@/features/auth';
+import { checkAiResponse } from '@/features/premium';
 
 import type { SlipParty, SlipResult } from './types';
 
@@ -23,7 +24,7 @@ export async function readSlipRemote(base64: string, signal?: AbortSignal): Prom
     signal,
     body: JSON.stringify({ image: base64 }),
   });
-  if (!res.ok) throw new Error(`slip-ocr ${res.status}`);
+  await checkAiResponse(res, 'slip-ocr'); // 402 / quota 429 → PremiumGateError, the user fills it by hand
   // The function already normalises; this is the app's last line of defence before the form.
   const d = (await res.json()) as Record<string, unknown>;
   const amount = typeof d.amount === 'number' && d.amount > 0 ? d.amount : undefined;

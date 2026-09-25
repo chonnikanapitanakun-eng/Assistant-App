@@ -264,4 +264,4 @@ fts_index       (SQLite FTS5 virtual table) type, id, title, body, tags
 - ทำงานได้เต็มโดยไม่มีเน็ต ยกเว้น AI
 - PIN / Face ID lock (Phase 2)
 - PDPA: privacy policy, export และลบข้อมูลตัวเองได้ (Phase 4)
-- Premium tier: free = planner + notes + money manual, pro = AI + sync + slip OCR (Phase 4)
+- Premium tier: free = planner + notes + money manual (ไม่มี AI / cloud sync), pro = AI + sync + slip OCR, AI fair-use 1,000 calls/เดือน (Phase 4, P4-06 — ดู supabase/functions/README.md § premium)

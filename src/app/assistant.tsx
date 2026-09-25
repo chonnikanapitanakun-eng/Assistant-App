@@ -17,6 +17,7 @@ import { askRemote, remoteEnabled } from '@/features/assistant/remote';
 import type { Card, Reply } from '@/features/assistant/types';
 import { useAssistantContext } from '@/features/assistant/use-context';
 import { MarkdownView } from '@/features/notes/components/markdown-view';
+import { AiUpsell, PremiumGateError, useAiAllowed } from '@/features/premium';
 import { useProfile } from '@/features/profile/store';
 import { background } from '@/lib/background';
 import { useConfirm } from '@/lib/use-confirm';
@@ -37,6 +38,8 @@ export default function AssistantScreen() {
   const [thinking, setThinking] = useState(false);
   const scroll = useRef<ScrollView>(null);
   const sentQ = useRef(false);
+  const aiOn = useAiAllowed(); // free tier: on-device engine only (P4-06)
+  const claude = remoteEnabled && aiOn;
 
   const close = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
@@ -47,14 +50,15 @@ export default function AssistantScreen() {
     const history = [...messages.map((m) => ({ role: m.role, text: m.text })), { role: 'user' as const, text }];
     background(addMessage('user', text), 'Save chat message');
     let reply: Reply;
-    if (remoteEnabled) {
+    if (claude) {
       setThinking(true);
       try {
         reply = await askRemote(history, getContext(), i18n.language);
-      } catch {
-        // Offline or the function failed: answer on-device and say so.
+      } catch (e) {
+        // Offline, the function failed, or the Pro gate refused: answer on-device and say so.
         const local = respond(text, getContext(), t);
-        reply = { ...local, text: `${local.text}\n\n_${t('assistant.offline_note')}_` };
+        const note = e instanceof PremiumGateError ? t(e.kind === 'quota_exceeded' ? 'premium.upsell_quota' : 'premium.upsell_assistant') : t('assistant.offline_note');
+        reply = { ...local, text: `${local.text}\n\n_${note}_` };
       }
       setThinking(false);
     } else {
@@ -95,7 +99,7 @@ export default function AssistantScreen() {
           <Mascot pose="wave" size={36} />
           <View style={{ flex: 1 }}>
             <Text variant="subheading" accessibilityRole="header">Veyra AI</Text>
-            <Text variant="caption" color="textSecondary">{remoteEnabled ? t('assistant.mode_claude') : t('assistant.mode_local')}</Text>
+            <Text variant="caption" color="textSecondary">{claude ? t('assistant.mode_claude') : t('assistant.mode_local')}</Text>
           </View>
           {messages.length ? (
             <PressableScale accessibilityRole="button" accessibilityLabel={armed ? t('assistant.clear_confirm') : t('assistant.clear')} onPress={() => confirm(() => background(clearChat(), 'Clear chat'))} style={{ minHeight: 44, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.sm }}>
@@ -116,6 +120,11 @@ export default function AssistantScreen() {
               <Mascot pose="wave" size={132} />
               <Text variant="title" align="center">{name ? t('assistant.hello', { name }) : t('assistant.hello_anon')}</Text>
               <Text variant="bodySm" color="textSecondary" align="center" style={{ maxWidth: 420 }}>{t('assistant.intro')}</Text>
+              {remoteEnabled ? (
+                <View style={{ alignSelf: 'stretch', maxWidth: 480, width: '100%', marginHorizontal: 'auto' }}>
+                  <AiUpsell feature="assistant" />
+                </View>
+              ) : null}
             </Animated.View>
           ) : (
             messages.map((m) => (m.role === 'user' ? <UserBubble key={m.id} text={m.text} /> : <AssistantBubble key={m.id} message={m} onConfirm={(msg, card) => background(onConfirm(msg, card), 'Confirm proposal')} />))

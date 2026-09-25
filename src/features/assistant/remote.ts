@@ -1,4 +1,5 @@
 import { getSession } from '@/features/auth';
+import { checkAiResponse } from '@/features/premium';
 
 import type { AssistantContext, Card, Proposal, Reply } from './types';
 
@@ -25,7 +26,7 @@ export async function askRemote(history: { role: 'user' | 'assistant'; text: str
       context: { ...ctx, now: ctx.now.toISOString(), today: ctx.now.toISOString().slice(0, 10) },
     }),
   });
-  if (!res.ok) throw new Error(`assistant ${res.status}`);
+  await checkAiResponse(res, 'assistant'); // 402 / quota 429 → PremiumGateError, on-device engine answers
   const data = (await res.json()) as RemoteResponse;
   const cards: Card[] = (data.proposals ?? []).map((p, i) => ({ type: 'proposal', id: `r${Date.now().toString(36)}${i}`, proposal: p, state: 'pending' }));
   return { text: data.text ?? '', cards, suggestions: data.suggestions ?? [], source: 'claude' };

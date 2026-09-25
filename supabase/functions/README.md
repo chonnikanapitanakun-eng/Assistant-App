@@ -8,13 +8,64 @@
 | `ai-summary` | 2 | SPEC §6.4 |
 | `ai-ask` | 3 | SPEC §6.4 |
 | `ai-plan` | 3 | SPEC §6.4 |
+| `premium` | 4 | Veyra Pro — RevenueCat webhook / refresh / status → `entitlements`; ดู § premium ด้านล่าง |
 | `slip-ocr` | 3 | `src/features/slip/types.ts` → `SlipResult` — structured output ตาม `_shared/slip-contract.ts`, prompt ใน `slip-ocr/prompt.ts`; ดู § slip-ocr ด้านล่าง |
 
 กติกา
 
 - เรียก Claude API จากที่นี่เท่านั้น (API key อยู่ใน Supabase secrets ไม่อยู่ในเครื่อง user)
 - ทุก response เป็น JSON ตาม type ใน `src/features/ai/types.ts` และ validate ก่อนส่งกลับ
+- ทุกฟังก์ชันที่เรียก Claude ต้องเรียก `checkQuota(userId)` (`_shared/quota.ts`) ก่อน — Pro เท่านั้น + โควตาต่อเดือน (§ premium)
 - Log token usage ต่อ user ลงตาราง `ai_usage` (`supabase/migrations/20260924000000_ai_usage.sql`) สำหรับคิด premium tier — เขียนด้วย service role, user อ่านได้เฉพาะของตัวเอง (RLS); Phase 1 ยังไม่มี login ค่า `user_id` จึงเป็น null
+
+## premium — Veyra Pro + AI usage limit (P4-06)
+
+| | Free | Pro |
+|---|---|---|
+| Planner / notes / money ในเครื่อง | ✓ | ✓ |
+| Quick Capture | parser ในเครื่อง | Claude (`ai-capture`) |
+| Veyra AI chat | engine ในเครื่อง | Claude (`assistant`) |
+| Slip | กรอกเอง (QR กันซ้ำยังทำงาน) | Claude Haiku (`slip-ocr`) |
+| Cloud sync | ✗ (RLS ไม่ให้ insert/update) | ✓ |
+| AI fair-use | — | 1,000 calls / เดือน (UTC) รวมทุกฟังก์ชัน |
+
+**ฝั่ง server (บังคับจริง)**
+
+- `entitlements` (`migrations/20260927000000_premium.sql`) — 1 แถวต่อ user, เขียนด้วย service role เท่านั้น; `public.is_pro()` ใช้ใน RLS ของตาราง sync (insert/update ต้อง Pro, select/delete ยังได้ — หมดอายุแล้วยังกู้/ลบข้อมูลตัวเองได้)
+- `_shared/quota.ts` `checkQuota(userId)` — ไม่ login / ไม่ Pro → **402** `{ error: 'premium_required', reason }`, เกินโควตา → **429** `{ error: 'quota_exceeded', used, limit }` ก่อนเรียก Claude; นับจาก `ai_usage` (ไม่นับ `status = 'error'`), `assistant` log 1 แถวต่อ 1 ข้อความ (รวมทุก tool round)
+- `premium` (verify_jwt = false):
+  - `POST /premium/webhook` — RevenueCat → เช็ก `Authorization` = `REVENUECAT_WEBHOOK_AUTH` → ดึง `GET /v1/subscribers/{id}` ใหม่ทุกครั้ง (ไม่ต้องสนลำดับ event / retry / transfer) → upsert `entitlements`
+  - `POST /premium/refresh` — แอปเรียกหลังซื้อ / กู้คืน (JWT ของ user) ให้ AI เปิดทันทีไม่ต้องรอ webhook
+  - `POST /premium/status` — `{ pro, used, limit, entitlement }` สำหรับหน้า Settings / แพ็กเกจ
+- app user id ของ RevenueCat = Supabase user id (`Purchases.logIn`) — id แบบ anonymous ถูกข้าม, ซื้อได้เฉพาะตอน login
+
+**ฝั่งแอป** (`src/features/premium`) — `PremiumAutoRun` ผูก RevenueCat กับ user + โหลด status ตอนเปิด/กลับเข้าแอป; Pro = RevenueCat `CustomerInfo` **หรือ** แถว `entitlements`; ไม่ Pro → ไม่เรียก AI เลย (ใช้ของในเครื่อง) + แสดง `AiUpsell`; 402/429 จาก server → `PremiumGateError` → fallback เหมือน offline; หน้า `/premium` = แพ็กเกจ, ซื้อ, กู้คืน, จัดการ, มิเตอร์ AI เดือนนี้
+
+**Setup**
+
+1. RevenueCat → สร้าง project + app (App Store / Play Store / Web Billing) → **Entitlement** id `pro` → ผูก products (เช่น `veyra_pro_monthly`, `veyra_pro_annual`) → **Offering** `default` (current) ใส่ package Monthly + Annual
+2. ใส่ public SDK keys ใน `.env` — `EXPO_PUBLIC_REVENUECAT_IOS_KEY` / `_ANDROID_KEY` / `_WEB_KEY` (ซื้อจริงต้องใช้ development build; Expo Go = Preview API mode)
+3. Server:
+
+```bash
+npx supabase db push        # entitlements + is_pro() + RLS sync ใหม่
+npx supabase secrets set \
+  REVENUECAT_SECRET_KEY=sk_xxx \
+  REVENUECAT_WEBHOOK_AUTH=$(openssl rand -hex 24) \
+  PRO_MONTHLY_AI_LIMIT=1000   # ไม่ตั้ง = 1000
+npx supabase functions deploy premium ai-capture assistant slip-ocr
+```
+
+4. RevenueCat → **Integrations → Webhooks** → URL `https://<project-ref>.supabase.co/functions/v1/premium/webhook`, Authorization header = ค่า `REVENUECAT_WEBHOOK_AUTH` เดียวกัน
+
+**ให้ Pro แบบ manual** (เจ้าของแอป / ทีม / ทดสอบก่อนตั้ง RevenueCat) — webhook ไม่เขียนทับแถว `manual`:
+
+```sql
+insert into public.entitlements (user_id, source, active) values ('<auth.users.id>', 'manual', true)
+on conflict (user_id) do update set source = 'manual', active = true, expires_at = null;
+```
+
+> ⚠️ หลัง `db push` ตัวนี้ ทุกคนที่ยังไม่มีแถว Pro จะใช้ AI / sync ไม่ได้ทันที — ใส่ manual grant ให้บัญชีตัวเองก่อน deploy
 
 ## ai-capture — prompt design
 

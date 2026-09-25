@@ -14,6 +14,7 @@ import { isDatabaseLocked, queryClient, useDatabase } from '@/db';
 import { Text } from '@/components/ui';
 import { GoogleCalendarAutoSync } from '@/features/google-calendar';
 import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
+import { PremiumAutoRun } from '@/features/premium';
 import { SyncAutoRun } from '@/features/sync';
 import { useTheme } from '@/theme';
 
@@ -65,6 +66,7 @@ export default function RootLayout() {
             <Stack.Screen name="event/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="tx/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="slip" options={{ presentation: 'transparentModal', animation: 'none' }} />
+            <Stack.Screen name="premium" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="bill/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="wallet/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="budget/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
@@ -73,6 +75,7 @@ export default function RootLayout() {
             <Stack.Screen name="focus" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           </Stack>
           <GoogleCalendarAutoSync />
+          <PremiumAutoRun />
           <SyncAutoRun />
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </ThemeProvider>

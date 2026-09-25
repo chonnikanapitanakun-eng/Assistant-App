@@ -66,6 +66,6 @@
 - [ ] ปฏิทินไทย พ.ศ. / วันหยุด / วันพระ
 - [ ] Google Calendar 2 ทาง
 - [ ] `ai-prep-meeting`
-- [ ] Premium tier (RevenueCat)
+- [x] Premium tier (RevenueCat) + AI usage limit — `supabase/functions/premium`, `_shared/quota.ts`, `src/features/premium`, `src/app/premium.tsx`
 - [ ] PDPA: privacy policy, export / delete account
 - [ ] App Store / Play Store release

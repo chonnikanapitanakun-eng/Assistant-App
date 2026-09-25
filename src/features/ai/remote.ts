@@ -1,4 +1,5 @@
 import { getSession } from '@/features/auth';
+import { checkAiResponse } from '@/features/premium';
 
 import type { CaptureItem, CaptureResponse } from './types';
 
@@ -45,7 +46,7 @@ export async function captureRemote(text: string, ctx: CaptureContext, signal?: 
       categories: ctx.categories,
     }),
   });
-  if (!res.ok) throw new Error(`ai-capture ${res.status}`);
+  await checkAiResponse(res, 'ai-capture'); // 402 / quota 429 → PremiumGateError, local parse stays
   const data = (await res.json()) as Partial<CaptureResponse>;
   const items = Array.isArray(data.items) ? data.items.filter(isValidItem) : [];
   return { items, confidence: typeof data.confidence === 'number' ? data.confidence : 0 };

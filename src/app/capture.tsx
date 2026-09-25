@@ -12,6 +12,7 @@ import { saveCaptureItems } from '@/features/ai/save';
 import type { CaptureItem } from '@/features/ai/types';
 import { useCaptureContext } from '@/features/ai/use-capture-context';
 import { DetectedItem } from '@/features/capture/detected-item';
+import { AiUpsell, useAiAllowed } from '@/features/premium';
 import { useDraft } from '@/lib/use-draft';
 import { useTheme } from '@/theme';
 
@@ -49,10 +50,11 @@ export default function CaptureScreen() {
   const [thinking, setThinking] = useState(false);
   const captureContext = useCaptureContext();
   const abortRef = useRef<AbortController | null>(null);
+  const aiOn = useAiAllowed(); // free tier: the on-device parser only (P4-06)
 
   // Claude refines the instant local parse once typing pauses. Any failure keeps the local result.
   useEffect(() => {
-    if (!captureRemoteEnabled || phase.kind !== 'edit') return;
+    if (!captureRemoteEnabled || !aiOn || phase.kind !== 'edit') return;
     const value = text.trim();
     if (!value) return; // a stale `remote` is ignored because it is keyed by text
     const controller = new AbortController();
@@ -64,7 +66,7 @@ export default function CaptureScreen() {
         const res = await captureRemote(value, captureContext(), controller.signal);
         if (!controller.signal.aborted && res.items.length) setRemote({ text: value, items: res.items });
       } catch {
-        // offline / rate-limited / upstream error → local parse stays
+        // offline / rate-limited / upstream error / not Pro (PremiumGateError) → local parse stays
       } finally {
         setThinking(false); // an aborted request also clears it; the next one sets it again
       }
@@ -73,7 +75,7 @@ export default function CaptureScreen() {
       clearTimeout(id);
       controller.abort();
     };
-  }, [text, phase.kind, captureContext]);
+  }, [text, phase.kind, captureContext, aiOn]);
   const [saving, setSaving] = useState(false);
 
   const detected = useMemo(() => {
@@ -173,6 +175,8 @@ export default function CaptureScreen() {
               <IconButton icon="x" label={t('common.close')} onPress={() => setMediaHint(null)} />
             </Animated.View>
           ) : null}
+
+          {captureRemoteEnabled && text.trim() ? <AiUpsell feature="capture" /> : null}
 
           {detected.length ? (
             <View style={{ gap: spacing.sm }}>

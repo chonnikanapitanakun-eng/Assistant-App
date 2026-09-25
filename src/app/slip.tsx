@@ -10,6 +10,7 @@ import { createSlipTransactions, getPayeeHistory, getSlipRefs, useCategories, us
 import { SlipCard } from '@/features/slip/components/slip-card';
 import { applyScan, draftErrors, emptyDraft, hasErrors, toValues, type SlipDraft } from '@/features/slip/draft';
 import { suggestFromSlip, type PayeeHistory } from '@/features/slip/match';
+import { AiUpsell } from '@/features/premium';
 import { slipRemoteEnabled } from '@/features/slip/remote';
 import { scanSlip } from '@/features/slip/scan';
 import { toDateKey } from '@/lib/date';
@@ -128,7 +129,7 @@ export default function SlipScreen() {
           <View style={{ alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.lg }}>
             <Mascot pose="search" size={104} />
             <Text variant="body" color="textSecondary" align="center">{t('slip.intro')}</Text>
-            {!slipRemoteEnabled ? <Text variant="caption" color="textTertiary" align="center">{t('slip.needs_setup')}</Text> : null}
+            {!slipRemoteEnabled ? <Text variant="caption" color="textTertiary" align="center">{t('slip.needs_setup')}</Text> : <AiUpsell feature="slip" />}
             <View style={{ alignSelf: 'stretch', gap: spacing.sm }}>
               <Button fullWidth icon="image" label={t('slip.pick_gallery')} onPress={() => void pick('library')} />
               <Button fullWidth variant="secondary" icon="camera" label={t('slip.take_photo')} onPress={() => void pick('camera')} />

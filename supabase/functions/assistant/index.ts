@@ -8,6 +8,10 @@
 // Deploy:  supabase secrets set ANTHROPIC_API_KEY=...   &&   supabase functions deploy assistant
 import Anthropic from 'npm:@anthropic-ai/sdk';
 
+import { checkQuota } from '../_shared/quota.ts';
+import { logUsage, userIdFrom } from '../_shared/usage.ts';
+
+const MODEL = 'claude-opus-5';
 const client = new Anthropic(); // reads ANTHROPIC_API_KEY from the function's secrets
 
 const SYSTEM = `You are Veyra, a calm, capable personal assistant inside the Veyra app.
@@ -103,9 +107,19 @@ function toProposal(name: string, input: Record<string, unknown>, ctx: Ctx): Rec
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' } });
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response(null, { headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey, content-type' } });
+  if (req.method === 'OPTIONS') return new Response(null, { headers: { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey, content-type, x-device-id' } });
   const body = await req.json().catch(() => null);
   if (!body?.messages?.length) return json({ error: 'messages required' }, 400);
+
+  // Pro only (P4-06): 402 / 429 → the app answers with its on-device engine and shows the upgrade / cap note.
+  const userId = userIdFrom(req);
+  const deviceId = req.headers.get('x-device-id');
+  const quota = await checkQuota(userId);
+  if (!quota.ok) return json(quota.body, quota.status);
+  const started = Date.now();
+  const tokens = { input_tokens: 0, output_tokens: 0, cache_read_tokens: 0, cache_creation_tokens: 0 };
+  let model = MODEL;
+  let status: 'ok' | 'refusal' | 'error' = 'ok';
 
   const locale = body.locale === 'th' ? 'th' : 'en';
   const ctx: Ctx = body.context ?? {};
@@ -123,7 +137,7 @@ Deno.serve(async (req) => {
     // Manual loop: tool results just say "shown to the user for confirmation" so Claude can finish its reply.
     for (let round = 0; round < 3; round++) {
       const response = await client.beta.messages.create({
-        model: 'claude-opus-5',
+        model: MODEL,
         max_tokens: 16000,
         thinking: { type: 'adaptive' },
         output_config: { effort: 'medium' }, // chat: responsive; raise if answers need more depth
@@ -133,8 +147,14 @@ Deno.serve(async (req) => {
         tools,
         messages,
       });
+      model = response.model;
+      tokens.input_tokens += response.usage.input_tokens;
+      tokens.output_tokens += response.usage.output_tokens;
+      tokens.cache_read_tokens += response.usage.cache_read_input_tokens ?? 0;
+      tokens.cache_creation_tokens += response.usage.cache_creation_input_tokens ?? 0;
 
       if (response.stop_reason === 'refusal') {
+        status = 'refusal';
         text = locale === 'th' ? 'ขอโทษ เรื่องนี้ช่วยไม่ได้ ลองถามเรื่องอื่นได้นะ' : "Sorry, I can't help with that one. Try asking something else.";
         break;
       }
@@ -155,10 +175,13 @@ Deno.serve(async (req) => {
       messages.push({ role: 'assistant', content: response.content }, { role: 'user', content: results });
     }
   } catch (err) {
+    void logUsage({ function_name: 'assistant', model, user_id: userId, device_id: deviceId, ...tokens, latency_ms: Date.now() - started, status: 'error' });
     if (err instanceof Anthropic.RateLimitError) return json({ error: 'rate_limited' }, 429);
     if (err instanceof Anthropic.APIError) return json({ error: 'upstream', status: err.status }, 502);
     return json({ error: 'failed' }, 500);
   }
 
+  // One row per chat turn (all tool rounds together) — the unit the monthly cap counts.
+  void logUsage({ function_name: 'assistant', model, user_id: userId, device_id: deviceId, ...tokens, latency_ms: Date.now() - started, status });
   return json({ text: text.trim(), proposals, suggestions: [] });
 });

@@ -10,6 +10,7 @@ import { Button, Card, Chip, Icon, IconButton, PressableScale, Screen, Text, Tog
 import { authEnabled, signInWithGoogle, signOut, useSession } from '@/features/auth';
 import { completeGoogleConnect, connectGoogle, disconnectGoogle, gcalEnabled, syncGoogleCalendars, useCalendarAccounts, type AuthReturn, type ConnectResult } from '@/features/google-calendar';
 import { useNotificationPermission } from '@/features/notifications';
+import { AiUpsell, usePremiumStore, usePro, UsageMeter } from '@/features/premium';
 import { setLanguage } from '@/features/profile/language';
 import { ALL_INTERESTS, useProfile, type Interest } from '@/features/profile/store';
 import { runSync, useSyncStatus } from '@/features/sync';
@@ -46,6 +47,8 @@ export default function SettingsScreen() {
       </View>
 
       <AccountSection />
+
+      <PremiumSection />
 
       <Section title={t('settings.profile')}>
         <Row icon="user" label={t('settings.name')}>
@@ -126,6 +129,7 @@ function AccountSection() {
   const { busy, lastSyncedAt, error } = useSyncStatus();
   const [signingIn, setSigningIn] = useState(false);
   const [notice, setNotice] = useState<Notice>(null);
+  const pro = usePro();
 
   if (!authEnabled) {
     return (
@@ -174,14 +178,42 @@ function AccountSection() {
 
   return (
     <Section title={t('sync.title')}>
-      <Row icon="user-check" label={session.user.email ?? t('sync.signed_in')} sub={syncSub}>
+      <Row icon="user-check" label={session.user.email ?? t('sync.signed_in')} sub={pro ? syncSub : t('sync.pro_only')}>
         {null}
       </Row>
+      {!pro ? (
+        <View style={{ paddingBottom: spacing.sm }}>
+          <AiUpsell feature="sync" />
+        </View>
+      ) : null}
       <Divider />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm }}>
-        <Button size="sm" variant="secondary" icon="refresh-cw" label={busy ? t('gcal.syncing') : t('sync.sync_now')} disabled={busy} onPress={() => void runSync()} />
+        {pro ? <Button size="sm" variant="secondary" icon="refresh-cw" label={busy ? t('gcal.syncing') : t('sync.sync_now')} disabled={busy} onPress={() => void runSync()} /> : null}
         <Button size="sm" variant="ghost" icon="log-out" label={t('sync.sign_out')} onPress={() => void signOut()} />
       </View>
+    </Section>
+  );
+}
+
+/** Veyra Pro (P4-06): plan status and this month's AI usage; the plan screen handles buying. */
+function PremiumSection() {
+  const { t } = useTranslation();
+  const { spacing } = useTheme();
+  const pro = usePro();
+  const { used, limit } = usePremiumStore();
+  if (!authEnabled) return null;
+  return (
+    <Section title={t('premium.title')}>
+      <PressableScale accessibilityRole="button" accessibilityLabel={t('premium.title')} onPress={() => router.push('/premium')}>
+        <Row icon="star" label={pro ? t('premium.active') : t('premium.free_plan')} sub={pro ? undefined : t('premium.subtitle')}>
+          <Icon name="chevron-right" size={18} color="textTertiary" />
+        </Row>
+      </PressableScale>
+      {pro ? (
+        <View style={{ paddingVertical: spacing.sm }}>
+          <UsageMeter used={used} limit={limit} />
+        </View>
+      ) : null}
     </Section>
   );
 }

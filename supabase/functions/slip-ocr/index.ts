@@ -10,6 +10,7 @@
 import Anthropic from 'npm:@anthropic-ai/sdk';
 
 import { normalizeSlip, SLIP_SCHEMA, type SlipResult } from '../_shared/slip-contract.ts';
+import { checkQuota } from '../_shared/quota.ts';
 import { logUsage, userIdFrom } from '../_shared/usage.ts';
 import { SYSTEM } from './prompt.ts';
 
@@ -32,6 +33,10 @@ Deno.serve(async (req) => {
 
   const userId = userIdFrom(req);
   const deviceId = req.headers.get('x-device-id');
+
+  // Pro only (P4-06): 402 / 429 → the app lets the user fill the slip by hand.
+  const quota = await checkQuota(userId);
+  if (!quota.ok) return json(quota.body, quota.status);
   const started = Date.now();
 
   let result: SlipResult = NOT_SLIP;

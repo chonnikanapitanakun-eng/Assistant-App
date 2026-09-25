@@ -10,6 +10,7 @@
 import Anthropic from 'npm:@anthropic-ai/sdk';
 
 import { CAPTURE_SCHEMA, normalizeCaptureResponse, type CaptureResponse } from '../_shared/capture-contract.ts';
+import { checkQuota } from '../_shared/quota.ts';
 import { logUsage, userIdFrom } from '../_shared/usage.ts';
 import { SYSTEM, userTurn, type CaptureRequest } from './prompt.ts';
 
@@ -37,6 +38,10 @@ Deno.serve(async (req) => {
   const weekday = WEEKDAYS.includes(body!.weekday ?? '') ? body!.weekday! : WEEKDAYS[new Date(`${today}T12:00:00Z`).getUTCDay()];
   const userId = userIdFrom(req);
   const deviceId = req.headers.get('x-device-id');
+
+  // Pro only (P4-06): 402 / 429 tell the app to keep its local parse and show the upgrade / cap note.
+  const quota = await checkQuota(userId);
+  if (!quota.ok) return json(quota.body, quota.status);
   const started = Date.now();
 
   let result: CaptureResponse = EMPTY;

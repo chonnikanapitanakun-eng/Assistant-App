@@ -1,5 +1,6 @@
 import { onDatabaseWrite } from '@/db';
 import { getSession } from '@/features/auth';
+import { getPro } from '@/features/premium/store';
 
 import { pullTable } from './pull';
 import { pushTable } from './push';
@@ -10,7 +11,8 @@ let running: Promise<void> | null = null;
 
 async function cycle(pull: boolean) {
   const userId = getSession()?.user.id;
-  if (!userId) return;
+  // Cloud sync is Veyra Pro (P4-06) — the insert/update RLS policies refuse it otherwise.
+  if (!userId || !getPro()) return;
   useSyncStatus.setState({ busy: true, error: null });
   try {
     for (const table of SYNC_TABLES) await pushTable(table, userId);
@@ -33,7 +35,7 @@ let pushTimer: ReturnType<typeof setTimeout> | undefined;
 const PUSH_DEBOUNCE_MS = 2000;
 
 onDatabaseWrite(() => {
-  if (!getSession()) return;
+  if (!getSession() || !getPro()) return;
   clearTimeout(pushTimer);
   pushTimer = setTimeout(() => void runSync({ pull: false }), PUSH_DEBOUNCE_MS);
 });

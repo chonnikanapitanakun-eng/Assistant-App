@@ -3,6 +3,7 @@ import { AppState } from 'react-native';
 
 import { clearProviderRefreshToken, useProviderRefreshToken, useSession } from '@/features/auth';
 import { claimGoogleAccounts, linkFromSignIn } from '@/features/google-calendar';
+import { usePro } from '@/features/premium/store';
 import { background } from '@/lib/background';
 
 import { runSync } from './engine';
@@ -15,6 +16,7 @@ import { runSync } from './engine';
 export function SyncAutoRun() {
   const session = useSession();
   const userId = session?.user.id;
+  const pro = usePro();
   const refreshToken = useProviderRefreshToken();
 
   // Just signed in with Google (Calendar access asked on the same screen): link that calendar too.
@@ -24,17 +26,22 @@ export function SyncAutoRun() {
     background(linkFromSignIn(session.access_token, refreshToken, session.user.email), 'Google Calendar link');
   }, [session, refreshToken]);
 
+  // Google Calendar claim is free; cloud sync is Pro and starts once the status says so.
   useEffect(() => {
     if (!userId || !session) return;
-    background(runSync(), 'Cloud sync');
-    // Best-effort: attach this device's Google Calendar accounts (linked before sign-in) to the account.
     background(claimGoogleAccounts(session.access_token), 'Google Calendar claim');
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when the signed-in user changes
+  }, [userId]);
+
+  useEffect(() => {
+    if (!userId || !session || !pro) return;
+    background(runSync(), 'Cloud sync');
     const sub = AppState.addEventListener('change', (s) => {
       if (s === 'active') background(runSync(), 'Cloud sync');
     });
     return () => sub.remove();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when the signed-in user changes
-  }, [userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- re-run only when the signed-in user or Pro status changes
+  }, [userId, pro]);
 
   return null;
 }
