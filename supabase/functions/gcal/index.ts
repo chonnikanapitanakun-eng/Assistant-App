@@ -23,7 +23,7 @@ const TOKEN_KEY = Deno.env.get('GCAL_TOKEN_KEY') ?? '';
 const REDIRECT_URI = Deno.env.get('GCAL_REDIRECT_URI') ?? `${Deno.env.get('SUPABASE_URL')}/functions/v1/gcal/callback`;
 const RETURN_PREFIXES = (Deno.env.get('GCAL_RETURN_PREFIXES') ?? 'veyra://')
   .split(',')
-  .map((s) => s.trim())
+  .map((s) => s.trim().replace(/^["']|["']$/g, '')) // tolerate quotes pasted into the dashboard
   .filter(Boolean);
 
 const SCOPES = 'openid email https://www.googleapis.com/auth/calendar.readonly';
