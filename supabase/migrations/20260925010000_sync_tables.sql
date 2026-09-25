@@ -224,9 +224,9 @@ begin
   loop
     execute format('alter table public.%I enable row level security', t);
     execute format('create index if not exists %I on public.%I (user_id, updated_at)', t || '_user_updated_idx', t);
-    execute format('create policy %L on public.%I for select using (user_id = auth.uid())', t || '_select_own', t);
-    execute format('create policy %L on public.%I for insert with check (user_id = auth.uid())', t || '_insert_own', t);
-    execute format('create policy %L on public.%I for update using (user_id = auth.uid()) with check (user_id = auth.uid())', t || '_update_own', t);
-    execute format('create policy %L on public.%I for delete using (user_id = auth.uid())', t || '_delete_own', t);
+    execute format('create policy %I on public.%I for select using (user_id = auth.uid())', t || '_select_own', t);
+    execute format('create policy %I on public.%I for insert with check (user_id = auth.uid())', t || '_insert_own', t);
+    execute format('create policy %I on public.%I for update using (user_id = auth.uid()) with check (user_id = auth.uid())', t || '_update_own', t);
+    execute format('create policy %I on public.%I for delete using (user_id = auth.uid())', t || '_delete_own', t);
   end loop;
 end $$;
