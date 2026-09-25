@@ -8,6 +8,7 @@ import { Button, Chip, Field, FieldError, Sheet, Text, Toggle } from '@/componen
 import type { CalendarEvent } from '@/db';
 import { eventToItem, fromMinutes, toMinutes } from '@/features/calendar/model';
 import { createEvent, deleteEvent, updateEvent, useEvent, type EventFormValues } from '@/features/calendar/queries';
+import { useCalendarAccounts } from '@/features/google-calendar';
 import { RelatedSection } from '@/features/links/components/related-section';
 import { isValidDate, isValidTime } from '@/features/tasks/model';
 import { addDays, toDateKey } from '@/lib/date';
@@ -52,6 +53,8 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { busy, failed, run } = useAsyncAction();
   const readOnly = !!existing && existing.source !== 'veyra';
+  const account = useCalendarAccounts().find((a) => a.id === existing?.accountId);
+  const sourceLabel = existing?.source === 'google' ? ['Google', account?.email, existing.calendarName !== account?.email ? existing.calendarName : null].filter(Boolean).join(' · ') : existing?.source;
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
@@ -115,7 +118,7 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
       wide="side"
       onClose={onClose}
       title={existing ? t('calendar.edit_event') : t('calendar.new_event')}
-      subtitle={readOnly ? t('calendar.read_only', { source: existing?.source }) : undefined}
+      subtitle={readOnly ? t('calendar.read_only', { source: sourceLabel }) : undefined}
       footer={
         readOnly ? undefined : (
           <View style={{ gap: spacing.sm }}>

@@ -36,6 +36,13 @@
       "when": 1790347550229,
       "tag": "0004_quick_fallen_one",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1790349814432,
+      "tag": "0005_chubby_toxin",
+      "breakpoints": true
     }
   ]
 }

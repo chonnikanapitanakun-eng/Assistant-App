@@ -13,6 +13,7 @@ import { HourGutter, nowMinutes, TimelineColumn } from '@/features/calendar/comp
 import { WeekStrip } from '@/features/calendar/components/week-strip';
 import { countByDay, fromDateKey, hourRange, itemsForDay, mergeItems, monthGrid, shiftDate, weekDays, type CalItem } from '@/features/calendar/model';
 import { moveItem as moveItemAsync, useEventsBetween } from '@/features/calendar/queries';
+import { useCalendarAccounts } from '@/features/google-calendar';
 import { useAllTasks } from '@/features/tasks/queries';
 import { background } from '@/lib/background';
 import { addDays, toDateKey } from '@/lib/date';
@@ -37,7 +38,11 @@ export default function CalendarScreen() {
   const grid = monthGrid(selected);
   const events = useEventsBetween(grid[0].date, toDateKey(addDays(fromDateKey(grid[41].date), 1)));
   const tasks = useAllTasks();
-  const items = useMemo(() => mergeItems(events, tasks), [events, tasks]);
+  const accounts = useCalendarAccounts();
+  const items = useMemo(() => {
+    const colorOf = new Map(accounts.map((a) => [a.id, a.color]));
+    return mergeItems(events.map((e) => ({ ...e, color: e.accountId ? colorOf.get(e.accountId) : null })), tasks);
+  }, [events, tasks, accounts]);
   const counts = useMemo(() => countByDay(items), [items]);
   const week = weekDays(selected);
   const day = itemsForDay(items, selected);

@@ -43,7 +43,7 @@
 - [ ] Routines + energy tag
 - [ ] Budget ต่อหมวด + เตือน, recurring bills / subscriptions
 - [ ] Net worth (FX rate manual / API)
-- [ ] Google Calendar import (read-only)
+- [x] Google Calendar import (read-only, หลายบัญชี) — `supabase/functions/gcal`, `src/features/google-calendar`
 - [ ] Supabase Auth (Apple/Google) + sync engine
 - [ ] PIN / Face ID
 

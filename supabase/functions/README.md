@@ -3,6 +3,7 @@
 | Function | Phase | Contract |
 |---|---|---|
 | `assistant` | 1 | Veyra AI chat — `src/features/assistant/types.ts` (`Proposal`); Claude only *proposes*, the app confirms |
+| `gcal` | 2 | Google Calendar import (read-only, หลายบัญชี) — `src/features/google-calendar/types.ts`; ดู § gcal ด้านล่าง |
 | `ai-capture` | 1 | `src/features/ai/types.ts` → `CaptureResponse` — structured output ตาม `_shared/capture-contract.ts`, prompt ใน `ai-capture/prompt.ts` |
 | `ai-summary` | 2 | SPEC §6.4 |
 | `ai-ask` | 3 | SPEC §6.4 |
@@ -47,3 +48,39 @@ curl -X POST "$SUPABASE_URL/functions/v1/ai-capture" \
 1. `supabase secrets set ANTHROPIC_API_KEY=...`
 2. `supabase functions deploy assistant`
 3. ใส่ `EXPO_PUBLIC_SUPABASE_URL` และ `EXPO_PUBLIC_SUPABASE_ANON_KEY` ใน `.env` แล้ว restart Expo — ถ้าไม่ตั้ง แอปตอบด้วย engine ในเครื่อง (`src/features/assistant/engine.ts`)
+
+## gcal — Google Calendar import (P2-07)
+
+ต่อได้หลายบัญชี Google ต่อเครื่อง, อ่านอย่างเดียว, ดึงช่วง -30 / +90 วัน, sync ตอนเปิดแอป (ห่างกัน ≥15 นาที) + ปุ่ม "Sync now" ใน Settings
+
+**Flow**
+
+1. แอป `start` → ได้ URL หน้า consent ของ Google (state เซ็นด้วย HMAC, อายุ 10 นาที)
+2. Google redirect มาที่ `/gcal/callback` → แลก code เป็น refresh token (เข้ารหัส AES-GCM) → เก็บใน `gcal_pending` ใต้ ticket ใช้ครั้งเดียว → redirect กลับแอป `…/settings?gcal=<ticket>`
+3. แอป `finish` ด้วย device key เดียวกัน → ย้ายเข้า `gcal_accounts` (ต้องเป็นเครื่องที่เริ่ม flow เท่านั้น — กันการส่งลิงก์ consent ให้คนอื่นกดแล้วได้ปฏิทินเขาไป)
+4. `sync` → refresh access token ทีละบัญชี → ดึง event จากทุกปฏิทินที่ติ๊กไว้ใน Google Calendar (ข้าม cancelled / ที่ตอบ declined) → แอป diff ลง SQLite (`planSync` ใน `src/features/google-calendar/model.ts`) — id ในเครื่องคงเดิมทุกรอบ, นัดที่เชิญทั้ง 2 บัญชีแสดงครั้งเดียว
+
+**Identity ชั่วคราว**: ยังไม่มี Supabase Auth → บัญชีผูกกับ `sha256(device key)` (`src/features/google-calendar/device-key.ts`) ลบแอป / ล้าง site data = ต้องเชื่อมใหม่ — ย้ายไป `user_id` ตอนทำ Auth
+
+**Setup**
+
+1. Google Cloud Console → สร้าง project → **APIs & Services → Library** → เปิด **Google Calendar API**
+2. **OAuth consent screen** → External → ใส่ชื่อแอป / email → Scopes: `openid`, `email`, `.../auth/calendar.readonly` → **Test users**: ใส่ทุกอีเมลที่จะเชื่อม
+3. **Credentials → Create OAuth client ID** → type **Web application** → Authorized redirect URI:
+   `https://<project-ref>.supabase.co/functions/v1/gcal/callback`
+4. ตั้ง secrets แล้ว deploy:
+
+```bash
+npx supabase db push        # สร้าง gcal_accounts / gcal_pending
+npx supabase secrets set \
+  GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com \
+  GOOGLE_CLIENT_SECRET=xxx \
+  GCAL_TOKEN_KEY=$(openssl rand -base64 32) \
+  GCAL_RETURN_PREFIXES="veyra://,https://<your-site>.netlify.app/settings"
+npx supabase functions deploy gcal
+```
+
+- `GCAL_RETURN_PREFIXES` = URL ที่อนุญาตให้ redirect กลับ (กัน open redirect) — ใส่ `veyra://` (แอปจริง / dev build), URL เว็บ `…/settings`, และตอน dev ใส่ `exp://` (Expo Go) หรือ `http://localhost:8081/settings`
+- `GCAL_TOKEN_KEY` ห้ามเปลี่ยนหลังใช้งานแล้ว — token เดิมจะถอดรหัสไม่ได้ (ต้องเชื่อมใหม่ทุกบัญชี)
+
+**ข้อจำกัดโหมด Testing ของ Google**: ผู้ใช้ทดสอบไม่เกิน 100 คน และ refresh token หมดอายุทุก 7 วัน → บัญชีขึ้น "ต้องเชื่อมใหม่" ใน Settings กดปุ่มเดียวจบ (ต้องผ่าน Google verification ก่อนปล่อยคนอื่นใช้ — Phase 4)

@@ -163,6 +163,7 @@ export const calendarEvents = sqliteTable(
     ...base,
     externalId: text('external_id').notNull(),
     source: text('source').notNull().default('google'),
+    accountId: text('account_id'), // calendar_accounts.id for imported events; null for Veyra's own
     calendarName: text('calendar_name'),
     title: text('title').notNull(),
     start: integer('start').notNull(),
@@ -170,8 +171,17 @@ export const calendarEvents = sqliteTable(
     location: text('location'),
     isAllDay: integer('is_all_day', { mode: 'boolean' }).notNull().default(false),
   },
-  (t) => [index('calendar_events_start_idx').on(t.start)],
+  (t) => [index('calendar_events_start_idx').on(t.start), index('calendar_events_account_idx').on(t.accountId, t.externalId)],
 );
+
+/** A linked Google account (P2-07). `id` is the server's gcal_accounts.id; tokens stay on the server. */
+export const calendarAccounts = sqliteTable('calendar_accounts', {
+  ...base,
+  email: text('email').notNull(),
+  color: text('color').notNull(),
+  status: text('status', { enum: ['ok', 'reauth', 'error'] }).notNull().default('ok'),
+  lastSyncedAt: integer('last_synced_at'),
+});
 
 /** Veyra AI chat history. `payload` holds cards/proposals (and their confirm state). */
 export const assistantMessages = sqliteTable(
@@ -212,5 +222,6 @@ export type Transaction = typeof transactions.$inferSelect;
 export type NewTransaction = typeof transactions.$inferInsert;
 export type Link = typeof links.$inferSelect;
 export type CalendarEvent = typeof calendarEvents.$inferSelect;
+export type CalendarAccount = typeof calendarAccounts.$inferSelect;
 export type RecurringBill = typeof recurringBills.$inferSelect;
 export type AssistantMessage = typeof assistantMessages.$inferSelect;

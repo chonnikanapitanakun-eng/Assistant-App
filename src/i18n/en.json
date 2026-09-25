@@ -596,5 +596,28 @@
     "results_one": "{{count}} result",
     "results_other": "{{count}} results",
     "all_day": "All day"
+  },
+  "gcal": {
+    "title": "Google Calendar",
+    "hint": "Read-only. Veyra imports the calendars you've ticked in Google Calendar, from 30 days ago to 90 days ahead, and refreshes when you open the app. Edit events in Google.",
+    "unavailable": "Needs Veyra's cloud connection (Supabase), which isn't set up in this build.",
+    "add": "Link Google account",
+    "add_another": "Link another account",
+    "sync_now": "Sync now",
+    "syncing": "Working…",
+    "linked": "Linked {{email}}. Events are on your calendar.",
+    "synced_at": "Synced {{time}}",
+    "not_synced": "Not synced yet",
+    "needs_reauth": "Access expired — reconnect to keep syncing",
+    "sync_error": "Last sync failed — try Sync now",
+    "reconnect": "Reconnect",
+    "remove": "Remove",
+    "remove_confirm": "Tap to confirm",
+    "remove_hint": "Unlinks {{email}} and removes its events from Veyra",
+    "error_denied": "Linking cancelled.",
+    "error_scope": "Please allow Veyra to see your calendars, then try again.",
+    "error_too_many_accounts": "You can link up to 10 Google accounts.",
+    "error_not_configured": "Google sign-in isn't set up on the server yet.",
+    "error_failed": "Couldn't reach Google. Check your connection and try again."
   }
 }

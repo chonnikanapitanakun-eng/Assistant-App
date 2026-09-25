@@ -33,7 +33,7 @@ export function AgendaList({ items, onOpen, nowId }: { items: CalItem[]; onOpen:
                 </>
               )}
             </View>
-            <View style={{ width: 3, borderRadius: 2, backgroundColor: isEvent ? tints.meeting.fg : colors.borderStrong }} />
+            <View style={{ width: 3, borderRadius: 2, backgroundColor: isEvent ? (i.color ?? tints.meeting.fg) : colors.borderStrong }} />
             <View style={{ flex: 1, gap: 2 }}>
               <Text variant="subheading" style={i.done ? { textDecorationLine: 'line-through' } : undefined}>{i.title}</Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>

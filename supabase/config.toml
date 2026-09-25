@@ -26,3 +26,8 @@ verify_jwt = false
 
 [functions.assistant]
 verify_jwt = false
+
+# Google's OAuth redirect lands on /gcal/callback with no Supabase JWT; the function checks the
+# signed state / device key itself.
+[functions.gcal]
+verify_jwt = false

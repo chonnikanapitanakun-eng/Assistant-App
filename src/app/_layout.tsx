@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { queryClient, useDatabase } from '@/db';
 import { Text } from '@/components/ui';
+import { GoogleCalendarAutoSync } from '@/features/google-calendar';
 import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
 import { useTheme } from '@/theme';
 
@@ -67,6 +68,7 @@ export default function RootLayout() {
             <Stack.Screen name="more" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="focus" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           </Stack>
+          <GoogleCalendarAutoSync />
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </ThemeProvider>
       </QueryClientProvider>
