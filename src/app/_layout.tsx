@@ -11,15 +11,16 @@ import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { isDatabaseLocked, queryClient, useDatabase } from '@/db';
-import { Text } from '@/components/ui';
+import { Text, Toaster } from '@/components/ui';
 import { ContextReminderAutoRun, ContextReminderTaps } from '@/features/context-reminders';
 import { useFocusTimerDriver } from '@/features/focus/store';
 import { GoogleCalendarAutoSync } from '@/features/google-calendar';
-import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
+import { configureAndroidChannel, configureNotificationHandler, resyncEventReminders } from '@/features/notifications';
 import { useRoutineTasks } from '@/features/routines/queries';
 import { LockGate } from '@/features/security';
 import { SyncAutoRun } from '@/features/sync';
 import { WidgetAutoRefresh } from '@/features/widgets';
+import { background } from '@/lib/background';
 import { useTheme } from '@/theme';
 
 void SplashScreen.preventAutoHideAsync();
@@ -40,10 +41,15 @@ export default function RootLayout() {
     if ((ready || error) && fontsReady) void SplashScreen.hideAsync();
   }, [ready, error, fontsReady]);
 
+  // Repeating events may hold a one-off reminder for their next occurrence; move it along.
+  useEffect(() => {
+    if (ready) background(resyncEventReminders(), 'Event reminders');
+  }, [ready]);
+
   if (error) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.background }}>
-        <Text variant="heading" color="danger">{isDatabaseLocked(error) ? t('db.locked_title') : 'Database error'}</Text>
+        <Text variant="heading" color="danger">{isDatabaseLocked(error) ? t('db.locked_title') : t('db.error_title')}</Text>
         <Text color="textSecondary" style={{ textAlign: 'center' }}>{isDatabaseLocked(error) ? t('db.locked_body') : error.message}</Text>
       </View>
     );
@@ -84,6 +90,7 @@ export default function RootLayout() {
             <Stack.Screen name="review" />
             <Stack.Screen name="security-pin" />
           </Stack>
+          <Toaster />
           <GoogleCalendarAutoSync />
           <SyncAutoRun />
           <LockGate />

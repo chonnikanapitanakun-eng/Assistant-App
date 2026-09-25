@@ -1,11 +1,13 @@
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, TextInput, View } from 'react-native';
+import { Platform, ScrollView, TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Button, Chip, Field, FieldError, Sheet, Text, Toggle } from '@/components/ui';
+import { Button, Chip, Field, FieldError, Sheet, showToast, Text, Toggle, useInputStyle } from '@/components/ui';
 import type { CalendarEvent } from '@/db';
+import { DateField, TimeRangeField } from '@/features/calendar/components/date-field';
+import { ReminderChips, RepeatChips } from '@/features/calendar/components/repeat-remind';
 import { eventToItem, fromMinutes, toMinutes } from '@/features/calendar/model';
 import { createEvent, deleteEvent, updateEvent, useEvent, type EventFormValues } from '@/features/calendar/queries';
 import { PrepMeetingSection } from '@/features/ai/components/prep-meeting-section';
@@ -13,7 +15,10 @@ import { useCalendarAccounts } from '@/features/google-calendar';
 import { RelatedSection } from '@/features/links/components/related-section';
 import { isValidDate, isValidTime } from '@/features/tasks/model';
 import { addDays, toDateKey } from '@/lib/date';
+import type { RepeatRule } from '@/lib/recurrence';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useConfirm } from '@/lib/use-confirm';
+import { useDirty } from '@/lib/use-dirty';
 import { useDraft } from '@/lib/use-draft';
 import { useTheme } from '@/theme';
 
@@ -38,7 +43,8 @@ type FormProps = { existing?: CalendarEvent; contactName: string | null; initial
 
 function EventForm({ existing, contactName, initialDate, initialStart, onClose }: FormProps) {
   const { t } = useTranslation();
-  const { colors, tints, spacing, radius, typography, fontFamily } = useTheme();
+  const { colors, spacing, typography, fontFamily } = useTheme();
+  const inputStyle = useInputStyle();
   const item = existing ? eventToItem(existing) : null;
   const defaultStart = initialStart && isValidTime(initialStart) ? initialStart : nextHour();
 
@@ -50,17 +56,15 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
   const [endTime, setEndTime] = useDraft(`${draft}:endTime`, item?.end ?? fromMinutes(Math.min(toMinutes(defaultStart) + 60, 23 * 60 + 59)));
   const [location, setLocation] = useDraft(`${draft}:location`, existing?.location ?? '');
   const [person, setPerson] = useDraft(`${draft}:person`, contactName ?? '');
+  const [repeat, setRepeat] = useDraft<RepeatRule | null>(`${draft}:repeat`, existing?.repeat ?? null);
+  const [remindBefore, setRemindBefore] = useDraft<number | null>(`${draft}:remindBefore`, existing ? existing.remindBefore : 10);
   const [showErrors, setShowErrors] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const { armed: confirmDelete, confirm } = useConfirm();
   const { busy, failed, run } = useAsyncAction();
+  const dirty = useDirty({ title, date, allDay, startTime, endTime, location, person, repeat, remindBefore });
   const readOnly = !!existing && existing.source !== 'veyra';
   const account = useCalendarAccounts().find((a) => a.id === existing?.accountId);
   const sourceLabel = existing?.source === 'google' ? ['Google', account?.email, existing.calendarName !== account?.email ? existing.calendarName : null].filter(Boolean).join(' · ') : existing?.source;
-
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => () => {
-    if (timer.current) clearTimeout(timer.current);
-  }, []);
 
   const errors = {
     title: !title.trim() ? t('calendar.title_required') : null,
@@ -80,44 +84,33 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
       setShowErrors(true);
       return;
     }
-    const values: EventFormValues = { title: title.trim(), date, allDay, startTime, endTime, location: location.trim() || null, contactName: person.trim() || null };
+    const values: EventFormValues = { title: title.trim(), date, allDay, startTime, endTime, location: location.trim() || null, contactName: person.trim() || null, repeat, remindBefore };
     void run(async () => {
       if (existing) await updateEvent(existing.id, values);
       else await createEvent(values);
+      showToast(t('common.saved'), undefined, 'success');
       onClose();
     });
   };
 
   const onDelete = () => {
     if (!existing) return;
-    if (!confirmDelete) {
-      setConfirmDelete(true);
-      timer.current = setTimeout(() => setConfirmDelete(false), 4000);
-      return;
-    }
-    void run(async () => {
-      await deleteEvent(existing.id);
-      onClose();
-    });
+    confirm(() =>
+      void run(async () => {
+        await deleteEvent(existing.id);
+        showToast(t('common.deleted'), undefined, 'warning');
+        onClose();
+      }),
+    );
   };
 
-  const input = (error?: string | null) => ({
-    backgroundColor: colors.surfaceMuted,
-    color: colors.text,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    minHeight: 44,
-    minWidth: 0,
-    borderWidth: 1.5,
-    borderColor: showErrors && error ? tints.priorityHigh.fg : colors.border,
-    fontSize: typography.body.fontSize,
-    fontFamily: fontFamily.regular,
-  });
+  const input = (error?: string | null) => inputStyle(error, showErrors);
 
   return (
     <Sheet
       wide="side"
       onClose={onClose}
+      dirty={!readOnly && dirty}
       title={existing ? t('calendar.edit_event') : t('calendar.new_event')}
       subtitle={readOnly ? t('calendar.read_only', { source: sourceLabel }) : undefined}
       footer={
@@ -146,12 +139,14 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
         </View>
 
         <Field label={t('task.date')} icon="calendar">
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
-            {quickDates.map((q) => (
-              <Chip key={q.key} label={t(`tasks.date_${q.key}`)} selected={date === q.value} onPress={() => !readOnly && setDate(q.value)} />
-            ))}
-          </View>
-          <TextInput editable={!readOnly} value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.date')} style={input(errors.date)} />
+          {readOnly ? null : (
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+              {quickDates.map((q) => (
+                <Chip key={q.key} label={t(`tasks.date_${q.key}`)} selected={date === q.value} onPress={() => setDate(q.value)} />
+              ))}
+            </View>
+          )}
+          <DateField value={date} onChange={setDate} invalid={showErrors && !!errors.date} disabled={readOnly} />
           <FieldError message={showErrors ? errors.date : null} />
         </Field>
 
@@ -161,14 +156,23 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
             <Toggle value={allDay} onValueChange={setAllDay} label={t('calendar.all_day')} disabled={readOnly} />
           </View>
           {!allDay ? (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-              <TextInput editable={!readOnly} value={startTime} onChangeText={setStartTime} placeholder="09:00" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.start_time')} style={[input(errors.time), { flex: 1 }]} />
-              <Text color="textTertiary">–</Text>
-              <TextInput editable={!readOnly} value={endTime} onChangeText={setEndTime} placeholder="10:00" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.end_time')} style={[input(errors.time), { flex: 1 }]} />
-            </View>
+            <TimeRangeField start={startTime} end={endTime} onChangeStart={setStartTime} onChangeEnd={setEndTime} invalid={showErrors && !!errors.time} disabled={readOnly} />
           ) : null}
           <FieldError message={showErrors ? errors.time : null} />
         </Field>
+
+        {readOnly ? null : (
+          <>
+            <Field label={t('remind.title')} icon="bell">
+              <ReminderChips value={remindBefore} onChange={setRemindBefore} timed={!allDay} />
+              {remindBefore !== null && Platform.OS === 'web' ? <Text variant="caption" color="textTertiary">{t('remind.no_web')}</Text> : null}
+            </Field>
+            <Field label={t('repeat.title')} icon="repeat">
+              <RepeatChips value={repeat} onChange={setRepeat} />
+              {repeat && existing ? <Text variant="caption" color="textTertiary">{t('repeat.event_hint')}</Text> : null}
+            </Field>
+          </>
+        )}
 
         <Field label={t('calendar.location')} icon="map-pin">
           <TextInput editable={!readOnly} value={location} onChangeText={setLocation} placeholder={t('calendar.location_placeholder')} placeholderTextColor={colors.textTertiary} accessibilityLabel={t('calendar.location')} style={input()} />

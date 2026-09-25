@@ -2,15 +2,16 @@ import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
-import { Icon, PressableScale, Tag, Text } from '@/components/ui';
+import { Icon, PressableScale, showToast, SwipeRow, Tag, Text, type SwipeAction } from '@/components/ui';
 import type { Task } from '@/db';
 import { fromDateKey } from '@/features/calendar/model';
 import { background } from '@/lib/background';
-import { daysFromToday } from '@/lib/date';
+import { addDays, daysFromToday, toDateKey } from '@/lib/date';
+import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
 
 import { priorityLevel, priorityTint } from '../model';
-import { toggleTaskDone } from '../queries';
+import { rescheduleTask, toggleTaskDone } from '../queries';
 
 type Props = { task: Task; areaName?: string; showDate?: boolean; overdue?: boolean };
 
@@ -28,13 +29,38 @@ export function TaskRow({ task, areaName, showDate, overdue }: Props) {
     .filter(Boolean)
     .join(' · ');
 
+  const toggle = () => {
+    background(toggleTaskDone(task), 'Toggle task');
+    if (task.isDone) return;
+    haptic.success();
+    showToast(t('tasks.completed_toast', { title: task.title }), {
+      label: t('common.undo'),
+      onPress: () => background(toggleTaskDone({ ...task, isDone: true }), 'Undo complete task'),
+    });
+  };
+
+  const tomorrow = toDateKey(addDays(new Date(), 1));
+  const moveToTomorrow = () => {
+    const was = task.date;
+    background(rescheduleTask(task, tomorrow, task.startTime, task.endTime), 'Move task to tomorrow');
+    showToast(t('tasks.moved_tomorrow', { title: task.title }), was ? { label: t('common.undo'), onPress: () => background(rescheduleTask(task, was, task.startTime, task.endTime), 'Undo move task') } : undefined);
+  };
+
+  const actions: SwipeAction[] = task.isDone
+    ? [{ key: 'reopen', icon: 'rotate-ccw', label: t('tasks.reopen'), bg: colors.surfaceMuted, fg: colors.textSecondary, onPress: toggle }]
+    : [
+        ...(task.date === tomorrow ? [] : [{ key: 'tomorrow', icon: 'sunrise' as const, label: t('tasks.date_tomorrow'), bg: tints.priorityLow.bg, fg: tints.priorityLow.fg, onPress: moveToTomorrow }]),
+        { key: 'done', icon: 'check', label: t('common.done'), bg: colors.success, fg: colors.onPrimary, onPress: toggle },
+      ];
+
   return (
+    <SwipeRow actions={actions}>
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, borderRadius: radius.lg }}>
       <PressableScale
         accessibilityRole="checkbox"
         accessibilityState={{ checked: task.isDone }}
         accessibilityLabel={t('tasks.toggle_done', { title: task.title })}
-        onPress={() => background(toggleTaskDone(task), 'Toggle task')}
+        onPress={toggle}
         style={{ width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' }}
       >
         <View
@@ -70,11 +96,13 @@ export function TaskRow({ task, areaName, showDate, overdue }: Props) {
             {checklist.length ? <Meta icon="check-square" label={`${checked}/${checklist.length}`} /> : null}
             {task.energy ? <Meta icon={task.energy === 'high' ? 'zap' : 'battery'} label={t(`task.energy_${task.energy}`)} /> : null}
             {task.reminderNotificationId || (task.reminderAt && !task.isDone) ? <Meta icon="bell" label="" /> : null}
+            {task.repeat ? <Meta icon="repeat" label={t(`repeat.${task.repeat}`)} /> : null}
           </View>
         </View>
         {!task.isDone && level !== 'medium' ? <Tag label={t(`home.priority_${level}`)} tint={priorityTint[level]} /> : null}
       </PressableScale>
     </View>
+    </SwipeRow>
   );
 }
 

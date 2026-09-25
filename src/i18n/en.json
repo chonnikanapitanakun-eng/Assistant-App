@@ -133,7 +133,7 @@
     "edit_transaction": "Edit transaction",
     "not_found": "Not found",
     "amount": "Amount",
-    "invalid_amount": "Enter an amount greater than 0",
+    "invalid_amount": "Enter an amount above 0, up to 1,000,000,000",
     "need_account": "Add an account first",
     "pick_destination": "Pick the account to move money to",
     "account": "Account",
@@ -171,7 +171,10 @@
     "section_networth": "Net worth",
     "net_worth": "Net worth · {{currency}}",
     "missing_fx_rate": "Set an exchange rate for {{currencies}} in Settings to include it.",
-    "networth_convert": "≈ {{amount}}"
+    "networth_convert": "≈ {{amount}}",
+    "invalid_number": "Enter a number up to ±1,000,000,000",
+    "deleted_toast": "Deleted: {{title}}",
+    "remove_budget_confirm": "Tap again to remove the budget"
   },
   "capture": {
     "title": "Quick capture",
@@ -228,7 +231,11 @@
     "coming_soon_body": "This screen is on the way. Home is ready to explore.",
     "back": "Back",
     "save_failed": "Couldn’t save. Please try again.",
-    "export_failed": "Couldn’t export. Please try again."
+    "export_failed": "Couldn’t export. Please try again.",
+    "undo": "Undo",
+    "deleted": "Deleted",
+    "saved": "Saved",
+    "unsaved": "Unsaved changes — tap close again to discard"
   },
   "nav": {
     "home": "Home",
@@ -361,7 +368,8 @@
       "emails": "I can't read your email yet — Gmail support is on the roadmap. I can help with your tasks, calendar, money and notes.",
       "capture_one": "Want me to add this?",
       "capture_other": "I found {{count}} things to add. Want me to add them?",
-      "unknown": "I'm not sure how to help with that yet. Want me to save it as a note? Or try one of these."
+      "unknown": "I'm not sure how to help with that yet. Want me to save it as a note? Or try one of these.",
+      "unknown_question": "I can't answer that one yet — try one of these."
     },
     "plan": {
       "blocks_one": "{{count}} block",
@@ -440,7 +448,7 @@
     "empty_upcoming_body": "Tasks with a future date will appear here.",
     "empty_done_title": "No completed tasks yet",
     "empty_done_body": "Tick something off and it will show up here.",
-    "invalid_date": "Use the format YYYY-MM-DD",
+    "invalid_date": "Pick a real date",
     "invalid_time": "Use 24-hour time, e.g. 09:30",
     "invalid_end": "End time must be after the start time",
     "date_today": "Today",
@@ -457,7 +465,11 @@
     "delete_confirm": "Tap again to delete",
     "not_found_body": "It may have been deleted on another device.",
     "empty_energy_title": "No tasks at this energy",
-    "empty_energy_body": "Tap the energy chip again to see everything."
+    "empty_energy_body": "Tap the energy chip again to see everything.",
+    "moved_tomorrow": "Moved to tomorrow: {{title}}",
+    "completed_toast": "Done: {{title}}",
+    "reopen": "Reopen",
+    "deleted_toast": "Task deleted: {{title}}"
   },
   "routines": {
     "title": "Routines",
@@ -815,7 +827,8 @@
   },
   "db": {
     "locked_title": "Veyra is open in another tab",
-    "locked_body": "Close the other tab, then reload this page."
+    "locked_body": "Close the other tab, then reload this page.",
+    "error_title": "Database error"
   },
   "slip": {
     "title": "Scan slips",
@@ -962,5 +975,39 @@
     "body_one": "\"{{task}}\" isn't done yet. Start Focus?",
     "body_many_one": "{{count}} task isn't done yet: {{tasks}}. Start Focus?",
     "body_many_other": "{{count}} tasks aren't done yet: {{tasks}}. Start Focus?"
+  },
+  "repeat": {
+    "yearly": "Yearly",
+    "event_hint": "Editing or deleting changes every occurrence",
+    "needs_date": "Pick a date to make it repeat",
+    "none": "Never",
+    "task_hint": "Tick it off and the next one is created for you",
+    "daily": "Daily",
+    "monthly": "Monthly",
+    "title": "Repeat",
+    "weekly": "Weekly"
+  },
+  "remind": {
+    "before_0": "At start",
+    "needs_date": "Pick a date to set a reminder",
+    "none": "None",
+    "before_1440": "1 day before",
+    "no_web": "Reminders work in the mobile app only",
+    "before_10": "10 min before",
+    "title": "Reminder",
+    "before_30": "30 min before",
+    "before_60": "1 hour before",
+    "untimed_0": "That morning, 09:00",
+    "untimed_1440": "Day before, 09:00"
+  },
+  "picker": {
+    "minute": "Minute",
+    "prev_month": "Previous month",
+    "start": "Start",
+    "hour": "Hour",
+    "choose_date": "Pick a date",
+    "end": "End",
+    "no_time": "No time",
+    "next_month": "Next month"
   }
 }

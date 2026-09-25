@@ -4,12 +4,13 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Button, Chip, Field, FieldError, Sheet, Text, Toggle, useInputStyle } from '@/components/ui';
+import { Button, Chip, Field, FieldError, Sheet, showToast, Text, Toggle, useInputStyle } from '@/components/ui';
 import type { RecurringBill } from '@/db';
 import { categoryIcon } from '@/features/money/category-icon';
 import { createBill, deleteBill, updateBill, useBill, useCategories, useWallets } from '@/features/money/queries';
 import { currencySymbol, parseAmount, supportedCurrencies } from '@/lib/currency';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useDirty } from '@/lib/use-dirty';
 import { useDraft } from '@/lib/use-draft';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme } from '@/theme';
@@ -50,6 +51,7 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
   const [showErrors, setShowErrors] = useState(false);
 
   const parsed = parseAmount(amount);
+  const dirty = useDirty({ name, amount, currency, walletId, categoryId, frequency, dueDay, dueMonth, remind, isSubscription });
   const day = Number(dueDay);
   const walletOptions = wallets.filter((w) => w.currency === currency);
   const errors = {
@@ -78,6 +80,7 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
     void run(async () => {
       if (existing) await updateBill(existing, values);
       else await createBill(values);
+      showToast(t('common.saved'), undefined, 'success');
       onClose();
     });
   };
@@ -86,6 +89,7 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
     <Sheet
       wide="side"
       onClose={onClose}
+      dirty={dirty}
       title={existing ? t('money.edit_bill') : t('money.add_bill')}
       footer={
         <View style={{ gap: spacing.sm }}>
@@ -98,7 +102,7 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
               icon="trash-2"
               label={armed ? t('tasks.delete_confirm') : t('common.delete')}
               disabled={busy}
-              onPress={() => confirm(() => void run(async () => { await deleteBill(existing); onClose(); }))}
+              onPress={() => confirm(() => void run(async () => { await deleteBill(existing); showToast(t('common.deleted'), undefined, 'warning'); onClose(); }))}
             />
           ) : null}
         </View>

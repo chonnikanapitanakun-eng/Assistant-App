@@ -15,7 +15,7 @@ import type { AssistantContext, Card, ListRow, Proposal, Reply, T } from './type
 export type Intent = 'greeting' | 'help' | 'plan_day' | 'overdue' | 'expenses' | 'bills' | 'summarise_tasks' | 'emails' | 'complete' | 'capture' | 'unknown';
 
 const patterns: [Intent, RegExp][] = [
-  ['plan_day', /\b(plan (my )?(day|today)|what('s| is) (on )?(my day|today)|my day|schedule today|agenda)\b|วางแผน(วันนี้)?|วันนี้มีอะไร|ตารางวันนี้/i],
+  ['plan_day', /\b(plan (my )?(day|today)|what('s| is) (on |up |happening )?(for )?(my day|today)|what (do|have) i (got |have )?(on |for |to do )?today|anything (on )?today|today'?s (plan|schedule|agenda)|my day|schedule today|agenda)\b|วางแผน(วันนี้)?|วันนี้(ต้อง)?(มี|ทำ)อะไร|วันนี้มีนัด|นัดวันนี้|ตารางวันนี้/i],
   ['overdue', /\b(overdue|late tasks?|behind|missed)\b|เลยกำหนด|ค้าง/i],
   ['expenses', /\b(expenses?|spending|spent|budget|money this month|review my expenses)\b|ค่าใช้จ่าย|ใช้เงิน|ใช้จ่าย|งบ/i],
   ['bills', /\b(bills?|due|payments?|pay)\b|บิล|ค่าน้ำ|ค่าไฟ|ครบกำหนด/i],
@@ -27,6 +27,12 @@ const patterns: [Intent, RegExp][] = [
 
 const completeRe = [/^(?:mark|tick|set)\s+(.+?)\s+(?:as\s+)?(?:done|complete(?:d)?|finished)$/i, /^(?:done|finished|completed?)[:\s]+(.+)$/i, /^(.+?)\s+(?:is\s+)?(?:done|finished)$/i, /^(.+?)\s*เสร็จแล้ว$/, /^ทำ(.+?)เสร็จแล้ว$/];
 
+/** Looks like a question rather than something to add ("What do I have tomorrow?", "มีนัดไหม"). */
+export function isQuestion(text: string): boolean {
+  const s = text.trim();
+  return /[?？]$/.test(s) || /^(what|when|where|who|how|which|why|(do|did|am|can|could|should|will) (i|we|you)|(is|are) there|any)\b/i.test(s) || /(อะไร|ไหม|มั้ย|เมื่อไ(ห|ร)่|กี่|ยังไง|หรือเปล่า|รึเปล่า|บ้าง)\s*$/.test(s);
+}
+
 export function detectIntent(text: string, ctx?: AssistantContext): { intent: Intent; target?: string } {
   const s = text.trim();
   for (const re of completeRe) {
@@ -34,6 +40,8 @@ export function detectIntent(text: string, ctx?: AssistantContext): { intent: In
     if (m) return { intent: 'complete', target: m[1].trim() };
   }
   for (const [intent, re] of patterns) if (re.test(s)) return { intent };
+  // A question we can't answer shouldn't turn into a task named after the question.
+  if (isQuestion(s)) return { intent: 'unknown' };
   const captured = parseCaptureLocally(s, ctx?.now).filter((i) => i.type !== 'note');
   if (captured.length) return { intent: 'capture' };
   return { intent: 'unknown' };
@@ -73,6 +81,7 @@ export function respond(text: string, ctx: AssistantContext, t: T, locale = 'en'
         suggestions: defaultSuggestions(t),
       });
     default:
+      if (isQuestion(text)) return reply({ text: t('assistant.r.unknown_question'), cards: [], suggestions: defaultSuggestions(t) });
       return reply({
         text: t('assistant.r.unknown'),
         cards: text.trim().length > 3 ? [proposal({ kind: 'create', items: [{ type: 'note', body: text.trim() }] })] : [],

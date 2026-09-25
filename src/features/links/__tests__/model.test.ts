@@ -51,7 +51,7 @@ suite('describe', () => {
     expect(describe({ type: 'note', row: note('[x]ray') }, 'en').title).toBe('[x]ray');
   });
   it('dates an all-day event by its stored UTC day, whatever the timezone', () => {
-    const row = { ...base, externalId: 'x', source: 'veyra', accountId: null, calendarName: null, title: 'Holiday', start: Date.UTC(2026, 8, 25), end: Date.UTC(2026, 8, 26), location: null, isAllDay: true };
+    const row = { ...base, externalId: 'x', source: 'veyra', accountId: null, calendarName: null, title: 'Holiday', start: Date.UTC(2026, 8, 25), end: Date.UTC(2026, 8, 26), location: null, isAllDay: true, repeat: null, remindBefore: null, reminderNotificationId: null };
     expect(describe({ type: 'event', row }, 'en').subtitle).toBe(new Date(2026, 8, 25).toLocaleString('en-GB', { day: 'numeric', month: 'short' }));
   });
   it('labels money with a signed amount and date', () => {

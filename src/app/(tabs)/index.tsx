@@ -43,8 +43,7 @@ export default function HomeScreen() {
       )}
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
         <IconButton icon="search" label={t('search.title')} onPress={() => router.push('/search')} />
-        <IconButton icon="bell" label="Notifications" />
-        <PressableScale accessibilityRole="button" accessibilityLabel={t('settings.title')} onPress={() => router.push('/settings')} style={{ borderRadius: 22 }}>
+        <PressableScale accessibilityRole="button" accessibilityLabel={t('settings.title')} onPress={() => router.push('/settings')} hitSlop={4} style={{ borderRadius: 22 }}>
           <Avatar name={name || 'V'} size={40} />
         </PressableScale>
       </View>

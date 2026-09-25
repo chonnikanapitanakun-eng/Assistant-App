@@ -84,7 +84,7 @@ export async function saveCaptureItems(items: CaptureItem[], opts: { sourceNoteI
       }
       case 'task': {
         const reminderAt = combineDateTime(item.date, item.startTime);
-        writes.push(db.insert(tasks).values({ ...stamp, id, title: item.title, date: item.date, startTime: item.startTime, endTime: item.endTime, reminderAt }));
+        writes.push(db.insert(tasks).values({ ...stamp, id, title: item.title, date: item.date, startTime: item.startTime, endTime: item.endTime, reminderAt, remindBefore: reminderAt ? 0 : null }));
         if (reminderAt) newTaskReminders.push({ id, title: item.title, reminderAt });
         await link('task', id, item.contactName);
         break;

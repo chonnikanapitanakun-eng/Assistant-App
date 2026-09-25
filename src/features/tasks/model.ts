@@ -1,5 +1,4 @@
 import type { Task } from '@/db';
-import { combineDateTime } from '@/lib/date';
 import type { TintName } from '@/theme';
 
 /** DB stores priority as 1 (high) · 2 (normal) · 3 (low). */
@@ -74,11 +73,3 @@ export const isValidDate = (v: string) => {
   return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
 };
 
-/**
- * Reminder after moving a task to `date` / `startTime`: follows the new time only if the task
- * already had a reminder and is still open; a task without a reminder keeps none.
- */
-export function rescheduledReminderAt(task: Pick<Task, 'reminderAt' | 'isDone'>, date: string, startTime?: string | null): number | null {
-  if (task.reminderAt === null || task.isDone || !startTime) return null;
-  return combineDateTime(date, startTime) ?? null;
-}

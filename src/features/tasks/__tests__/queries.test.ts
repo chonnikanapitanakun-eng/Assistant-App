@@ -26,7 +26,8 @@ const values = (over: Partial<Parameters<typeof createTask>[0]> = {}) => ({
   areaId: null,
   isDone: false,
   checklist: null,
-  remind: false,
+  remindBefore: null as number | null,
+  repeat: null as 'daily' | 'weekly' | 'monthly' | 'yearly' | null,
   ...over,
 });
 
@@ -50,19 +51,25 @@ describe('createTask', () => {
     expect(saved?.doneAt).toBeNull();
   });
 
-  it('sets reminderAt only when remind + date + startTime are all present', async () => {
-    const withReminder = await getTask(await createTask(values({ remind: true })));
+  it('sets reminderAt from remindBefore (untimed tasks remind at 09:00)', async () => {
+    const withReminder = await getTask(await createTask(values({ remindBefore: 0 })));
     expect(withReminder?.reminderAt).toBeTypeOf('number');
 
-    const noRemind = await getTask(await createTask(values({ remind: false })));
+    const noRemind = await getTask(await createTask(values({ remindBefore: null })));
     expect(noRemind?.reminderAt).toBeNull();
 
-    const noTime = await getTask(await createTask(values({ remind: true, startTime: null })));
-    expect(noTime?.reminderAt).toBeNull();
+    const noTime = await getTask(await createTask(values({ remindBefore: 0, startTime: null })));
+    expect(noTime?.reminderAt).toBe(new Date(2026, 8, 25, 9, 0).getTime());
+
+    const early = await getTask(await createTask(values({ remindBefore: 30 })));
+    expect(early?.reminderAt).toBe(new Date(2026, 8, 25, 8, 30).getTime());
+
+    const noDate = await getTask(await createTask(values({ remindBefore: 0, date: null })));
+    expect(noDate?.reminderAt).toBeNull();
   });
 
   it('syncs a reminder in the background without blocking the caller', async () => {
-    await createTask(values({ remind: true }));
+    await createTask(values({ remindBefore: 0 }));
     expect(syncTaskReminder).toHaveBeenCalledTimes(1);
     expect(syncTaskReminder).toHaveBeenCalledWith(expect.objectContaining({ reminderNotificationId: null }));
   });
@@ -98,7 +105,7 @@ describe('updateTask', () => {
 
 describe('toggleTaskDone', () => {
   it('flips isDone and stamps/clears doneAt, cancelling or leaving the reminder', async () => {
-    const id = await createTask(values({ remind: true }));
+    const id = await createTask(values({ remindBefore: 0 }));
     const open = await getTask(id);
 
     await toggleTaskDone(open!);
@@ -116,7 +123,7 @@ describe('toggleTaskDone', () => {
 
 describe('deleteTask', () => {
   it('soft-deletes: getTask / getAll no longer see it, but the row remains', async () => {
-    const id = await createTask(values({ remind: true }));
+    const id = await createTask(values({ remindBefore: 0 }));
     const task = await getTask(id);
     await deleteTask(task!);
     expect(await getTask(id)).toBeUndefined();
@@ -126,7 +133,7 @@ describe('deleteTask', () => {
 
 describe('rescheduleTask', () => {
   it('moves date/time and recomputes the reminder for an open task', async () => {
-    const id = await createTask(values({ date: '2026-09-25', startTime: '09:00', remind: true }));
+    const id = await createTask(values({ date: '2026-09-25', startTime: '09:00', remindBefore: 0 }));
     const task = await getTask(id);
     await rescheduleTask(task!, '2026-09-26', '11:00', '12:00');
     const after = await getTask(id);
@@ -148,5 +155,40 @@ describe('rescheduleTask', () => {
     const task = await getTask(id);
     await rescheduleTask(task!, '2026-09-27');
     expect((await getTask(id))?.reminderAt).toBeNull();
+  });
+});
+
+describe('repeating tasks', () => {
+  const live = async () => (await import('@/db')).db.select().from((await import('@/db')).tasks).all();
+
+  it('completing spawns the next occurrence (never in the past) with a fresh checklist', async () => {
+    const id = await createTask(values({ date: '2020-01-01', repeat: 'daily', checklist: [{ id: 'c', text: 'x', done: true }] }));
+    await toggleTaskDone((await getTask(id))!);
+    const next = (await live()).find((t) => t.repeatFromId === id);
+    expect(next?.date).toBe(new Date(Date.now() + 86_400_000).toLocaleDateString('sv-SE'));
+    expect(next?.isDone).toBe(false);
+    expect(next?.repeat).toBe('daily');
+    expect(next?.checklist).toEqual([{ id: 'c', text: 'x', done: false }]);
+  });
+
+  it('keeps the rhythm for future tasks and does not spawn twice', async () => {
+    const id = await createTask(values({ date: '2099-01-31', repeat: 'monthly' }));
+    const task = (await getTask(id))!;
+    await toggleTaskDone(task);
+    await toggleTaskDone({ ...task, isDone: false });
+    const spawned = (await live()).filter((t) => t.repeatFromId === id && !t.deletedAt);
+    expect(spawned.map((t) => t.date)).toEqual(['2099-02-28']);
+  });
+
+  it('reopening removes the untouched copy', async () => {
+    const id = await createTask(values({ repeat: 'weekly' }));
+    await toggleTaskDone((await getTask(id))!);
+    await toggleTaskDone((await getTask(id))!);
+    expect((await live()).filter((t) => t.repeatFromId === id && !t.deletedAt)).toHaveLength(0);
+  });
+
+  it('drops repeat when there is no date', async () => {
+    const id = await createTask(values({ date: null, repeat: 'daily' }));
+    expect((await getTask(id))?.repeat).toBeNull();
   });
 });

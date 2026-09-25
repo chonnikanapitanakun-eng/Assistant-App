@@ -4,6 +4,8 @@ vi.mock('@/db', () => import('@/db/__tests__/mock-db'));
 vi.mock('@/features/notifications', () => ({
   syncTaskReminder: vi.fn().mockResolvedValue(undefined),
   cancelTaskReminder: vi.fn().mockResolvedValue(undefined),
+  syncEventReminder: vi.fn().mockResolvedValue(undefined),
+  cancelEventReminder: vi.fn().mockResolvedValue(undefined),
 }));
 
 const { resetDb } = await import('@/db/__tests__/mock-db');
@@ -24,6 +26,8 @@ const values = (over: Partial<Parameters<typeof createEvent>[0]> = {}) => ({
   endTime: '10:30',
   location: null,
   contactName: null,
+  repeat: null,
+  remindBefore: null,
   ...over,
 });
 
@@ -117,7 +121,8 @@ describe('moveItem', () => {
       areaId: null,
       isDone: false,
       checklist: null,
-      remind: false,
+      remindBefore: null,
+      repeat: null,
     });
     await moveItem({ kind: 'task', id: taskId, title: 'x', date: '2026-09-25', allDay: false }, '15:00', '16:00');
     const task = await getTask(taskId);

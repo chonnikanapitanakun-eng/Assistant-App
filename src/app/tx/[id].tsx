@@ -4,15 +4,17 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Button, Chip, Field, FieldError, PressableScale, Sheet, Text, useInputStyle } from '@/components/ui';
+import { Button, Chip, Field, FieldError, PressableScale, Sheet, showToast, Text, useInputStyle } from '@/components/ui';
 import type { Transaction } from '@/db';
+import { DateField } from '@/features/calendar/components/date-field';
 import { RelatedSection } from '@/features/links/components/related-section';
 import { categoryIcon } from '@/features/money/category-icon';
-import { createTransaction, deleteTransaction, updateTransaction, useAllWallets, useCategories, useTransaction } from '@/features/money/queries';
+import { createTransaction, deleteTransaction, restoreTransaction, updateTransaction, useAllWallets, useCategories, useTransaction } from '@/features/money/queries';
 import { isValidDate } from '@/features/tasks/model';
 import { currencySymbol, parseAmount } from '@/lib/currency';
 import { addDays, toDateKey } from '@/lib/date';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useDirty } from '@/lib/use-dirty';
 import { useDraft } from '@/lib/use-draft';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme, type TintName } from '@/theme';
@@ -54,6 +56,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
   const [date, setDate] = useDraft(`${draft}:date`, existing?.date ?? toDateKey());
   const [note, setNote] = useDraft(`${draft}:note`, existing?.note ?? '');
   const [showErrors, setShowErrors] = useState(false);
+  const dirty = useDirty({ kind, amount, walletId, toWalletId, categoryId, date, note });
 
   // Wallets load asynchronously; a new transaction falls back to the first live one until the user
   // picks. An existing one never falls back: it keeps its own account (even a hidden one).
@@ -88,6 +91,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
     void run(async () => {
       if (existing) await updateTransaction(existing.id, values);
       else await createTransaction(values);
+      showToast(t('common.saved'), undefined, 'success');
       onClose();
     });
   };
@@ -97,6 +101,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
   return (
     <Sheet
       onClose={onClose}
+      dirty={dirty}
       title={existing ? t('money.edit_transaction') : t('money.add')}
       footer={
         <View style={{ gap: spacing.sm }}>
@@ -109,7 +114,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
               icon="trash-2"
               label={armed ? t('tasks.delete_confirm') : t('common.delete')}
               disabled={busy}
-              onPress={() => confirm(() => void run(async () => { await deleteTransaction(existing.id); onClose(); }))}
+              onPress={() => confirm(() => void run(async () => { await deleteTransaction(existing.id); showToast(t('common.deleted'), { label: t('common.undo'), onPress: () => void restoreTransaction(existing.id) }, 'warning'); onClose(); }))}
             />
           ) : null}
         </View>
@@ -192,7 +197,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
             <Chip label={t('capture.today')} selected={date === toDateKey()} onPress={() => setDate(toDateKey())} />
             <Chip label={t('tasks.yesterday')} selected={date === toDateKey(addDays(new Date(), -1))} onPress={() => setDate(toDateKey(addDays(new Date(), -1)))} />
           </View>
-          <TextInput value={date} onChangeText={setDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.date')} style={input(errors.date, showErrors)} />
+          <DateField value={date} onChange={setDate} invalid={showErrors && !!errors.date} />
           <FieldError message={showErrors ? errors.date : null} />
         </Field>
 

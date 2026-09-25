@@ -78,6 +78,9 @@ export const tasks = sqliteTable(
     checklist: text('checklist', { mode: 'json' }).$type<{ id: string; text: string; done: boolean }[]>(),
     reminderAt: integer('reminder_at'),
     reminderNotificationId: text('reminder_notification_id'),
+    remindBefore: integer('remind_before'), // minutes before start (09:00 when untimed); null = no reminder
+    repeat: text('repeat', { enum: ['daily', 'weekly', 'monthly', 'yearly'] }), // completing spawns the next one
+    repeatFromId: text('repeat_from_id'), // the completed task this one was spawned from
     sortOrder: integer('sort_order').notNull().default(0),
   },
   (t) => [
@@ -189,6 +192,9 @@ export const calendarEvents = sqliteTable(
     end: integer('end').notNull(),
     location: text('location'),
     isAllDay: integer('is_all_day', { mode: 'boolean' }).notNull().default(false),
+    repeat: text('repeat', { enum: ['daily', 'weekly', 'monthly', 'yearly'] }), // Veyra events only; the row is the first occurrence
+    remindBefore: integer('remind_before'), // minutes before start (09:00 when all-day); null = no reminder
+    reminderNotificationId: text('reminder_notification_id'),
   },
   (t) => [index('calendar_events_start_idx').on(t.start), index('calendar_events_account_idx').on(t.accountId, t.externalId)],
 );

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Button, Chip, Field, FieldError, Sheet, Text, useInputStyle } from '@/components/ui';
+import { Button, Chip, Field, FieldError, Sheet, showToast, Text, useInputStyle } from '@/components/ui';
 import type { Wallet } from '@/db';
 import { walletIcon } from '@/features/money/category-icon';
 import { walletBalance } from '@/features/money/model';
@@ -12,6 +12,7 @@ import { BANKS } from '@/features/slip/banks';
 import { createWallet, deleteWallet, updateWallet, useTransactions, useWallet } from '@/features/money/queries';
 import { currencySymbol, formatMoney, parseAmount, supportedCurrencies } from '@/lib/currency';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useDirty } from '@/lib/use-dirty';
 import { useDraft } from '@/lib/use-draft';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme } from '@/theme';
@@ -46,7 +47,8 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
 
   const hasHistory = !!existing && txs.some((x) => x.walletId === existing.id || x.toWalletId === existing.id);
   const parsed = parseAmount(opening);
-  const errors = { name: !name.trim() ? t('money.name_required') : null, opening: parsed === null ? t('money.invalid_amount') : null };
+  const dirty = useDirty({ name, type, currency, opening, bankCode, accountDigits });
+  const errors = { name: !name.trim() ? t('money.name_required') : null, opening: parsed === null ? t('money.invalid_number') : null };
 
   const save = () => {
     if (Object.values(errors).some(Boolean) || parsed === null) {
@@ -60,6 +62,7 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
     void run(async () => {
       if (existing) await updateWallet(existing.id, values);
       else await createWallet(values);
+      showToast(t('common.saved'), undefined, 'success');
       onClose();
     });
   };
@@ -67,6 +70,7 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
   return (
     <Sheet
       onClose={onClose}
+      dirty={dirty}
       title={existing ? t('money.edit_account') : t('money.add_account')}
       subtitle={existing ? t('money.current_balance', { amount: formatMoney(walletBalance(existing, txs), existing.currency, 'en-GB') }) : undefined}
       footer={
@@ -81,7 +85,7 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
               label={armed ? t('tasks.delete_confirm') : t('money.hide_account')}
               accessibilityHint={t('money.hide_account_hint')}
               disabled={busy}
-              onPress={() => confirm(() => void run(async () => { await deleteWallet(existing.id); onClose(); }))}
+              onPress={() => confirm(() => void run(async () => { await deleteWallet(existing.id); showToast(t('common.deleted'), undefined, 'warning'); onClose(); }))}
             />
           ) : null}
         </View>

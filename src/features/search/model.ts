@@ -29,9 +29,34 @@ export function planSearch(input: string): SearchPlan | null {
   const short = terms.filter((t) => charLength(t) < 3);
   return {
     match: long.length ? long.map((t) => `"${t.replace(/"/g, '""')}"`).join(' ') : null,
-    likes: short.map((t) => `%${t.replace(/[\\%_]/g, (c) => `\\${c}`)}%`),
+    likes: short.map(likePattern),
     terms,
   };
+}
+
+const likePattern = (term: string) => `%${term.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+
+/** The same fields fts.sql indexes, per type — for the LIKE fallback when FTS5 is missing (web). */
+const likeSources: Record<SearchType, { table: string; fields: string[] }> = {
+  task: { table: 'tasks', fields: ['title', "coalesce(notes, '')"] },
+  event: { table: 'calendar_events', fields: ['title', "coalesce(location, '')"] },
+  note: { table: 'notes', fields: ['title', 'body', "coalesce(tags, '')"] },
+  transaction: { table: 'transactions', fields: ["coalesce(note, '')", 'cast(amount as text)', 'type'] },
+  contact: { table: 'contacts', fields: ['name', "coalesce(company, '')", "coalesce(notes, '')"] },
+};
+
+/** One query over every source table: rows where each term appears in one of the indexed fields. */
+export function likeFallbackQuery(terms: string[], limit: number): { sql: string; params: string[] } {
+  const params: string[] = [];
+  const selects = searchTypes.map((type) => {
+    const { table, fields } = likeSources[type];
+    const conds = terms.map((term) => {
+      fields.forEach(() => params.push(likePattern(term)));
+      return `(${fields.map((f) => `${f} LIKE ? ESCAPE '\\'`).join(' OR ')})`;
+    });
+    return `SELECT * FROM (SELECT '${type}' AS type, id FROM ${table} WHERE deleted_at IS NULL AND ${conds.join(' AND ')} ORDER BY updated_at DESC LIMIT ${limit})`;
+  });
+  return { sql: selects.join(' UNION ALL '), params };
 }
 
 /** Keep the first hit per (type, id) — the index can hold duplicates — and bucket by type in rank order. */

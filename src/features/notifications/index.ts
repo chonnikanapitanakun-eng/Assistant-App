@@ -8,3 +8,4 @@ export { useMorningBriefing } from './use-morning-briefing';
 export { useNotificationResponse } from './use-notification-response';
 export { configureAndroidChannel, configureNotificationHandler } from './setup';
 export { useNotificationPermission } from './use-notification-permission';
+export { cancelEventReminder, planEventReminder, resyncEventReminders, syncEventReminder } from './events';

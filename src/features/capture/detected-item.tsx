@@ -63,6 +63,7 @@ export function DetectedItem({ item, included, onToggle, onSwitchMoneyType }: Pr
                 accessibilityState={{ checked: item.type === k }}
                 accessibilityLabel={t(`capture.type_${k}`)}
                 onPress={() => onSwitchMoneyType(k)}
+                hitSlop={6}
                 style={{
                   minHeight: 32,
                   paddingHorizontal: spacing.md,

@@ -106,6 +106,11 @@ export async function deleteTransaction(id: string) {
   await db.update(transactions).set({ deletedAt: t, updatedAt: t }).where(eq(transactions.id, id));
 }
 
+/** Undo a delete. */
+export async function restoreTransaction(id: string) {
+  await db.update(transactions).set({ deletedAt: null, updatedAt: now() }).where(eq(transactions.id, id));
+}
+
 // ── Bills ──────────────────────────────────────────────────────────────
 
 export type BillFormValues = {

@@ -124,7 +124,8 @@ export async function savePrepAsTask(event: CalendarEvent, prep: PrepMeetingResp
     areaId: null,
     isDone: false,
     checklist: prep.checklist.map((text) => ({ id: newId(), text, done: false })),
-    remind: false,
+    remindBefore: null,
+    repeat: null,
   });
   await addLink({ type: 'task', id }, { type: 'event', id: event.id }, 'related');
   return id;

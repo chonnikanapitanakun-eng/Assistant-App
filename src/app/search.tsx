@@ -80,7 +80,7 @@ export default function SearchScreen() {
                       {`${t(`search.group_${type}`)} · ${rows.length}`.toUpperCase()}
                     </Text>
                     {!filter && rows.length > PREVIEW ? (
-                      <PressableScale accessibilityRole="button" onPress={() => setFilter(type)} style={{ minHeight: 32, justifyContent: 'center' }}>
+                      <PressableScale accessibilityRole="button" accessibilityLabel={t('search.see_all', { count: rows.length })} onPress={() => setFilter(type)} hitSlop={6} style={{ minHeight: 32, justifyContent: 'center' }}>
                         <Text variant="label" color="primary">{t('search.see_all', { count: rows.length })}</Text>
                       </PressableScale>
                     ) : null}

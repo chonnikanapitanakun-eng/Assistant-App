@@ -50,8 +50,7 @@ export function QuickCapture() {
       {text ? null : (
         <>
           <IconButton icon="mic" label={t('home.capture_voice')} onPress={() => router.push({ pathname: '/capture', params: { voice: '1' } })} />
-          <IconButton icon="camera" label={t('home.capture_photo')} onPress={submit} />
-          <IconButton icon="paperclip" label={t('home.capture_document')} onPress={submit} />
+          <IconButton icon="camera" label={t('home.capture_photo')} onPress={() => router.push('/slip')} />
         </>
       )}
       {text ? (

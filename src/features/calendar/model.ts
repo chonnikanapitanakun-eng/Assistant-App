@@ -16,9 +16,11 @@ export type CalItem = {
   readOnly?: boolean;
   /** Linked-account colour for imported events (Google Calendar). */
   color?: string;
+  /** One occurrence of a repeating event — dragging would move the whole series, so it can't be dragged. */
+  repeat?: boolean;
 };
 
-type EventRow = { id: string; title: string; start: number; end: number; isAllDay: boolean; location: string | null; source?: string; color?: string | null };
+type EventRow = { id: string; title: string; start: number; end: number; isAllDay: boolean; location: string | null; source?: string; color?: string | null; repeat?: string | null };
 type TaskRow = { id: string; title: string; date: string | null; startTime: string | null; endTime: string | null; isDone: boolean; priority: number };
 
 export const toMinutes = (hhmm: string) => {
@@ -74,11 +76,12 @@ export function eventToItem(e: EventRow): CalItem {
   const date = e.isAllDay ? allDayKey(e.start) : toDateKey(start);
   const readOnly = e.source !== undefined && e.source !== 'veyra';
   const color = e.color ?? undefined;
-  if (e.isAllDay) return { kind: 'event', id: e.id, title: e.title, date, allDay: true, location: e.location, readOnly, color };
+  const repeat = e.repeat ? true : undefined;
+  if (e.isAllDay) return { kind: 'event', id: e.id, title: e.title, date, allDay: true, location: e.location, readOnly, color, repeat };
   const end = new Date(e.end);
   // Events that run past midnight are clipped to the end of their start day.
   const endStr = toDateKey(end) === date ? hhmm(end) : '23:59';
-  return { kind: 'event', id: e.id, title: e.title, date, start: hhmm(start), end: endStr, allDay: false, location: e.location, readOnly, color };
+  return { kind: 'event', id: e.id, title: e.title, date, start: hhmm(start), end: endStr, allDay: false, location: e.location, readOnly, color, repeat };
 }
 
 /** Dated tasks appear on the calendar; untimed ones sit in the all-day row. Default length 30 min. */

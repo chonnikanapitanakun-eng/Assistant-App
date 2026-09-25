@@ -9,6 +9,7 @@ import m0004 from './0004_quick_fallen_one.sql';
 import m0005 from './0005_chubby_toxin.sql';
 import m0006 from './0006_lyrical_jack_murdock.sql';
 import m0007 from './0007_outgoing_valeria_richards.sql';
+import m0008 from './0008_fuzzy_grandmaster.sql';
 
   export default {
     journal,
@@ -20,7 +21,8 @@ m0003,
 m0004,
 m0005,
 m0006,
-m0007
+m0007,
+m0008
     }
   }
   

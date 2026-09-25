@@ -13,7 +13,7 @@ npm install
 npm run android         # = npx expo run:android — build + ติดตั้ง development build (Expo Go ไม่พอ: มี native module เช่น expo-speech-recognition, widgets)
 npm run ios             # = npx expo run:ios บน macOS
 npx expo start          # dev server สำหรับ development build ที่ติดตั้งไว้แล้ว
-npx expo start --web    # เว็บ: ข้อมูลเก็บใน browser (OPFS) — ยังไม่มี FTS5 จึงค้นหา (Search) ไม่เจออะไร และไม่มี notification
+npx expo start --web    # เว็บ: ข้อมูลเก็บใน browser (OPFS) — ไม่มี FTS5 จึงค้นหาแบบ LIKE แทน (ไม่เรียงตามความตรง) และไม่มี notification
 ```
 
 ## Checks
