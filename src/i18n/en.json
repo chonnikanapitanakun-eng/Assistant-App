@@ -156,7 +156,13 @@
     "opening_hint": "The balance before your first transaction in Veyra. The current balance updates automatically.",
     "current_balance": "Current balance {{amount}}",
     "hide_account": "Hide account",
-    "hide_account_hint": "Hides the account; its transactions are kept"
+    "hide_account_hint": "Hides the account; its transactions are kept",
+    "bill_reminder_title": "{{name}} is due soon",
+    "bill_reminder_body": "Open Veyra to review and mark it paid.",
+    "section_networth": "Net worth",
+    "net_worth": "Net worth · {{currency}}",
+    "missing_fx_rate": "Set an exchange rate for {{currencies}} in Settings to include it.",
+    "networth_convert": "≈ {{amount}}"
   },
   "capture": {
     "title": "Quick capture",
@@ -546,7 +552,11 @@
     "help": "Help",
     "replay": "Replay the welcome tour",
     "replay_body": "Walk through setup again. Your data stays as it is.",
-    "version": "version {{version}}"
+    "version": "version {{version}}",
+    "fx_rates": "Exchange rates",
+    "fx_rates_hint": "Used to convert other currencies into your primary currency for net worth. Enter and update rates yourself — Veyra doesn't fetch live rates.",
+    "fx_rate_label": "1 {{currency}} =",
+    "fx_rate_placeholder": "e.g. 44.50"
   },
   "links": {
     "title": "Related",

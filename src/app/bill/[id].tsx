@@ -74,7 +74,7 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
       isSubscription,
     };
     void run(async () => {
-      if (existing) await updateBill(existing.id, values);
+      if (existing) await updateBill(existing, values);
       else await createBill(values);
       onClose();
     });
@@ -96,7 +96,7 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
               icon="trash-2"
               label={armed ? t('tasks.delete_confirm') : t('common.delete')}
               disabled={busy}
-              onPress={() => confirm(() => void run(async () => { await deleteBill(existing.id); onClose(); }))}
+              onPress={() => confirm(() => void run(async () => { await deleteBill(existing); onClose(); }))}
             />
           ) : null}
         </View>

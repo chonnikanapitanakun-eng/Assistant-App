@@ -1,10 +1,12 @@
 import { and, asc, desc, eq, isNull } from 'drizzle-orm';
 
 import { categories, commit, db, recurringBills, transactions, useRows, wallets, type Category, type RecurringBill, type Transaction, type Wallet } from '@/db';
+import { cancelBillReminder, syncBillReminder } from '@/features/notifications';
+import { background } from '@/lib/background';
 import { toDateKey } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
 
-import { nextDueDate } from './model';
+import { billRemindAt, nextDueDate } from './model';
 
 export function useWallets(): Wallet[] {
   return useRows(db.select().from(wallets).where(isNull(wallets.deletedAt)).orderBy(asc(wallets.sortOrder))).data;
@@ -84,19 +86,26 @@ export type BillFormValues = {
   isSubscription: boolean;
 };
 
+function syncReminder(id: string, name: string, due: string, remindDaysBefore: number, reminderNotificationId: string | null) {
+  background(syncBillReminder({ id, name, remindAt: billRemindAt(due, remindDaysBefore), reminderNotificationId }), 'Bill reminder');
+}
+
 export async function createBill(v: BillFormValues): Promise<string> {
   const id = newId();
   await db.insert(recurringBills).values({ id, ...v, ...stamp() });
+  syncReminder(id, v.name, nextDueDate({ ...v, paidThrough: null }), v.remindDaysBefore, null);
   return id;
 }
 
-export async function updateBill(id: string, v: BillFormValues) {
-  await db.update(recurringBills).set({ ...v, updatedAt: now() }).where(eq(recurringBills.id, id));
+export async function updateBill(existing: RecurringBill, v: BillFormValues) {
+  await db.update(recurringBills).set({ ...v, updatedAt: now() }).where(eq(recurringBills.id, existing.id));
+  syncReminder(existing.id, v.name, nextDueDate({ ...v, paidThrough: existing.paidThrough }), v.remindDaysBefore, existing.reminderNotificationId);
 }
 
-export async function deleteBill(id: string) {
+export async function deleteBill(bill: RecurringBill) {
   const t = now();
-  await db.update(recurringBills).set({ deletedAt: t, updatedAt: t }).where(eq(recurringBills.id, id));
+  await db.update(recurringBills).set({ deletedAt: t, updatedAt: t }).where(eq(recurringBills.id, bill.id));
+  background(cancelBillReminder(bill.reminderNotificationId), 'Cancel bill reminder');
 }
 
 /**
@@ -116,6 +125,7 @@ export async function markBillPaid(bill: RecurringBill): Promise<boolean> {
       .values({ id: txId, walletId: wallet.id, amount: bill.amount, currency: wallet.currency, type: 'expense', categoryId: bill.categoryId, date: toDateKey(), note: bill.name, source: 'manual', ...stamp() }),
     db.update(recurringBills).set({ paidThrough: due, previousPaidThrough: bill.paidThrough, lastPaymentId: txId, updatedAt: now() }).where(eq(recurringBills.id, bill.id)),
   ]);
+  syncReminder(bill.id, bill.name, nextDueDate({ ...bill, paidThrough: due }), bill.remindDaysBefore, bill.reminderNotificationId);
   return true;
 }
 
@@ -127,6 +137,7 @@ export async function undoBillPaid(bill: RecurringBill) {
     db.update(transactions).set({ deletedAt: t, updatedAt: t }).where(eq(transactions.id, bill.lastPaymentId)),
     db.update(recurringBills).set({ paidThrough: bill.previousPaidThrough, lastPaymentId: null, previousPaidThrough: null, updatedAt: t }).where(eq(recurringBills.id, bill.id)),
   ]);
+  syncReminder(bill.id, bill.name, nextDueDate({ ...bill, paidThrough: bill.previousPaidThrough }), bill.remindDaysBefore, bill.reminderNotificationId);
 }
 
 // ── Wallets & budgets ──────────────────────────────────────────────────

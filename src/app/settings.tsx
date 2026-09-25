@@ -9,7 +9,7 @@ import { Button, Card, Chip, Icon, IconButton, PressableScale, Screen, Text, Tog
 import { useNotificationPermission } from '@/features/notifications';
 import { setLanguage } from '@/features/profile/language';
 import { ALL_INTERESTS, useProfile, type Interest } from '@/features/profile/store';
-import { currencySymbol, supportedCurrencies } from '@/lib/currency';
+import { currencySymbol, parseAmount, supportedCurrencies, type Currency } from '@/lib/currency';
 import { useTheme } from '@/theme';
 
 const interestIcons: Record<Interest, IconName> = { tasks: 'check-square', calendar: 'calendar', money: 'credit-card', notes: 'file-text', focus: 'target' };
@@ -84,6 +84,8 @@ export default function SettingsScreen() {
         })}
       </Section>
 
+      <FxRatesSection />
+
       {Platform.OS !== 'web' ? <NotificationsSection /> : null}
 
       <Section title={t('settings.help')}>
@@ -100,6 +102,43 @@ export default function SettingsScreen() {
         <Text variant="caption" color="textTertiary">Your life, handled.</Text>
       </View>
     </Screen>
+  );
+}
+
+function FxRatesSection() {
+  const { t } = useTranslation();
+  const { colors, spacing, radius, typography, fontFamily } = useTheme();
+  const profile = useProfile();
+  const others = supportedCurrencies.filter((c) => c !== profile.currency);
+  const [drafts, setDrafts] = useState<Partial<Record<Currency, string>>>({});
+
+  if (!others.length) return null;
+
+  const commit = (currency: Currency, text: string) => {
+    const n = parseAmount(text);
+    profile.update({ fxRates: { ...profile.fxRates, [currency]: n && n > 0 ? n : undefined } });
+  };
+
+  return (
+    <Section title={t('settings.fx_rates')} hint={t('settings.fx_rates_hint')}>
+      {others.map((c, idx) => (
+        <View key={c}>
+          {idx ? <Divider /> : null}
+          <Row icon="repeat" label={t('settings.fx_rate_label', { currency: c })}>
+            <TextInput
+              value={drafts[c] ?? (profile.fxRates[c] ? String(profile.fxRates[c]) : '')}
+              onChangeText={(v) => setDrafts((d) => ({ ...d, [c]: v }))}
+              onBlur={() => commit(c, drafts[c] ?? '')}
+              keyboardType="decimal-pad"
+              placeholder={t('settings.fx_rate_placeholder')}
+              placeholderTextColor={colors.textTertiary}
+              accessibilityLabel={t('settings.fx_rate_label', { currency: c })}
+              style={{ minWidth: 0, width: 110, minHeight: 44, textAlign: 'right', paddingHorizontal: spacing.md, borderRadius: radius.md, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.surfaceMuted, color: colors.text, fontSize: typography.body.fontSize, fontFamily: fontFamily.medium }}
+            />
+          </Row>
+        </View>
+      ))}
+    </Section>
   );
 }
 

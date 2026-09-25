@@ -12,15 +12,15 @@ import { BillRow } from '@/features/money/components/bill-row';
 import { BudgetBar } from '@/features/money/components/budget-bar';
 import { SpendingChart } from '@/features/money/components/spending-chart';
 import { TransactionRow } from '@/features/money/components/transaction-row';
-import { billState, currenciesInUse, groupByDate, monthTotals, nextDueDate, spendingByCategory, walletBalance } from '@/features/money/model';
+import { billState, currenciesInUse, groupByDate, monthTotals, netWorth, nextDueDate, spendingByCategory, toPrimary, walletBalance } from '@/features/money/model';
 import { useBills, useCategories, useTransactions, useWallets } from '@/features/money/queries';
-import { usePrimaryCurrency } from '@/features/profile/store';
+import { useFxRates, usePrimaryCurrency } from '@/features/profile/store';
 import { formatMoney } from '@/lib/currency';
 import { daysFromToday, toMonthKey } from '@/lib/date';
 import { useBreakpoint, useTheme } from '@/theme';
 
-type Section = 'overview' | 'transactions' | 'budget' | 'bills' | 'accounts';
-const sections: Section[] = ['overview', 'transactions', 'budget', 'bills', 'accounts'];
+type Section = 'overview' | 'transactions' | 'budget' | 'bills' | 'accounts' | 'networth';
+const sections: Section[] = ['overview', 'transactions', 'budget', 'bills', 'accounts', 'networth'];
 
 export default function MoneyScreen() {
   const { t, i18n } = useTranslation();
@@ -50,7 +50,7 @@ export default function MoneyScreen() {
     setMonth(toMonthKey(new Date(y, m - 1 + dir, 1)));
   };
   const monthLabel = new Date(`${month}-01T00:00:00`).toLocaleDateString(locale, { month: isDesktop ? 'long' : 'short', year: 'numeric' });
-  const showMonth = section !== 'bills' && section !== 'accounts';
+  const showMonth = section !== 'bills' && section !== 'accounts' && section !== 'networth';
   const showCurrency = (section === 'overview' || section === 'transactions') && currencies.length > 1;
 
   const props = { month, currency, wallets, txs: liveTxs, categories, bills, catById, walletById, isDesktop };
@@ -59,19 +59,21 @@ export default function MoneyScreen() {
     <Screen maxWidth={isDesktop ? 1200 : 880}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
         <Text variant="title" accessibilityRole="header" style={{ flex: 1 }}>{t('nav.money')}</Text>
-        <IconButton
-          icon="plus"
-          label={section === 'bills' ? t('money.add_bill') : section === 'accounts' ? t('money.add_account') : t('money.add')}
-          color="primary"
-          filled
-          onPress={() =>
-            section === 'bills'
-              ? router.push({ pathname: '/bill/[id]', params: { id: 'new' } })
-              : section === 'accounts'
-                ? router.push({ pathname: '/wallet/[id]', params: { id: 'new' } })
-                : router.push({ pathname: '/tx/[id]', params: { id: 'new' } })
-          }
-        />
+        {section !== 'networth' ? (
+          <IconButton
+            icon="plus"
+            label={section === 'bills' ? t('money.add_bill') : section === 'accounts' ? t('money.add_account') : t('money.add')}
+            color="primary"
+            filled
+            onPress={() =>
+              section === 'bills'
+                ? router.push({ pathname: '/bill/[id]', params: { id: 'new' } })
+                : section === 'accounts'
+                  ? router.push({ pathname: '/wallet/[id]', params: { id: 'new' } })
+                  : router.push({ pathname: '/tx/[id]', params: { id: 'new' } })
+            }
+          />
+        ) : null}
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
@@ -102,6 +104,7 @@ export default function MoneyScreen() {
         {section === 'budget' ? <Budget {...props} /> : null}
         {section === 'bills' ? <Bills {...props} /> : null}
         {section === 'accounts' ? <Accounts {...props} /> : null}
+        {section === 'networth' ? <NetWorth {...props} /> : null}
       </Animated.View>
     </Screen>
   );
@@ -403,6 +406,54 @@ function Accounts({ wallets, txs, isDesktop }: Props) {
         );
       })}
     </View>
+  );
+}
+
+// ── Net worth ──────────────────────────────────────────────────────────
+
+function NetWorth({ wallets, txs }: Props) {
+  const { t } = useTranslation();
+  const { colors, spacing, radius } = useTheme();
+  const primary = usePrimaryCurrency();
+  const rates = useFxRates();
+  if (!wallets.length) return <Empty pose="calm" title={t('money.no_accounts')} body={t('money.no_accounts_body')} />;
+
+  const { total, missing } = netWorth(wallets, txs, primary, rates);
+  const fmt = (n: number, c: string) => formatMoney(n, c, 'en-GB');
+
+  return (
+    <>
+      <Card style={{ gap: spacing.sm }}>
+        <Text variant="overline" color="textSecondary">{t('money.net_worth', { currency: primary }).toUpperCase()}</Text>
+        <Text variant="display" color="balance" style={{ fontVariant: ['tabular-nums'] }}>{fmt(total, primary)}</Text>
+        {missing.map((c) => (
+          <Text key={c} variant="caption" tone={colors.warning}>{t('money.missing_fx_rate', { currencies: c })}</Text>
+        ))}
+      </Card>
+      <Card padding="md" style={{ gap: 0, paddingVertical: spacing.xs }}>
+        {wallets.map((w, i) => {
+          const bal = walletBalance(w, txs);
+          const converted = toPrimary(bal, w.currency, primary, rates);
+          return (
+            <View key={w.id} style={[{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 56 }, i ? { borderTopWidth: 1, borderTopColor: colors.border } : undefined]}>
+              <View style={{ width: 40, height: 40, borderRadius: radius.md, backgroundColor: colors.primarySoft, alignItems: 'center', justifyContent: 'center' }}>
+                <Icon name={walletIcon[w.type]} size={18} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text variant="subheading" numberOfLines={1}>{w.name}</Text>
+                <Text variant="caption" color="textSecondary">{w.currency}</Text>
+              </View>
+              <View style={{ alignItems: 'flex-end' }}>
+                <Text variant="label" weight="semibold" style={{ fontVariant: ['tabular-nums'] }}>{fmt(bal, w.currency)}</Text>
+                {converted !== null && w.currency !== primary ? (
+                  <Text variant="caption" color="textSecondary" style={{ fontVariant: ['tabular-nums'] }}>{t('money.networth_convert', { amount: fmt(converted, primary) })}</Text>
+                ) : null}
+              </View>
+            </View>
+          );
+        })}
+      </Card>
+    </>
   );
 }
 
