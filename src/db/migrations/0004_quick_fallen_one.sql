@@ -1,0 +1,1 @@
+ALTER TABLE `recurring_bills` ADD `reminder_notification_id` text;

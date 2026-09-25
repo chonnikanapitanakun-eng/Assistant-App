@@ -156,7 +156,13 @@
     "opening_hint": "ยอดก่อนรายการแรกใน Veyra ยอดปัจจุบันจะคำนวณให้อัตโนมัติ",
     "current_balance": "ยอดปัจจุบัน {{amount}}",
     "hide_account": "ซ่อนบัญชี",
-    "hide_account_hint": "ซ่อนบัญชี แต่เก็บรายการไว้"
+    "hide_account_hint": "ซ่อนบัญชี แต่เก็บรายการไว้",
+    "bill_reminder_title": "{{name}} ใกล้ครบกำหนด",
+    "bill_reminder_body": "เปิด Veyra เพื่อตรวจสอบและกดจ่ายแล้ว",
+    "section_networth": "มูลค่าสุทธิ",
+    "net_worth": "มูลค่าสุทธิ · {{currency}}",
+    "missing_fx_rate": "ตั้งอัตราแลกเปลี่ยนของ {{currencies}} ในตั้งค่าเพื่อให้นับรวมด้วย",
+    "networth_convert": "≈ {{amount}}"
   },
   "capture": {
     "title": "จดเร็ว",
@@ -546,7 +552,11 @@
     "help": "ช่วยเหลือ",
     "replay": "ดูแนะนำการใช้งานอีกครั้ง",
     "replay_body": "ตั้งค่าใหม่ทีละขั้น ข้อมูลเดิมไม่หาย",
-    "version": "เวอร์ชัน {{version}}"
+    "version": "เวอร์ชัน {{version}}",
+    "fx_rates": "อัตราแลกเปลี่ยน",
+    "fx_rates_hint": "ใช้แปลงสกุลเงินอื่นเป็นสกุลเงินหลักสำหรับมูลค่าสุทธิ ใส่และอัปเดตอัตราเองได้ — Veyra ไม่ได้ดึงอัตราสดให้",
+    "fx_rate_label": "1 {{currency}} =",
+    "fx_rate_placeholder": "เช่น 44.50"
   },
   "links": {
     "title": "เกี่ยวข้องกับ",

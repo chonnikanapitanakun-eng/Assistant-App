@@ -14,6 +14,8 @@ export type Profile = {
   currency: Currency;
   interests: Interest[];
   onboarded: boolean;
+  /** How many units of `currency` (the primary) equal 1 unit of each other currency. Set by hand in Settings. */
+  fxRates: Partial<Record<Currency, number>>;
 };
 
 export const PROFILE_KEY = 'veyra.profile';
@@ -21,7 +23,7 @@ export const PROFILE_KEY = 'veyra.profile';
 const deviceLanguage = (): 'en' | 'th' => (getLocales()[0]?.languageCode === 'th' ? 'th' : 'en');
 
 export function defaultProfile(): Profile {
-  return { name: '', language: deviceLanguage(), currency: 'THB', interests: [...ALL_INTERESTS], onboarded: false };
+  return { name: '', language: deviceLanguage(), currency: 'THB', interests: [...ALL_INTERESTS], onboarded: false, fxRates: {} };
 }
 
 export function loadProfile(): Profile {
@@ -43,3 +45,4 @@ export const useProfile = create<Store>((set, get) => ({
 /** Non-hook read for non-React code (e.g. money defaults). */
 export const primaryCurrency = (): Currency => useProfile.getState().currency;
 export const usePrimaryCurrency = () => useProfile((p) => p.currency);
+export const useFxRates = () => useProfile((p) => p.fxRates);

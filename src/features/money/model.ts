@@ -1,4 +1,4 @@
-import { daysFromToday, toDateKey } from '@/lib/date';
+import { addDays, combineDateTime, daysFromToday, toDateKey } from '@/lib/date';
 
 type Tx = { walletId: string; toWalletId: string | null; amount: number; currency: string; type: 'income' | 'expense' | 'transfer'; date: string; categoryId: string | null };
 type WalletRow = { id: string; balance: number; currency: string };
@@ -54,6 +54,33 @@ export function currenciesInUse(wallets: { currency: string }[], primary: string
   return set.sort((a, b) => (a === primary ? -1 : b === primary ? 1 : a.localeCompare(b)));
 }
 
+// ── Net worth ──────────────────────────────────────────────────────────
+
+/** Rate = how many units of the primary currency equal 1 unit of that currency. */
+export type FxRates = Partial<Record<string, number>>;
+
+/** Converts an amount to the primary currency; null when no rate is set for a non-primary currency. */
+export function toPrimary(amount: number, currency: string, primary: string, rates: FxRates): number | null {
+  if (currency === primary) return round2(amount);
+  const rate = rates[currency];
+  return rate ? round2(amount * rate) : null;
+}
+
+/**
+ * Net worth = every wallet's balance converted to the primary currency and summed.
+ * Wallets whose currency has no FX rate set are left out of `total`; their currencies come back in `missing`.
+ */
+export function netWorth(wallets: WalletRow[], txs: Tx[], primary: string, rates: FxRates): { total: number; missing: string[] } {
+  let total = 0;
+  const missing = new Set<string>();
+  for (const w of wallets) {
+    const converted = toPrimary(walletBalance(w, txs), w.currency, primary, rates);
+    if (converted === null) missing.add(w.currency);
+    else total += converted;
+  }
+  return { total: round2(total), missing: [...missing] };
+}
+
 // ── Bills ──────────────────────────────────────────────────────────────
 
 type BillRow = { dueDay: number; frequency: 'monthly' | 'yearly'; dueMonth: number | null; paidThrough: string | null; remindDaysBefore: number };
@@ -86,6 +113,12 @@ export function billState(due: string, remindDaysBefore: number, today: Date = n
   const days = daysFromToday(due, today);
   const state: BillState = days < 0 ? 'overdue' : days === 0 ? 'today' : days <= remindDaysBefore ? 'soon' : 'later';
   return { state, days };
+}
+
+/** When to fire the "bill due soon" notification: `remindDaysBefore` days before `due`, at 9am local. */
+export function billRemindAt(due: string, remindDaysBefore: number): number {
+  const remindDate = addDays(new Date(`${due}T00:00:00`), -remindDaysBefore);
+  return combineDateTime(toDateKey(remindDate), '09:00') ?? 0;
 }
 
 /** Group dated rows by day, newest day first (rows keep their order within a day). */

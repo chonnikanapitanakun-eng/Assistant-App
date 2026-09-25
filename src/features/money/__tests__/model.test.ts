@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { billState, budgetStatus, currenciesInUse, groupByDate, monthTotals, nextDueDate, spendingByCategory, walletBalance } from '../model';
+import { billRemindAt, billState, budgetStatus, currenciesInUse, groupByDate, monthTotals, netWorth, nextDueDate, spendingByCategory, toPrimary, walletBalance } from '../model';
 
 const tx = (o: Partial<{ walletId: string; toWalletId: string | null; amount: number; currency: string; type: 'income' | 'expense' | 'transfer'; date: string; categoryId: string | null }>) => ({
   walletId: 'w1', toWalletId: null, amount: 0, currency: 'THB', type: 'expense' as const, date: '2026-09-10', categoryId: null, ...o,
@@ -69,6 +69,33 @@ describe('bills', () => {
     expect(billState('2026-09-24', 3, today).state).toBe('today');
     expect(billState('2026-09-26', 3, today).state).toBe('soon');
     expect(billState('2026-10-10', 3, today).state).toBe('later');
+  });
+});
+
+describe('billRemindAt', () => {
+  it('fires N days before the due date at 9am local', () => {
+    const at = billRemindAt('2026-09-24', 3);
+    const d = new Date(at);
+    expect([d.getFullYear(), d.getMonth() + 1, d.getDate(), d.getHours(), d.getMinutes()]).toEqual([2026, 9, 21, 9, 0]);
+  });
+});
+
+describe('net worth', () => {
+  const rates = { GBP: 44.5, USD: 36 };
+  it('converts to the primary currency using its rate', () => {
+    expect(toPrimary(100, 'GBP', 'THB', rates)).toBe(4450);
+    expect(toPrimary(100, 'THB', 'THB', rates)).toBe(100);
+  });
+  it('returns null for a currency with no rate set', () => {
+    expect(toPrimary(100, 'EUR', 'THB', rates)).toBeNull();
+  });
+  it('sums wallets converted to the primary currency, flagging currencies with no rate', () => {
+    const wallets = [
+      { id: 'w1', balance: 1000, currency: 'THB' },
+      { id: 'w2', balance: 100, currency: 'GBP' },
+      { id: 'w3', balance: 50, currency: 'EUR' },
+    ];
+    expect(netWorth(wallets, [], 'THB', rates)).toEqual({ total: 1000 + 4450, missing: ['EUR'] });
   });
 });
 

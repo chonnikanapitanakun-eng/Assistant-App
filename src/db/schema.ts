@@ -138,6 +138,7 @@ export const recurringBills = sqliteTable('recurring_bills', {
   paidThrough: text('paid_through'), // YYYY-MM-DD of the last due date that was paid
   lastPaymentId: text('last_payment_id'), // transaction created by the last "Mark paid" (for undo)
   previousPaidThrough: text('previous_paid_through'),
+  reminderNotificationId: text('reminder_notification_id'),
 });
 
 export const checkins = sqliteTable('checkins', {
