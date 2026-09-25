@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
-import { db, withSqlite } from './client';
+import { db, isDatabaseLocked, withSqlite } from './client';
 import ftsSql from './fts.sql';
 import { runMigrations } from './migrate';
 import migrations from './migrations/migrations';
@@ -30,14 +31,50 @@ function setupDatabase() {
   return setup;
 }
 
+/**
+ * Web: when the database is locked, expo-sqlite's worker keeps the half-opened handles and won't
+ * retry, so reload the page (fresh worker) a few times, backing off. The page we just left usually
+ * lets go within a second or two; if another tab really holds it, _layout.tsx says so.
+ */
+const RELOAD_KEY = 'db:lockReloads';
+const RELOAD_DELAYS_MS = [300, 800, 1500, 3000];
+
+function session(): Storage | null {
+  try {
+    return Platform.OS === 'web' ? window.sessionStorage : null;
+  } catch {
+    return null;
+  }
+}
+
+/** True when a reload was scheduled (keep showing the spinner instead of the error). */
+function reloadIfLocked(e: unknown): boolean {
+  const store = session();
+  if (!store || !isDatabaseLocked(e)) return false;
+  const attempt = Number(store.getItem(RELOAD_KEY) ?? 0);
+  if (attempt >= RELOAD_DELAYS_MS.length) {
+    store.removeItem(RELOAD_KEY); // a manual reload later starts a fresh round
+    return false;
+  }
+  store.setItem(RELOAD_KEY, String(attempt + 1));
+  setTimeout(() => window.location.reload(), RELOAD_DELAYS_MS[attempt]);
+  return true;
+}
+
 export function useDatabase() {
   const [state, setState] = useState<{ ready: boolean; error: Error | null }>({ ready: false, error: null });
 
   useEffect(() => {
     let active = true;
     setupDatabase().then(
-      () => active && setState({ ready: true, error: null }),
-      (e: unknown) => active && setState({ ready: false, error: e instanceof Error ? e : new Error(String(e)) }),
+      () => {
+        session()?.removeItem(RELOAD_KEY);
+        if (active) setState({ ready: true, error: null });
+      },
+      (e: unknown) => {
+        if (reloadIfLocked(e)) return;
+        if (active) setState({ ready: false, error: e instanceof Error ? e : new Error(String(e)) });
+      },
     );
     return () => {
       active = false;
