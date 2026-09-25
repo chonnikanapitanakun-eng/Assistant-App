@@ -59,6 +59,9 @@ export default function MoneyScreen() {
     <Screen maxWidth={isDesktop ? 1200 : 880}>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
         <Text variant="title" accessibilityRole="header" style={{ flex: 1 }}>{t('nav.money')}</Text>
+        {section === 'overview' || section === 'transactions' ? (
+          <IconButton icon="camera" label={t('slip.scan')} onPress={() => router.push('/slip')} />
+        ) : null}
         {section !== 'networth' ? (
           <IconButton
             icon="plus"

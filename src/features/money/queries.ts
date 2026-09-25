@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, isNotNull, isNull } from 'drizzle-orm';
 
 import { categories, commit, db, recurringBills, transactions, useRows, wallets, type Category, type RecurringBill, type Transaction, type Wallet } from '@/db';
 import { cancelBillReminder, syncBillReminder } from '@/features/notifications';
@@ -60,6 +60,33 @@ export async function createTransaction(v: TransactionFormValues): Promise<strin
   const id = newId();
   await db.insert(transactions).values({ id, ...v, currency: await currencyOf(v.walletId), source: 'manual', ...stamp() });
   return id;
+}
+
+/** Rows confirmed on the slip review screen, saved in one transaction. */
+export type SlipTransactionValues = TransactionFormValues & { payee: string | null; slipRef: string | null };
+
+export async function createSlipTransactions(rows: SlipTransactionValues[]): Promise<void> {
+  if (!rows.length) return;
+  const currencies = new Map<string, string>();
+  for (const r of rows) if (!currencies.has(r.walletId)) currencies.set(r.walletId, await currencyOf(r.walletId));
+  await commit(rows.map((r) => db.insert(transactions).values({ id: newId(), ...r, currency: currencies.get(r.walletId)!, source: 'slip', ...stamp() })));
+}
+
+/** Refs of live transactions that came from a slip — a slip whose ref is here was already saved. */
+export async function getSlipRefs(): Promise<Set<string>> {
+  const rows = await db.select({ ref: transactions.slipRef }).from(transactions).where(and(isNotNull(transactions.slipRef), isNull(transactions.deletedAt))).all();
+  return new Set(rows.map((r) => r.ref!));
+}
+
+/** Recent payee → category choices, for matching a new slip's payee to a category. */
+export function getPayeeHistory() {
+  return db
+    .select({ payee: transactions.payee, categoryId: transactions.categoryId, type: transactions.type, createdAt: transactions.createdAt })
+    .from(transactions)
+    .where(and(isNotNull(transactions.payee), isNull(transactions.deletedAt)))
+    .orderBy(desc(transactions.createdAt))
+    .limit(1000)
+    .all();
 }
 
 export async function updateTransaction(id: string, v: TransactionFormValues) {
@@ -142,7 +169,7 @@ export async function undoBillPaid(bill: RecurringBill) {
 
 // ── Wallets & budgets ──────────────────────────────────────────────────
 
-export type WalletFormValues = { name: string; type: Wallet['type']; currency: string; balance: number };
+export type WalletFormValues = { name: string; type: Wallet['type']; currency: string; balance: number; bankCode: string | null; accountDigits: string | null };
 
 export async function createWallet(v: WalletFormValues): Promise<string> {
   const id = newId();

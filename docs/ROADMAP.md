@@ -53,7 +53,8 @@
 - [ ] `ai-ask` Q&A ข้ามข้อมูล
 - [ ] `ai-plan` จัดวันให้ + approve
 - [ ] `ai-breakdown`
-- [ ] Slip OCR
+- [x] Slip OCR — ขั้น 1: slip QR (ฟรี) + `slip-ocr` (Claude Haiku) + จับคู่บัญชี/หมวด — `supabase/functions/slip-ocr`, `src/features/slip`, `src/app/slip.tsx`
+- [ ] Slip OCR ขั้น 2: on-device OCR (ML Kit / Apple Vision, dev build) ก่อนเรียก Haiku
 - [ ] Export Excel / CSV
 - [ ] Home / lock screen widgets
 - [ ] Context-aware reminder

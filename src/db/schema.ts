@@ -92,6 +92,8 @@ export const wallets = sqliteTable('wallets', {
   balance: real('balance').notNull().default(0), // opening balance; current = opening + transactions
   color: text('color'),
   sortOrder: integer('sort_order').notNull().default(0),
+  bankCode: text('bank_code'), // Thai bank code (004 = KBank…) — matches slips to this account
+  accountDigits: text('account_digits'), // account number or the part a slip shows (xxx-x-x1234-x → 1234)
 });
 
 export const categories = sqliteTable('categories', {
@@ -119,8 +121,10 @@ export const transactions = sqliteTable(
     note: text('note'),
     slipImage: text('slip_image'),
     source: text('source', { enum: ['manual', 'ai', 'slip', 'line'] }).notNull().default('manual'),
+    payee: text('payee'), // from a slip; remembers which category this payee usually goes to
+    slipRef: text('slip_ref'), // bank transaction ref — the same slip is never saved twice
   },
-  (t) => [index('transactions_date_idx').on(t.date), index('transactions_wallet_idx').on(t.walletId)],
+  (t) => [index('transactions_date_idx').on(t.date), index('transactions_wallet_idx').on(t.walletId), index('transactions_slip_ref_idx').on(t.slipRef)],
 );
 
 export const recurringBills = sqliteTable('recurring_bills', {

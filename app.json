@@ -46,7 +46,23 @@
           "color": "#6366F1"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Veyra reads the bank slips you choose to record your transactions.",
+          "cameraPermission": "Veyra uses the camera to photograph bank slips.",
+          "microphonePermission": false
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Veyra uses the camera to photograph bank slips.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

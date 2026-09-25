@@ -195,7 +195,6 @@
     "thinking": "Thinking…",
     "by_claude": "Sorted by Veyra AI",
     "media_voice": "Voice capture arrives with the next app build.",
-    "media_photo": "Photo capture (receipts, whiteboards) arrives with the next app build.",
     "media_document": "Document capture arrives with the next app build."
   },
   "common": {
@@ -246,7 +245,7 @@
     "ai_expenses": "Review my expenses",
     "capture_placeholder": "Tell Veyra anything…",
     "capture_voice": "Capture by voice",
-    "capture_photo": "Capture a photo",
+    "capture_photo": "Scan a bank slip",
     "capture_document": "Attach a document",
     "capture_send": "Send to Veyra",
     "all_caught_up": "All caught up",
@@ -636,5 +635,32 @@
   "db": {
     "locked_title": "Veyra is open in another tab",
     "locked_body": "Close the other tab, then reload this page."
+  },
+  "slip": {
+    "title": "Scan slips",
+    "scan": "Scan bank slips",
+    "count_one": "{{count}} slip",
+    "count_other": "{{count}} slips",
+    "intro": "Pick bank transfer slips or take a photo. Veyra reads the amount, date and payee and suggests the account and category — you confirm before anything is saved.",
+    "needs_setup": "Slip reading needs the Supabase project (EXPO_PUBLIC_SUPABASE_URL). Without it you can still fill each slip by hand.",
+    "pick_gallery": "Choose from photos",
+    "take_photo": "Take a photo",
+    "add_more": "Add more",
+    "camera_denied": "Camera access is off. Allow it in Settings, or choose from photos instead.",
+    "reading": "Reading slip…",
+    "include": "Save this slip",
+    "ref": "Ref {{ref}}",
+    "status_ready": "Read — please check",
+    "status_duplicate": "Already saved — skipped",
+    "status_not_slip": "Doesn't look like a bank slip",
+    "status_offline": "Couldn't read it — fill in by hand",
+    "status_error": "Couldn't open this image",
+    "save_one": "Save {{count}} transaction",
+    "save_other": "Save {{count}} transactions",
+    "fix_errors": "Some slips are missing an amount, account or date.",
+    "wallet_bank": "Bank (for slip matching)",
+    "wallet_digits": "Account number",
+    "wallet_digits_placeholder": "e.g. 1234 or the full number",
+    "wallet_digits_hint": "The digits your slips show (xxx-x-x1234-x → 1234), used to match slips to this account."
   }
 }

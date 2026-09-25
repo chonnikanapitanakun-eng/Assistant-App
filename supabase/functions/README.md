@@ -8,7 +8,7 @@
 | `ai-summary` | 2 | SPEC §6.4 |
 | `ai-ask` | 3 | SPEC §6.4 |
 | `ai-plan` | 3 | SPEC §6.4 |
-| `slip-ocr` | 3 | SPEC §6.4 |
+| `slip-ocr` | 3 | `src/features/slip/types.ts` → `SlipResult` — structured output ตาม `_shared/slip-contract.ts`, prompt ใน `slip-ocr/prompt.ts`; ดู § slip-ocr ด้านล่าง |
 
 กติกา
 
@@ -32,7 +32,7 @@ npx supabase login
 npx supabase link --project-ref <ref>
 npx supabase db push                       # สร้างตาราง ai_usage
 npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-npx supabase functions deploy ai-capture assistant
+npx supabase functions deploy ai-capture assistant slip-ocr
 ```
 
 ทดสอบเรียกตรง:
@@ -48,6 +48,22 @@ curl -X POST "$SUPABASE_URL/functions/v1/ai-capture" \
 1. `supabase secrets set ANTHROPIC_API_KEY=...`
 2. `supabase functions deploy assistant`
 3. ใส่ `EXPO_PUBLIC_SUPABASE_URL` และ `EXPO_PUBLIC_SUPABASE_ANON_KEY` ใน `.env` แล้ว restart Expo — ถ้าไม่ตั้ง แอปตอบด้วย engine ในเครื่อง (`src/features/assistant/engine.ts`)
+
+## slip-ocr — อ่านสลิปโอนเงิน (P3-04)
+
+ออกแบบให้ถูกที่สุด: ขั้นที่ฟรีก่อน เรียก AI เฉพาะที่จำเป็น
+
+1. **แอปย่อรูป** กว้าง 800px, JPEG 0.7 (`src/features/slip/scan.ts`) — ไม่ขยายรูปที่เล็กกว่านั้น
+2. **อ่าน QR บนสลิปในเครื่อง (ฟรี)** — `expo-camera` `scanFromURLAsync` → `parseSlipQr` (`src/features/slip/qr.ts`) ได้รหัสธนาคารผู้โอน + เลข ref; ถ้า ref นี้บันทึกไปแล้ว (หรือซ้ำในชุดเดียวกัน) → ข้าม **ไม่เรียก AI** (Android อ่าน QR เล็กๆ จากรูปทั้งใบได้ไม่เสมอ, web โหลด zxing wasm จาก CDN — อ่านไม่ได้ก็ไปขั้น 3)
+3. **`slip-ocr`** — `claude-haiku-4-5` + structured output (`SLIP_SCHEMA`), ไม่มี thinking, `max_tokens` 1024 → amount / date (แปลง พ.ศ.) / time / ref / ผู้โอน-ผู้รับ (ชื่อ, รหัสธนาคาร, เลขบัญชีที่เห็น) / memo; `normalizeSlip()` ตัดค่าที่ใช้ไม่ได้ก่อนส่งกลับ
+   - ต้นทุนโดยประมาณ ~1.5k image tokens + ~0.7k prompt + ~150 output ≈ US$0.003 ต่อใบ (system prompt สั้นกว่าขั้นต่ำที่ cache ได้ของ Haiku จึงไม่ใส่ `cache_control`)
+   - refusal / อ่านไม่ออก → `{ isSlip: false }` แอปให้กรอกเอง; ไม่ได้ตั้ง Supabase → แอปข้ามขั้นนี้และให้กรอกเอง
+4. **จับคู่ในเครื่อง ไม่เรียก AI** (`src/features/slip/match.ts`)
+   - บัญชี: `wallets.bank_code` + `wallets.account_digits` (ตั้งในหน้าแก้บัญชี) — ผู้โอนเป็นบัญชีเรา = รายจ่าย, ผู้รับเป็นบัญชีเรา = รายรับ, ทั้งสองฝั่ง = โอนระหว่างบัญชี
+   - หมวด: หมวดที่ผู้รับ/ผู้จ่ายคนนี้ถูกบันทึกบ่อยสุด (`transactions.payee`), ชื่อที่ถูกตัดท้ายต่างกันแต่ละธนาคารก็นับ
+5. **หน้า Review** (`src/app/slip.tsx`) — ผู้ใช้แก้/ติ๊กก่อนบันทึก → `source = 'slip'`, `slip_ref` กันบันทึกซ้ำ
+
+ทดสอบ: `npm test` (`src/features/slip/__tests__`) — contract, QR, matching, draft
 
 ## gcal — Google Calendar import (P2-07)
 

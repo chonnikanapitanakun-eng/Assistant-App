@@ -195,7 +195,6 @@
     "thinking": "กำลังคิด…",
     "by_claude": "จัดโดย Veyra AI",
     "media_voice": "บันทึกด้วยเสียงจะมาใน build ถัดไป",
-    "media_photo": "ถ่ายรูป (ใบเสร็จ, ไวท์บอร์ด) จะมาใน build ถัดไป",
     "media_document": "แนบเอกสารจะมาใน build ถัดไป"
   },
   "common": {
@@ -246,7 +245,7 @@
     "ai_expenses": "ดูค่าใช้จ่าย",
     "capture_placeholder": "บอก Veyra ได้ทุกเรื่อง…",
     "capture_voice": "บันทึกด้วยเสียง",
-    "capture_photo": "ถ่ายรูป",
+    "capture_photo": "สแกนสลิป",
     "capture_document": "แนบเอกสาร",
     "capture_send": "ส่งให้ Veyra",
     "all_caught_up": "เคลียร์หมดแล้ว",
@@ -636,5 +635,32 @@
   "db": {
     "locked_title": "Veyra เปิดอยู่ในแท็บอื่น",
     "locked_body": "ปิดแท็บอื่นก่อน แล้วโหลดหน้านี้ใหม่"
+  },
+  "slip": {
+    "title": "สแกนสลิป",
+    "scan": "สแกนสลิปโอนเงิน",
+    "count_one": "{{count}} สลิป",
+    "count_other": "{{count}} สลิป",
+    "intro": "เลือกสลิปโอนเงินจากคลังรูป หรือถ่ายรูป Veyra จะอ่านยอด วันที่ และผู้รับ แล้วเดาบัญชีกับหมวดให้ — ตรวจก่อนบันทึกทุกครั้ง",
+    "needs_setup": "การอ่านสลิปต้องตั้งค่า Supabase (EXPO_PUBLIC_SUPABASE_URL) ถ้ายังไม่ตั้ง กรอกเองได้ทีละใบ",
+    "pick_gallery": "เลือกจากคลังรูป",
+    "take_photo": "ถ่ายรูป",
+    "add_more": "เพิ่มรูป",
+    "camera_denied": "ยังไม่ได้อนุญาตกล้อง เปิดได้ที่ Settings หรือเลือกจากคลังรูปแทน",
+    "reading": "กำลังอ่านสลิป…",
+    "include": "บันทึกสลิปนี้",
+    "ref": "Ref {{ref}}",
+    "status_ready": "อ่านแล้ว — ตรวจอีกครั้ง",
+    "status_duplicate": "บันทึกไปแล้ว — ข้าม",
+    "status_not_slip": "ไม่ใช่สลิปโอนเงิน",
+    "status_offline": "อ่านไม่ได้ — กรอกเอง",
+    "status_error": "เปิดรูปนี้ไม่ได้",
+    "save_one": "บันทึก {{count}} รายการ",
+    "save_other": "บันทึก {{count}} รายการ",
+    "fix_errors": "บางสลิปยังขาดยอดเงิน บัญชี หรือวันที่",
+    "wallet_bank": "ธนาคาร (ใช้จับคู่สลิป)",
+    "wallet_digits": "เลขบัญชี",
+    "wallet_digits_placeholder": "เช่น 1234 หรือเลขเต็ม",
+    "wallet_digits_hint": "เลขที่เห็นบนสลิป (xxx-x-x1234-x → 1234) ใช้จับคู่สลิปกับบัญชีนี้"
   }
 }

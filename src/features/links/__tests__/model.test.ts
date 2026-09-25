@@ -43,7 +43,7 @@ suite('describe', () => {
     expect(describe({ type: 'note', row }, 'th')).toEqual({ title: 'Send letter', subtitle: '#work' });
   });
   it('labels money with a signed amount and date', () => {
-    const row = { ...base, walletId: 'w', amount: 1500, currency: 'THB', type: 'expense' as const, toWalletId: null, categoryId: null, areaId: null, date: '2026-09-24', note: 'Taxi', slipImage: null, source: 'manual' as const };
+    const row = { ...base, walletId: 'w', amount: 1500, currency: 'THB', type: 'expense' as const, toWalletId: null, categoryId: null, areaId: null, date: '2026-09-24', note: 'Taxi', slipImage: null, source: 'manual' as const, payee: null, slipRef: null };
     expect(describe({ type: 'transaction', row }, 'en')).toEqual({ title: 'Taxi', subtitle: '−฿1,500 · 2026-09-24' });
   });
   it('uses the Thai or English area name', () => {
