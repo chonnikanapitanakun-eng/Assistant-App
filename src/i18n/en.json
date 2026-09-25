@@ -703,7 +703,11 @@
     "briefing": "Morning briefing",
     "briefing_body": "One notification each morning: events, tasks and bills for the day.",
     "briefing_time": "Time",
-    "briefing_hint": "Tap it to open the daily review."
+    "briefing_hint": "Tap it to open the daily review.",
+    "context_reminder": "Prep reminders",
+    "context_reminder_hint": "Before an event, remind me about unfinished tasks linked to it or to the people on it.",
+    "context_off": "Off",
+    "context_min": "{{count}} min before"
   },
   "links": {
     "title": "Related",
@@ -909,5 +913,22 @@
     "wrong_pin": "Wrong PIN — try again.",
     "pin_mismatch": "PINs didn't match — try again.",
     "backspace": "Delete"
+  },
+  "widgets": {
+    "next_up": "Next up",
+    "free": "Nothing else today",
+    "progress": "{{done}}/{{total}} done",
+    "bill_overdue": "Overdue",
+    "bill_today": "Due today",
+    "bill_in_one": "Due tomorrow",
+    "bill_in_other": "Due in {{count}} days",
+    "capture": "Capture"
+  },
+  "context": {
+    "title": "{{time}} · {{event}}",
+    "title_with": "{{time}} · {{event}} with {{contact}}",
+    "body_one": "\"{{task}}\" isn't done yet. Start Focus?",
+    "body_many_one": "{{count}} task isn't done yet: {{tasks}}. Start Focus?",
+    "body_many_other": "{{count}} tasks aren't done yet: {{tasks}}. Start Focus?"
   }
 }

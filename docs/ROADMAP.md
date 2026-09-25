@@ -56,8 +56,8 @@
 - [x] Slip OCR — ขั้น 1: slip QR (ฟรี) + `slip-ocr` (Claude Haiku) + จับคู่บัญชี/หมวด — `supabase/functions/slip-ocr`, `src/features/slip`, `src/app/slip.tsx`
 - [ ] Slip OCR ขั้น 2: on-device OCR (ML Kit / Apple Vision, dev build) ก่อนเรียก Haiku
 - [x] Export Excel / CSV — CSV ต่อเดือน/สกุลเงิน จากแท็บ Money → รายการ (`src/features/money/csv.ts`, `export.ts`)
-- [ ] Home / lock screen widgets
-- [ ] Context-aware reminder
+- [x] Home / lock screen widgets — `src/features/widgets` (iOS: expo-widgets home + lock screen; Android: react-native-android-widget home screen; ต้องใช้ development build)
+- [x] Context-aware reminder — `src/features/context-reminders` (rule-based offline: ก่อนนัด X นาที เตือนงานที่ยังไม่เสร็จซึ่งผูกกับนัด/คนในนัด → แตะเปิด Focus; ตั้งเวลาใน Settings)
 
 ## Phase 4 — ปล่อยคนอื่นใช้
 

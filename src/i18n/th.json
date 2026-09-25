@@ -698,7 +698,11 @@
     "briefing": "สรุปเช้า",
     "briefing_body": "แจ้งเตือนทุกเช้า 1 ครั้ง: นัด งาน และบิลของวันนั้น",
     "briefing_time": "เวลา",
-    "briefing_hint": "แตะการแจ้งเตือนเพื่อเปิดหน้าสรุปวัน"
+    "briefing_hint": "แตะการแจ้งเตือนเพื่อเปิดหน้าสรุปวัน",
+    "context_reminder": "เตือนเตรียมตัว",
+    "context_reminder_hint": "ก่อนถึงนัด เตือนงานที่ยังไม่เสร็จซึ่งผูกกับนัดนั้น หรือกับคนที่อยู่ในนัด",
+    "context_off": "ปิด",
+    "context_min": "ก่อน {{count}} นาที"
   },
   "links": {
     "title": "เกี่ยวข้องกับ",
@@ -904,5 +908,22 @@
     "wrong_pin": "PIN ไม่ถูกต้อง ลองอีกครั้ง",
     "pin_mismatch": "PIN ไม่ตรงกัน ลองอีกครั้ง",
     "backspace": "ลบ"
+  },
+  "widgets": {
+    "next_up": "ถัดไป",
+    "free": "วันนี้ไม่มีอะไรแล้ว",
+    "progress": "เสร็จ {{done}}/{{total}}",
+    "bill_overdue": "เลยกำหนด",
+    "bill_today": "ครบกำหนดวันนี้",
+    "bill_in_one": "ครบกำหนดพรุ่งนี้",
+    "bill_in_other": "อีก {{count}} วันครบกำหนด",
+    "capture": "จดเร็ว"
+  },
+  "context": {
+    "title": "{{time}} · {{event}}",
+    "title_with": "{{time}} · {{event}} กับ {{contact}}",
+    "body_one": "ยังไม่ได้ทำ \"{{task}}\" เริ่ม Focus ไหม?",
+    "body_many_one": "ยังค้าง {{count}} งาน: {{tasks}} เริ่ม Focus ไหม?",
+    "body_many_other": "ยังค้าง {{count}} งาน: {{tasks}} เริ่ม Focus ไหม?"
   }
 }

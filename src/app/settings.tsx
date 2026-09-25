@@ -8,6 +8,7 @@ import { create } from 'zustand';
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Card, Chip, Icon, IconButton, PressableScale, Screen, Text, Toggle, type IconName } from '@/components/ui';
 import { authEnabled, signInWithApple, signInWithGoogle, signOut, useSession, type SignInResult } from '@/features/auth';
+import { LEAD_OPTIONS } from '@/features/context-reminders';
 import { completeGoogleConnect, connectGoogle, disconnectGoogle, gcalEnabled, syncGoogleCalendars, useCalendarAccounts, type AuthReturn, type ConnectResult } from '@/features/google-calendar';
 import { useNotificationPermission } from '@/features/notifications';
 import { accountDeleteEnabled, deleteAccount, eraseLocalData, exportAllData, PRIVACY_CONTACT_EMAIL } from '@/features/privacy';
@@ -388,6 +389,8 @@ function SecuritySection() {
 function NotificationsSection() {
   const { t } = useTranslation();
   const { state, request } = useNotificationPermission();
+  const lead = useProfile((p) => p.contextReminderMin);
+  const setLead = useProfile((p) => p.update);
   const label = state === 'granted' ? t('settings.notify_on') : state === 'denied' ? t('settings.notify_denied') : t('settings.notify_off');
   return (
     <Section title={t('onboarding.notify_title')}>
@@ -398,6 +401,12 @@ function NotificationsSection() {
           <Button size="sm" variant="secondary" label={state === 'denied' ? t('notifications.open_settings') : t('notifications.enable')} onPress={() => (state === 'denied' ? void Linking.openSettings() : void request())} />
         )}
       </Row>
+      <Divider />
+      <Stacked icon="clipboard" label={t('settings.context_reminder')} hint={t('settings.context_reminder_hint')}>
+        {LEAD_OPTIONS.map((m) => (
+          <Chip key={m} label={m ? t('settings.context_min', { count: m }) : t('settings.context_off')} selected={lead === m} onPress={() => setLead({ contextReminderMin: m })} />
+        ))}
+      </Stacked>
     </Section>
   );
 }
