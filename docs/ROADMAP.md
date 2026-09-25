@@ -52,7 +52,7 @@
 
 - [ ] `ai-ask` Q&A ข้ามข้อมูล
 - [ ] `ai-plan` จัดวันให้ + approve
-- [ ] `ai-breakdown`
+- [x] `ai-breakdown` — `supabase/functions/ai-breakdown`, `src/features/ai/breakdown.ts`, `src/features/tasks/components/breakdown-suggestions.tsx`
 - [ ] Slip OCR
 - [ ] Export Excel / CSV
 - [ ] Home / lock screen widgets
