@@ -36,9 +36,3 @@ export function ReminderChips({ value, onChange, timed }: { value: number | null
     </View>
   );
 }
-
-/** Short label for a saved reminder/repeat, e.g. on list rows. */
-export function useRepeatLabel() {
-  const { t } = useTranslation();
-  return (rule: RepeatRule | null | undefined) => (rule ? t(`repeat.${rule}`) : null);
-}
