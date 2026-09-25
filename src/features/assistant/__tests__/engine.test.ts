@@ -43,6 +43,14 @@ describe('detectIntent', () => {
     ['what can you do', 'help'],
     ['lunch 180', 'capture'],
     ['blue sky thinking', 'unknown'],
+    ['What do I have today?', 'plan_day'],
+    ["what's on today", 'plan_day'],
+    ['วันนี้ต้องทำอะไรบ้าง', 'plan_day'],
+    ['What do I have tomorrow?', 'unknown'],
+    ['Is it going to rain at 3pm?', 'unknown'],
+    ['พรุ่งนี้มีนัดไหม', 'unknown'],
+    ['call mum tomorrow 5pm', 'capture'],
+    ['do laundry tomorrow', 'capture'],
   ])('%s → %s', (text, intent) => {
     expect(detectIntent(text, ctx()).intent).toBe(intent);
   });

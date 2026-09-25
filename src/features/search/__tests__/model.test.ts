@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bucketHits, highlight, orderByIds, planSearch, snippet } from '../model';
+import { bucketHits, highlight, likeFallbackQuery, orderByIds, planSearch, snippet } from '../model';
 
 describe('planSearch', () => {
   it('returns null for blank input', () => {
@@ -76,5 +76,16 @@ describe('highlight', () => {
 
   it('merges overlapping terms', () => {
     expect(highlight('ประชุมลูกค้า', ['ประชุม', 'ลูกค้า'])).toEqual([{ text: 'ประชุมลูกค้า', match: true }]);
+  });
+});
+
+describe('likeFallbackQuery', () => {
+  it('ANDs terms across every type, one param per field and term', () => {
+    const { sql, params } = likeFallbackQuery(['vat', '50%'], 10);
+    expect(sql.match(/UNION ALL/g)).toHaveLength(4);
+    expect(sql).toContain("FROM notes WHERE deleted_at IS NULL AND (");
+    // 2 terms × (2 + 2 + 3 + 3 + 3 fields)
+    expect(params).toHaveLength(26);
+    expect(params).toContain('%50\\%%');
   });
 });

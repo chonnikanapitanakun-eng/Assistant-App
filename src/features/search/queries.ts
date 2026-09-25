@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { calendarEvents, categories, contacts, db, notes, tasks, transactions, useDbQuery, withSqlite } from '@/db';
 import type { CalendarEvent, Category, Contact, Note, Task, Transaction } from '@/db';
 
-import { bucketHits, orderByIds, planSearch, type SearchPlan, type SearchType } from './model';
+import { bucketHits, likeFallbackQuery, orderByIds, planSearch, type SearchPlan, type SearchType } from './model';
 
 /** Enough hits that every group still fills after soft-deleted rows are dropped. */
 const HIT_LIMIT = 300;
@@ -22,8 +22,8 @@ export type SearchResults = { terms: string[]; groups: SearchGroups; total: numb
 const empty = (): SearchGroups => ({ task: [], event: [], note: [], transaction: [], contact: [] });
 
 /**
- * Ranked (type, id) hits from fts_index. Returns [] when the index is missing — expo-sqlite's web
- * build has no FTS5 (see db/use-database.ts), so search finds nothing on web for now.
+ * Ranked (type, id) hits from fts_index. expo-sqlite's web build has no FTS5 (see db/use-database.ts),
+ * so when the index is missing this falls back to a plain LIKE scan of the same fields (unranked, newest first).
  */
 async function findHits(plan: SearchPlan): Promise<{ type: string; id: string }[]> {
   const where: string[] = [];
@@ -39,8 +39,10 @@ async function findHits(plan: SearchPlan): Promise<{ type: string; id: string }[
   const order = plan.match ? 'ORDER BY rank' : '';
   try {
     return await withSqlite((sqlite) => sqlite.getAllAsync<{ type: string; id: string }>(`SELECT type, id FROM fts_index WHERE ${where.join(' AND ')} ${order} LIMIT ${HIT_LIMIT}`, params));
-  } catch {
-    return [];
+  } catch (e) {
+    if (!String(e).includes('no such table')) return [];
+    const like = likeFallbackQuery(plan.terms, HIT_LIMIT);
+    return withSqlite((sqlite) => sqlite.getAllAsync<{ type: string; id: string }>(like.sql, like.params)).catch(() => []);
   }
 }
 

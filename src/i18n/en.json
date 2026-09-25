@@ -346,7 +346,8 @@
       "emails": "I can't read your email yet — Gmail support is on the roadmap. I can help with your tasks, calendar, money and notes.",
       "capture_one": "Want me to add this?",
       "capture_other": "I found {{count}} things to add. Want me to add them?",
-      "unknown": "I'm not sure how to help with that yet. Want me to save it as a note? Or try one of these."
+      "unknown": "I'm not sure how to help with that yet. Want me to save it as a note? Or try one of these.",
+      "unknown_question": "I can't answer that one yet — try one of these."
     }
   },
   "notifications": {
