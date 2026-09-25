@@ -52,7 +52,7 @@ export async function captureRemote(text: string, ctx: CaptureContext, signal?: 
 }
 
 /** The function already normalises its output; this is the app's last line of defence before rendering. */
-function isValidItem(item: unknown): item is CaptureItem {
+export function isValidItem(item: unknown): item is CaptureItem {
   if (!item || typeof item !== 'object') return false;
   const it = item as Record<string, unknown>;
   const okTimes = (it.startTime === undefined || isTime(it.startTime)) && (it.endTime === undefined || isTime(it.endTime));

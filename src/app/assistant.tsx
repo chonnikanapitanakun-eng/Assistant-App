@@ -12,7 +12,7 @@ import { runProposal } from '@/features/assistant/actions';
 import { CardView } from '@/features/assistant/components/cards';
 import { Typing } from '@/features/assistant/components/typing';
 import { defaultSuggestions, respond } from '@/features/assistant/engine';
-import { addMessage, clearChat, updateCard, useMessages, type ChatPayload } from '@/features/assistant/queries';
+import { addMessage, claimProposal, clearChat, dismissProposal, settleProposal, useMessages, type ChatPayload } from '@/features/assistant/queries';
 import { askRemote, remoteEnabled } from '@/features/assistant/remote';
 import type { Card, Reply } from '@/features/assistant/types';
 import { useAssistantContext } from '@/features/assistant/use-context';
@@ -35,6 +35,8 @@ export default function AssistantScreen() {
   const { armed, confirm } = useConfirm();
   const [draft, setDraft] = useDraft('assistant:draft', '');
   const [thinking, setThinking] = useState(false);
+  // Proposals being carried out (`messageId:cardId`): their buttons are disabled meanwhile.
+  const [busy, setBusy] = useState<ReadonlySet<string>>(new Set());
   const scroll = useRef<ScrollView>(null);
   const sentQ = useRef(false);
 
@@ -52,11 +54,12 @@ export default function AssistantScreen() {
       try {
         reply = await askRemote(history, getContext(), i18n.language);
       } catch {
-        // Offline or the function failed: answer on-device and say so.
+        // Offline, timed out (aborted) or the function failed: answer on-device and say so.
         const local = respond(text, getContext(), t);
         reply = { ...local, text: `${local.text}\n\n_${t('assistant.offline_note')}_` };
+      } finally {
+        setThinking(false);
       }
-      setThinking(false);
     } else {
       reply = respond(text, getContext(), t);
     }
@@ -73,15 +76,31 @@ export default function AssistantScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  const onConfirm = async (message: AssistantMessage, card: Extract<Card, { type: 'proposal' }>) => {
-    let ok = false;
+  const setCardBusy = (key: string, on: boolean) =>
+    setBusy((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(key);
+      else next.delete(key);
+      return next;
+    });
+
+  const onConfirm = async (messageId: string, cardId: string) => {
+    const key = `${messageId}:${cardId}`;
+    setCardBusy(key, true);
     try {
-      ok = await runProposal(card.proposal);
-    } catch (e) {
-      console.error('Assistant proposal failed:', e);
-      ok = false;
+      // Claim first (checks the stored card is still pending): a second tap on the same card is ignored.
+      const card = await claimProposal(messageId, cardId);
+      if (!card) return;
+      let ok = false;
+      try {
+        ok = await runProposal(card.proposal);
+      } catch (e) {
+        console.error('Assistant proposal failed:', e);
+      }
+      await settleProposal(messageId, cardId, ok ? 'done' : 'failed');
+    } finally {
+      setCardBusy(key, false);
     }
-    await updateCard(message, card.id, { state: ok ? 'done' : 'failed' });
   };
 
   const last = [...messages].reverse().find((m) => m.role === 'assistant');
@@ -118,7 +137,7 @@ export default function AssistantScreen() {
               <Text variant="bodySm" color="textSecondary" align="center" style={{ maxWidth: 420 }}>{t('assistant.intro')}</Text>
             </Animated.View>
           ) : (
-            messages.map((m) => (m.role === 'user' ? <UserBubble key={m.id} text={m.text} /> : <AssistantBubble key={m.id} message={m} onConfirm={(msg, card) => background(onConfirm(msg, card), 'Confirm proposal')} />))
+            messages.map((m) => (m.role === 'user' ? <UserBubble key={m.id} text={m.text} /> : <AssistantBubble key={m.id} message={m} busy={busy} onConfirm={(card) => background(onConfirm(m.id, card.id), 'Confirm proposal')} />))
           )}
           {thinking ? (
             <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
@@ -184,7 +203,7 @@ function UserBubble({ text }: { text: string }) {
 }
 
 /** Veyra's message: soft gradient accent on the left edge, text, then cards. */
-function AssistantBubble({ message, onConfirm }: { message: AssistantMessage; onConfirm: (m: AssistantMessage, c: Extract<Card, { type: 'proposal' }>) => void }) {
+function AssistantBubble({ message, busy, onConfirm }: { message: AssistantMessage; busy: ReadonlySet<string>; onConfirm: (c: Extract<Card, { type: 'proposal' }>) => void }) {
   const { t } = useTranslation();
   const { colors, spacing, radius } = useTheme();
   const payload = (message.payload as ChatPayload | null) ?? { cards: [], suggestions: [] };
@@ -201,7 +220,13 @@ function AssistantBubble({ message, onConfirm }: { message: AssistantMessage; on
           </View>
         ) : null}
         {payload.cards.map((c, i) => (
-          <CardView key={c.type === 'proposal' ? c.id : `${c.type}${i}`} card={c} onConfirm={(card) => onConfirm(message, card)} onDismiss={(card) => background(updateCard(message, card.id, { state: 'dismissed' }), 'Dismiss proposal')} />
+          <CardView
+            key={c.type === 'proposal' ? c.id : `${c.type}${i}`}
+            card={c}
+            busy={c.type === 'proposal' && busy.has(`${message.id}:${c.id}`)}
+            onConfirm={onConfirm}
+            onDismiss={(card) => background(dismissProposal(message.id, card.id), 'Dismiss proposal')}
+          />
         ))}
         {payload.source === 'claude' ? <Tag label="Claude" tint="focus" icon="zap" /> : null}
         {payload.cards.some((c) => c.type === 'proposal' && c.state === 'pending') ? <Text variant="caption" color="textTertiary">{t('assistant.confirm_hint')}</Text> : null}

@@ -124,13 +124,13 @@ describe('createBill / updateBill / deleteBill / getBill', () => {
 
   it('getBill hides soft-deleted bills', async () => {
     const id = await createBill(billValues());
-    await deleteBill(id);
+    await deleteBill((await getBill(id))!);
     expect(await getBill(id)).toBeUndefined();
   });
 
   it('updates fields', async () => {
     const id = await createBill(billValues());
-    await updateBill(id, billValues({ name: 'Netflix Premium', amount: 599 }));
+    await updateBill((await getBill(id))!, billValues({ name: 'Netflix Premium', amount: 599 }));
     const bill = await getBill(id);
     expect(bill).toMatchObject({ name: 'Netflix Premium', amount: 599 });
   });

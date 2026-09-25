@@ -1,4 +1,5 @@
 import type { Task } from '@/db';
+import { combineDateTime } from '@/lib/date';
 import type { TintName } from '@/theme';
 
 /** DB stores priority as 1 (high) · 2 (normal) · 3 (low). */
@@ -64,4 +65,19 @@ export function attentionTasks<T extends Groupable>(tasks: T[], today: string, l
 }
 
 export const isValidTime = (v: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
-export const isValidDate = (v: string) => /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v);
+/** YYYY-MM-DD that is a real calendar date (rejects e.g. 2026-02-30). */
+export const isValidDate = (v: string) => {
+  if (!/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(v)) return false;
+  const [y, m, d] = v.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.getFullYear() === y && date.getMonth() === m - 1 && date.getDate() === d;
+};
+
+/**
+ * Reminder after moving a task to `date` / `startTime`: follows the new time only if the task
+ * already had a reminder and is still open; a task without a reminder keeps none.
+ */
+export function rescheduledReminderAt(task: Pick<Task, 'reminderAt' | 'isDone'>, date: string, startTime?: string | null): number | null {
+  if (task.reminderAt === null || task.isDone || !startTime) return null;
+  return combineDateTime(date, startTime) ?? null;
+}

@@ -45,9 +45,10 @@ self = { type: 'task', id }
 |---|---|
 | `useRelated(self)` | UI — live list, re-run หลังการเขียน DB ทุกครั้ง; ส่ง `null` สำหรับ record ที่ยังไม่ save |
 | `getRelated(self, lang)` | นอก React (async) — Veyra engine, `ai-prep-meeting` (Phase 4) |
-| `useLinkCandidates(type, q, self)` | picker — ค้นชื่อแบบ substring, ตัด `self` ออก |
-| `addLink(from, to, relation?)` | idempotent — ถ้ามี link (ทิศใดก็ได้) อยู่แล้วคืน id เดิม; relation default = `with` ถ้าปลายทางเป็นคน |
-| `removeLink(linkId)` | soft delete |
+| `useLinkCandidates(type, q, self)` | picker — ค้นชื่อแบบ substring (escape `%` `_` `\`), ตัด `self` ออก |
+| `addLink(from, to, relation?)` | idempotent — ถ้ามี link (ทิศใดก็ได้) อยู่แล้วคืน id เดิม; เช็กและ insert ใน statement เดียว (`INSERT … SELECT … WHERE NOT EXISTS`) กดซ้ำเร็วๆ ก็ไม่เกิด link ซ้ำ; relation default = `with` ถ้าปลายทางเป็นคน |
+| `removeLink(linkId)` | soft delete link นี้ **และทุก link ที่ยัง live ระหว่าง record คู่เดียวกัน** (ทั้งสองทิศ ทุก relation) — เพราะ Related แสดงแถวเดียวต่อ record |
+| `outgoingRefs(from[], { relation?, toType? })` | นอก React (async) — ปลายทางของ link ที่ออกจาก record เหล่านี้ เช่น Notes → Extract ใช้หาสิ่งที่เคยแยกจากโน้ตแล้ว |
 
 Helper ใน `features/contacts/links.ts` (`linkedContactWrites`, `resolveContact`) เป็นเคสเฉพาะ "1 คนต่อ record" — อ่านก่อนแล้ว *คืน* statement ให้ผู้เรียก `commit([...])` รวมกับ insert ของตัวเองใน batch เดียว (ดู `src/db/client.ts` ว่าทำไมไม่ใช้ `db.transaction()`)
 

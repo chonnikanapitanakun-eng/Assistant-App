@@ -1,3 +1,5 @@
+import { useEffect } from 'react';
+import { AppState } from 'react-native';
 import { create } from 'zustand';
 
 import { cancelTimerEnd, scheduleTimerEnd } from '@/features/notifications';
@@ -23,7 +25,7 @@ type FocusStore = {
   pause: () => void;
   resume: () => void;
   extend: (minutes: number) => void;
-  /** Called every second by the screen (and on app focus). */
+  /** Settle a timer whose time is up (idempotent). Driven by useFocusTimerDriver; the screen calls it too. */
   tick: () => void;
   /** Stop early: logs a focus session as not completed if at least a minute was spent. */
   stop: () => void;
@@ -38,10 +40,18 @@ export const BREAK_MINUTES = 5;
  * keeps counting from wall-clock time and its end notification is scheduled with the OS).
  */
 export const useFocus = create<FocusStore>((set, get) => {
+  // Bumped on every timer change. A schedule that resolves after a newer change (pause / stop
+  // while it was in flight) is stale: cancel it instead of storing it, or it would fire anyway.
+  let generation = 0;
   const reschedule = async (timer: T.TimerState) => {
+    const gen = ++generation;
     await cancelTimerEnd(get().notificationId);
     const at = T.endsAt(timer, Date.now());
     const id = at && timer.status === 'running' ? await scheduleTimerEnd(at, i18n.t(timer.phase === 'focus' ? 'focus.notify_focus_title' : 'focus.notify_break_title'), i18n.t(timer.phase === 'focus' ? 'focus.notify_focus_body' : 'focus.notify_break_body')) : null;
+    if (gen !== generation) {
+      await cancelTimerEnd(id);
+      return;
+    }
     set({ notificationId: id });
   };
 
@@ -80,6 +90,7 @@ export const useFocus = create<FocusStore>((set, get) => {
       if (after === before || after.status !== 'finished') return;
       const minutes = Math.round(after.durationMs / T.MIN);
       if (after.phase === 'focus') background(logSession({ taskId: after.taskId, startedAt: after.startedAt, durationMin: minutes, completed: true }), 'Log focus session');
+      generation++; // the end notification already covers this run; drop any schedule still in flight
       set({ timer: { status: 'idle' }, finished: { phase: after.phase, minutes, taskId: after.taskId }, notificationId: null });
     },
     stop: () => {
@@ -88,9 +99,36 @@ export const useFocus = create<FocusStore>((set, get) => {
         const spent = Math.floor(T.elapsed(timer, Date.now()) / T.MIN);
         if (timer.phase === 'focus' && spent >= 1) background(logSession({ taskId: timer.taskId, startedAt: timer.startedAt, durationMin: spent, completed: false }), 'Log focus session');
       }
+      generation++;
       void cancelTimerEnd(notificationId);
       set({ timer: { status: 'idle' }, notificationId: null });
     },
     dismiss: () => set({ finished: null }),
   };
 });
+
+/** When the running timer's time is up (wall clock), or null when nothing is running. */
+const endTime = (s: FocusStore) => (s.timer.status === 'running' ? s.timer.resumedAt + s.timer.durationMs - s.timer.elapsedMs : null);
+
+/**
+ * Settles the focus timer wherever the user is in the app, so a finished session is logged on
+ * time even if they never go back to the focus screen. Mount once, at the root layout.
+ * Fires at the expected end, every second as a backstop (timers drift or get throttled), and
+ * when the app returns to the foreground. `tick` is idempotent, so extra calls are harmless.
+ */
+export function useFocusTimerDriver() {
+  const end = useFocus(endTime);
+  useEffect(() => {
+    if (end === null) return;
+    const tick = () => useFocus.getState().tick();
+    tick();
+    const timeout = setTimeout(tick, Math.max(0, end - Date.now()) + 50);
+    const interval = setInterval(tick, 1000);
+    const sub = AppState.addEventListener('change', (state) => state === 'active' && tick());
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+      sub.remove();
+    };
+  }, [end]);
+}

@@ -1,11 +1,11 @@
-import { and, desc, eq, inArray, isNull, like, or } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, or, sql, type AnyColumn } from 'drizzle-orm';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { areas, calendarEvents, contacts, db, links, notes, tasks, transactions, useDbQuery, type LinkableType } from '@/db';
 import { newId, now } from '@/lib/ids';
 
-import { defaultRelation, describe, otherEnd, refKey, sameRef, sortRelated, type Candidate, type LinkRef, type LinkableRow, type RelatedItem } from './model';
+import { defaultRelation, describe, likeContains, otherEnd, refKey, sameRef, sortRelated, type Candidate, type LinkRef, type LinkableRow, type RelatedItem } from './model';
 
 const tableFor = {
   task: tasks,
@@ -60,6 +60,30 @@ async function toRelated(rows: LinkRow[], self: LinkRef, lang: string): Promise<
   return sortRelated(items);
 }
 
+/** Live links going out of any of `from`, optionally only one relation / target type. One-off read. */
+export async function outgoingRefs(from: LinkRef[], opts: { relation?: string; toType?: LinkableType } = {}): Promise<LinkRef[]> {
+  const byType = new Map<LinkableType, string[]>();
+  for (const r of from) byType.set(r.type, [...(byType.get(r.type) ?? []), r.id]);
+  const out: LinkRef[] = [];
+  for (const [type, ids] of byType) {
+    const rows = await db
+      .select({ toType: links.toType, toId: links.toId })
+      .from(links)
+      .where(
+        and(
+          isNull(links.deletedAt),
+          eq(links.fromType, type),
+          inArray(links.fromId, ids),
+          opts.relation ? eq(links.relation, opts.relation) : undefined,
+          opts.toType ? eq(links.toType, opts.toType) : undefined,
+        ),
+      )
+      .all();
+    out.push(...rows.map((r) => ({ type: r.toType, id: r.toId })));
+  }
+  return out;
+}
+
 /** One-off read (for actions and AI context outside React). */
 export async function getRelated(self: LinkRef, lang = 'th'): Promise<RelatedItem[]> {
   return toRelated(await linksTouching(self).all(), self, lang);
@@ -79,9 +103,12 @@ export function useRelated(self: LinkRef | null): RelatedItem[] {
   return data ?? NONE;
 }
 
+/** `col LIKE pat` with `\` as the escape character (pair with `likeContains`, so `%` and `_` match literally). */
+const like = (col: AnyColumn, pat: string) => sql`${col} like ${pat} escape '\\'`;
+
 /** Records of `type` matching `q` (substring on the name field), newest first. */
 function candidatesQuery(type: LinkableType, q: string, limit: number) {
-  const pat = q ? `%${q}%` : null;
+  const pat = q ? likeContains(q) : null;
   switch (type) {
     case 'task':
       return db.select().from(tasks).where(and(isNull(tasks.deletedAt), pat ? like(tasks.title, pat) : undefined)).orderBy(desc(tasks.updatedAt)).limit(limit);
@@ -138,19 +165,36 @@ function findLink(a: LinkRef, b: LinkRef) {
     .get();
 }
 
-/** Link two records. Idempotent: an existing live link (either direction) is reused. Returns the link id. */
+/** SQL condition on an unqualified `links` row: it joins `a` and `b`, in either direction. */
+const samePair = (a: LinkRef, b: LinkRef) =>
+  sql`((from_type = ${a.type} and from_id = ${a.id} and to_type = ${b.type} and to_id = ${b.id}) or (from_type = ${b.type} and from_id = ${b.id} and to_type = ${a.type} and to_id = ${a.id}))`;
+
+/**
+ * Link two records. Idempotent: an existing live link (either direction) is reused. Returns the link id.
+ * The existence check and the insert are one statement, so two quick taps can't create two live links.
+ */
 export async function addLink(from: LinkRef, to: LinkRef, relation: string = defaultRelation(to.type)): Promise<string> {
   if (sameRef(from, to)) throw new Error('Cannot link a record to itself');
-  const existing = await findLink(from, to);
-  if (existing) return existing.id;
   const id = newId();
   const t = now();
-  await db.insert(links).values({ id, fromType: from.type, fromId: from.id, toType: to.type, toId: to.id, relation, createdAt: t, updatedAt: t });
-  return id;
+  await db.run(sql`
+    insert into links (id, from_type, from_id, to_type, to_id, relation, created_at, updated_at)
+    select ${id}, ${from.type}, ${from.id}, ${to.type}, ${to.id}, ${relation}, ${t}, ${t}
+    where not exists (select 1 from links where deleted_at is null and ${samePair(from, to)})`);
+  return (await findLink(from, to))?.id ?? id;
 }
 
-/** Soft-delete one link (keeps sync history). */
+/**
+ * Unlink: soft-delete the link and every other live link between the same two records (either
+ * direction, any relation). The Related list shows one row per record, so removing only one of
+ * several links would leave the row on screen. Keeps sync history.
+ */
 export async function removeLink(linkId: string) {
   const t = now();
-  await db.update(links).set({ deletedAt: t, updatedAt: t }).where(eq(links.id, linkId));
+  await db.run(sql`
+    update links set deleted_at = ${t}, updated_at = ${t}
+    where deleted_at is null and exists (
+      select 1 from links l where l.id = ${linkId} and (
+        (l.from_type = links.from_type and l.from_id = links.from_id and l.to_type = links.to_type and l.to_id = links.to_id) or
+        (l.from_type = links.to_type and l.from_id = links.to_id and l.to_type = links.from_type and l.to_id = links.from_id)))`);
 }

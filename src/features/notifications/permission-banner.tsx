@@ -1,13 +1,21 @@
 import { useTranslation } from 'react-i18next';
-import { Linking, View } from 'react-native';
+import { Linking, Platform, View } from 'react-native';
 
 import { Button, Icon, Text } from '@/components/ui';
 import { useTheme } from '@/theme';
 
 import { useNotificationPermission } from './use-notification-permission';
 
-/** Asks for notification permission in context. Hidden when granted or status is unknown. */
+/**
+ * Asks for notification permission in context. Hidden when granted or status is unknown, and on
+ * web: reminders are native-only and Linking.openSettings does not exist on react-native-web.
+ */
 export function NotificationPermissionBanner() {
+  if (Platform.OS === 'web') return null;
+  return <PermissionBanner />;
+}
+
+function PermissionBanner() {
   const { t } = useTranslation();
   const { colors, radius, spacing } = useTheme();
   const { state, request } = useNotificationPermission();
