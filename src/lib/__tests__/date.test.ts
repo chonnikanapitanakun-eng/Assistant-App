@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { addDays, combineDateTime, greetingKey, toBuddhistYear, toDateKey, toMonthKey } from '../date';
+import { addDays, combineDateTime, greetingKey, toBuddhistYear, toDateKey, toDateKeyUTC, toMonthKey, utcDayStart } from '../date';
 
 describe('date helpers', () => {
   it('formats date key', () => {
@@ -25,5 +25,11 @@ describe('date helpers', () => {
     expect(combineDateTime(undefined, '14:30')).toBeUndefined();
     expect(combineDateTime('2026-09-24', undefined)).toBeUndefined();
     expect(combineDateTime('not-a-date', '14:30')).toBeUndefined();
+  });
+  it('round-trips UTC day keys', () => {
+    expect(utcDayStart('2026-09-24')).toBe(Date.UTC(2026, 8, 24));
+    expect(utcDayStart('2026-12-31', 1)).toBe(Date.UTC(2027, 0, 1));
+    expect(utcDayStart('nope')).toBeUndefined();
+    expect(toDateKeyUTC(new Date(Date.UTC(2026, 8, 24)))).toBe('2026-09-24');
   });
 });

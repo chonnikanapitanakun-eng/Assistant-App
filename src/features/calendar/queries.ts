@@ -1,19 +1,32 @@
-import { and, asc, eq, gte, isNull, lt } from 'drizzle-orm';
+import { and, asc, eq, gt, isNull, lt } from 'drizzle-orm';
+import { useMemo } from 'react';
 
 import { calendarEvents, commit, contacts, db, links, useDbQuery, useRows, type CalendarEvent } from '@/db';
 import { linkedContactWrites } from '@/features/contacts/links';
 import { getTask, rescheduleTask } from '@/features/tasks/queries';
+import { combineDateTime } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
 
-import { fromDateKey, type CalItem } from './model';
+import { eventInRange, eventRange, fromDateKey, type CalItem } from './model';
 
 const DAY = 86_400_000;
 
-/** Live events starting within [from, to) — dateKeys, `to` exclusive. */
+/**
+ * Live events in the dateKey range [from, to): timed events starting in it, and all-day events
+ * on (or spanning into) those days. All-day rows are stored as UTC midnight, up to ±14h off local
+ * time, so SQL fetches a day-padded overlap window and `eventInRange` does the exact match.
+ */
 export function useEventsBetween(from: string, to: string): CalendarEvent[] {
-  const a = fromDateKey(from).getTime();
-  const b = fromDateKey(to).getTime();
-  return useRows(db.select().from(calendarEvents).where(and(isNull(calendarEvents.deletedAt), gte(calendarEvents.start, a), lt(calendarEvents.start, b))).orderBy(asc(calendarEvents.start))).data;
+  const a = fromDateKey(from).getTime() - DAY;
+  const b = fromDateKey(to).getTime() + DAY;
+  const { data } = useRows(
+    db
+      .select()
+      .from(calendarEvents)
+      .where(and(isNull(calendarEvents.deletedAt), lt(calendarEvents.start, b), gt(calendarEvents.end, a)))
+      .orderBy(asc(calendarEvents.start)),
+  );
+  return useMemo(() => data.filter((e) => eventInRange(e, from, to)), [data, from, to]);
 }
 
 export function useEvent(id: string): { event: CalendarEvent | undefined; contactName: string | null; loaded: boolean } {
@@ -41,19 +54,11 @@ export type EventFormValues = {
   contactName: string | null;
 };
 
-function toRange(v: EventFormValues): { start: number; end: number } {
-  const day = fromDateKey(v.date).getTime();
-  if (v.allDay) return { start: day, end: day + DAY };
-  const [sh, sm] = v.startTime.split(':').map(Number);
-  const [eh, em] = v.endTime.split(':').map(Number);
-  return { start: day + (sh * 60 + sm) * 60_000, end: day + (eh * 60 + em) * 60_000 };
-}
-
 export async function createEvent(v: EventFormValues): Promise<string> {
   const id = newId();
   const t = now();
   await commit([
-    db.insert(calendarEvents).values({ id, externalId: id, source: 'veyra', title: v.title, location: v.location, isAllDay: v.allDay, ...toRange(v), createdAt: t, updatedAt: t }),
+    db.insert(calendarEvents).values({ id, externalId: id, source: 'veyra', title: v.title, location: v.location, isAllDay: v.allDay, ...eventRange(v), createdAt: t, updatedAt: t }),
     ...(await linkedContactWrites('event', id, v.contactName)),
   ]);
   return id;
@@ -61,7 +66,7 @@ export async function createEvent(v: EventFormValues): Promise<string> {
 
 export async function updateEvent(id: string, v: EventFormValues) {
   await commit([
-    db.update(calendarEvents).set({ title: v.title, location: v.location, isAllDay: v.allDay, ...toRange(v), updatedAt: now() }).where(eq(calendarEvents.id, id)),
+    db.update(calendarEvents).set({ title: v.title, location: v.location, isAllDay: v.allDay, ...eventRange(v), updatedAt: now() }).where(eq(calendarEvents.id, id)),
     ...(await linkedContactWrites('event', id, v.contactName)),
   ]);
 }
@@ -78,7 +83,8 @@ export async function moveItem(item: CalItem, start: string, end: string) {
     if (task) await rescheduleTask(task, item.date, start, end);
     return;
   }
-  const day = fromDateKey(item.date).getTime();
-  const at = (hhmm: string) => day + (Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3))) * 60_000;
-  await db.update(calendarEvents).set({ start: at(start), end: at(end), updatedAt: now() }).where(eq(calendarEvents.id, item.id));
+  const s = combineDateTime(item.date, start);
+  const e = combineDateTime(item.date, end);
+  if (s === undefined || e === undefined) return;
+  await db.update(calendarEvents).set({ start: s, end: e, updatedAt: now() }).where(eq(calendarEvents.id, item.id));
 }

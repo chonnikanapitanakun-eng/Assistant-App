@@ -6,6 +6,8 @@ import { background } from '@/lib/background';
 import { combineDateTime } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
 
+import { rescheduledReminderAt } from './model';
+
 export type ChecklistItem = { id: string; text: string; done: boolean };
 
 export function useTasksForDate(date: string) {
@@ -89,9 +91,9 @@ export function getTask(id: string): Promise<Task | undefined> {
   return db.select().from(tasks).where(and(eq(tasks.id, id), isNull(tasks.deletedAt))).get();
 }
 
-/** Move a task to a date (and optional time). Keeps its reminder in sync. */
+/** Move a task to a date (and optional time). An existing reminder follows the new time. */
 export async function rescheduleTask(task: Task, date: string, startTime?: string | null, endTime?: string | null) {
-  const reminderAt = !task.isDone && startTime ? (combineDateTime(date, startTime) ?? null) : null;
+  const reminderAt = rescheduledReminderAt(task, date, startTime);
   await db
     .update(tasks)
     .set({ date, startTime: startTime ?? null, endTime: endTime ?? null, reminderAt, updatedAt: now() })

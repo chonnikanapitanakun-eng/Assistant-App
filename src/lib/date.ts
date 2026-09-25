@@ -6,6 +6,24 @@ export function toDateKey(d: Date = new Date()): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * YYYY-MM-DD from the UTC calendar date. All-day events are stored as UTC midnight
+ * (see `utcDayStart`) so their date does not shift when the device timezone changes.
+ */
+export function toDateKeyUTC(d: Date): string {
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+/** Epoch ms of UTC midnight for a YYYY-MM-DD key, shifted by `addDaysN` whole days. undefined if unparsable. */
+export function utcDayStart(dateKey: string, addDaysN = 0): number | undefined {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  if ([y, m, d].some((n) => !Number.isFinite(n))) return undefined;
+  return Date.UTC(y, m - 1, d + addDaysN);
+}
+
 /** YYYY-MM สำหรับ query รายเดือน */
 export function toMonthKey(d: Date = new Date()): string {
   return toDateKey(d).slice(0, 7);

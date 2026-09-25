@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { attentionTasks, groupTasks, isValidDate, isValidTime, priorityLevel, todayProgress } from '../model';
+import { attentionTasks, groupTasks, isValidDate, isValidTime, priorityLevel, rescheduledReminderAt, todayProgress } from '../model';
 
 const today = '2026-09-24';
 let n = 0;
@@ -63,5 +63,22 @@ describe('helpers', () => {
   it('validates time and date', () => {
     expect([isValidTime('09:30'), isValidTime('24:00'), isValidTime('9:30')]).toEqual([true, false, false]);
     expect([isValidDate('2026-09-24'), isValidDate('2026-13-01')]).toEqual([true, false]);
+  });
+  it('rejects impossible calendar dates', () => {
+    expect([isValidDate('2026-02-30'), isValidDate('2026-02-29'), isValidDate('2028-02-29'), isValidDate('2026-04-31'), isValidDate('2026-12-31')]).toEqual([false, false, true, false, true]);
+  });
+});
+
+describe('rescheduledReminderAt', () => {
+  const later = new Date(2026, 8, 30, 9, 0).getTime();
+  it('moves an existing reminder to the new start time', () => {
+    expect(rescheduledReminderAt({ reminderAt: later, isDone: false }, '2026-10-01', '14:30')).toBe(new Date(2026, 9, 1, 14, 30).getTime());
+  });
+  it('does not add a reminder the task never had', () => {
+    expect(rescheduledReminderAt({ reminderAt: null, isDone: false }, '2026-10-01', '14:30')).toBeNull();
+  });
+  it('drops the reminder when done or untimed', () => {
+    expect(rescheduledReminderAt({ reminderAt: later, isDone: true }, '2026-10-01', '14:30')).toBeNull();
+    expect(rescheduledReminderAt({ reminderAt: later, isDone: false }, '2026-10-01', null)).toBeNull();
   });
 });
