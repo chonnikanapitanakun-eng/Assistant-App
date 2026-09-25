@@ -7,7 +7,7 @@ import { create } from 'zustand';
 
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Card, Chip, Icon, IconButton, PressableScale, Screen, Text, Toggle, type IconName } from '@/components/ui';
-import { authEnabled, signInWithGoogle, signOut, useSession } from '@/features/auth';
+import { authEnabled, signInWithApple, signInWithGoogle, signOut, useSession, type SignInResult } from '@/features/auth';
 import { completeGoogleConnect, connectGoogle, disconnectGoogle, gcalEnabled, syncGoogleCalendars, useCalendarAccounts, type AuthReturn, type ConnectResult } from '@/features/google-calendar';
 import { useNotificationPermission } from '@/features/notifications';
 import { accountDeleteEnabled, deleteAccount, eraseLocalData, exportAllData, PRIVACY_CONTACT_EMAIL } from '@/features/privacy';
@@ -147,12 +147,12 @@ function AccountSection() {
     );
   }
 
-  const doSignIn = async () => {
+  const doSignIn = async (signIn: () => Promise<SignInResult>) => {
     setSigningIn(true);
     setNotice(null);
     try {
-      const r = await signInWithGoogle();
-      if (r && 'error' in r) setNotice({ text: t('sync.error_failed'), error: true });
+      const r = await signIn();
+      if (r && 'error' in r) setNotice({ text: t(r.error === 'apple_unavailable' ? 'sync.error_apple_unavailable' : 'sync.error_failed'), error: true });
     } catch (e) {
       console.error('Sign-in failed:', e);
       setNotice({ text: t('sync.error_failed'), error: true });
@@ -163,8 +163,9 @@ function AccountSection() {
   if (!session) {
     return (
       <Section title={t('sync.title')} hint={t('sync.hint')}>
-        <View style={{ paddingVertical: spacing.sm }}>
-          <Button variant="secondary" icon="log-in" label={signingIn ? t('gcal.syncing') : t('sync.sign_in')} disabled={signingIn} onPress={() => void doSignIn()} />
+        <View style={{ gap: spacing.sm, paddingVertical: spacing.sm }}>
+          <Button variant="secondary" icon="log-in" label={signingIn ? t('gcal.syncing') : t('sync.sign_in_apple')} disabled={signingIn} onPress={() => void doSignIn(signInWithApple)} />
+          <Button variant="secondary" icon="log-in" label={signingIn ? t('gcal.syncing') : t('sync.sign_in')} disabled={signingIn} onPress={() => void doSignIn(signInWithGoogle)} />
         </View>
         {notice ? (
           <Text variant="caption" color={notice.error ? 'danger' : 'success'} accessibilityLiveRegion="polite" style={{ paddingBottom: spacing.sm }}>

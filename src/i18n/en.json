@@ -742,13 +742,15 @@
     "hint": "Sign in to keep your tasks, notes, money and more the same across every device you use.",
     "unavailable": "Needs Veyra's cloud connection (Supabase), which isn't set up in this build.",
     "sign_in": "Sign in with Google",
+    "sign_in_apple": "Sign in with Apple",
     "signed_in": "Signed in",
     "sync_now": "Sync now",
     "synced_at": "Synced {{time}}",
     "not_synced": "Not synced yet",
     "sync_error": "Last sync failed — try Sync now",
     "sign_out": "Sign out",
-    "error_failed": "Sign-in failed. Check your connection and try again."
+    "error_failed": "Sign-in failed. Check your connection and try again.",
+    "error_apple_unavailable": "Sign in with Apple isn't available on this device."
   },
   "db": {
     "locked_title": "Veyra is open in another tab",

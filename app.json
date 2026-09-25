@@ -11,7 +11,8 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "supportsTablet": true,
-      "bundleIdentifier": "com.proud.assistant"
+      "bundleIdentifier": "com.proud.assistant",
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.proud.assistant",
@@ -47,6 +48,7 @@
         }
       ],
       "expo-web-browser",
+      "expo-apple-authentication",
       [
         "expo-image-picker",
         {

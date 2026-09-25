@@ -13,7 +13,7 @@ major_version = 17
 
 [auth]
 enabled = true
-# Google sign-in (features/auth) shipped in Phase 2. Enable the Google provider in the dashboard
+# Apple / Google sign-in (features/auth) shipped in Phase 2. Enable both providers in the dashboard
 # too (Authentication → Providers) — this file only carries settings the CLI can push.
 
 [edge_runtime]

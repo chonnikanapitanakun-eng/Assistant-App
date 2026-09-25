@@ -115,7 +115,7 @@ npx supabase functions deploy gcal
 
 ## Cloud sync (P2) — Supabase Auth + sync tables
 
-เข้าสู่ระบบด้วย Google (`src/features/auth`) แล้วทุกตารางที่มี base columns สำหรับ sync (`src/db/schema.ts`) จะ push/pull ข้อมูลไปมากับ Postgres โดยตรงผ่าน Supabase client ของแอป (ไม่ผ่าน Edge Function — RLS คุมสิทธิ์แทน) ดู `src/features/sync` (push/pull ทีละแถวที่เปลี่ยน, last-write-wins ด้วย `updatedAt`) — ยังไม่มี Apple Sign In
+เข้าสู่ระบบด้วย Google (`src/features/auth`) แล้วทุกตารางที่มี base columns สำหรับ sync (`src/db/schema.ts`) จะ push/pull ข้อมูลไปมากับ Postgres โดยตรงผ่าน Supabase client ของแอป (ไม่ผ่าน Edge Function — RLS คุมสิทธิ์แทน) ดู `src/features/sync` (push/pull ทีละแถวที่เปลี่ยน, last-write-wins ด้วย `updatedAt`) — หรือ Sign in with Apple (`src/features/auth/apple.ts`)
 
 **ตาราง**: areas, contacts, routines, tasks, notes, wallets, categories, transactions, recurring_bills, checkins, focus_sessions, assistant_messages, links (`supabase/migrations/20260925010000_sync_tables.sql`) — `calendar_events`/`calendar_accounts` ไม่รวม เพราะซิงก์ผ่าน `gcal` อยู่แล้ว
 
@@ -123,6 +123,7 @@ npx supabase functions deploy gcal
 
 1. Supabase Dashboard → **Authentication → Providers → Google** → ใส่ Client ID / Client Secret **ตัวเดียวกับ `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` ของ `gcal`** — ตอน sign in แอปขอสิทธิ์ `calendar.readonly` ในหน้า consent เดียวกัน แล้วส่ง refresh token ที่ได้ไปให้ `gcal` (action `link`) ผูกปฏิทินของ email นั้นให้ทันที (ข้ามถ้าเครื่องนี้ผูก email นั้นไว้แล้ว) — ถ้าใช้ client คนละตัว Google จะปฏิเสธ token (`client_mismatch`) ต้องไปกด "เพิ่มบัญชี" ใน Settings เอง ส่วน email อื่นๆ เพิ่มที่ Settings → Google Calendar เหมือนเดิม
    - ใน Google Cloud Console เพิ่ม Authorized redirect URI ของ Supabase Auth ด้วย: `https://<project-ref>.supabase.co/auth/v1/callback`
+   - **Apple** (Authentication → Providers → Apple): iOS ใช้หน้าต่าง Apple ของระบบ (`expo-apple-authentication`) แล้วส่ง identity token ให้ `signInWithIdToken` — ใส่ bundle id `com.proud.assistant` ใน *Client IDs*; Android / เว็บใช้ OAuth ผ่าน Supabase — ต้องมี Services ID + Team ID + Key ID + private key (.p8) และเพิ่ม `https://<project-ref>.supabase.co/auth/v1/callback` เป็น Return URL ของ Services ID ใน Apple Developer; เปิด capability *Sign in with Apple* ของ App ID (`app.json` มี `ios.usesAppleSignIn` + plugin `expo-apple-authentication` แล้ว → ต้อง development build ใหม่)
 2. **Authentication → URL Configuration → Redirect URLs** → เพิ่ม `veyra://settings`, `http://localhost:8081/settings` (dev), และ URL เว็บ `…/settings`
 3. Push ตาราง sync:
 
