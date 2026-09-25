@@ -14,6 +14,7 @@ import { accountDeleteEnabled, deleteAccount, eraseLocalData, exportAllData, PRI
 import { DEFAULT_BRIEFING } from '@/features/profile/store';
 import { setLanguage } from '@/features/profile/language';
 import { ALL_INTERESTS, useProfile, type Interest } from '@/features/profile/store';
+import { authenticateWithBiometrics, biometricLabelKey, useBiometricSupport, useSecurity } from '@/features/security';
 import { runSync, useSyncStatus } from '@/features/sync';
 import type { CalendarAccount } from '@/db';
 import { useAsyncAction } from '@/lib/use-async-action';
@@ -49,6 +50,8 @@ export default function SettingsScreen() {
       </View>
 
       <AccountSection />
+
+      {Platform.OS !== 'web' ? <SecuritySection /> : null}
 
       <Section title={t('settings.profile')}>
         <Row icon="user" label={t('settings.name')}>
@@ -331,6 +334,53 @@ function FxRatesSection() {
           </Row>
         </View>
       ))}
+    </Section>
+  );
+}
+
+/** App lock: PIN required to open Veyra, with optional Face ID / Touch ID as a shortcut (P2-09). */
+function SecuritySection() {
+  const { t } = useTranslation();
+  const pinSet = useSecurity((s) => s.pinHash !== null);
+  const biometricEnabled = useSecurity((s) => s.biometricEnabled);
+  const setBiometricEnabled = useSecurity((s) => s.setBiometricEnabled);
+  const disable = useSecurity((s) => s.disable);
+  const { available, kind } = useBiometricSupport();
+  const { armed, confirm } = useConfirm();
+
+  const toggleBiometric = async (on: boolean) => {
+    if (!on) return setBiometricEnabled(false);
+    const ok = await authenticateWithBiometrics(t('security.enable_prompt'));
+    if (ok) setBiometricEnabled(true);
+  };
+
+  return (
+    <Section title={t('security.title')} hint={t('security.hint')}>
+      <Row icon="lock" label={t('security.app_lock')} sub={pinSet ? t('security.app_lock_on') : t('security.app_lock_off')}>
+        {pinSet ? (
+          <Button size="sm" variant="ghost" label={armed ? t('security.confirm_turn_off') : t('security.turn_off')} onPress={() => confirm(disable)} />
+        ) : (
+          <Toggle value={false} onValueChange={() => router.push({ pathname: '/security-pin', params: { mode: 'create' } })} label={t('security.app_lock')} />
+        )}
+      </Row>
+      {pinSet ? (
+        <>
+          <Divider />
+          <PressableScale accessibilityRole="button" accessibilityLabel={t('security.change_pin')} onPress={() => router.push({ pathname: '/security-pin', params: { mode: 'change' } })}>
+            <Row icon="key" label={t('security.change_pin')}>
+              <Icon name="chevron-right" size={18} color="textTertiary" />
+            </Row>
+          </PressableScale>
+          {available ? (
+            <>
+              <Divider />
+              <Row icon="smile" label={t(biometricLabelKey(kind))} sub={t('security.biometric_hint')}>
+                <Toggle value={biometricEnabled} onValueChange={(v) => void toggleBiometric(v)} label={t(biometricLabelKey(kind))} />
+              </Row>
+            </>
+          ) : null}
+        </>
+      ) : null}
     </Section>
   );
 }

@@ -16,6 +16,7 @@ import { useFocusTimerDriver } from '@/features/focus/store';
 import { GoogleCalendarAutoSync } from '@/features/google-calendar';
 import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
 import { useRoutineTasks } from '@/features/routines/queries';
+import { LockGate } from '@/features/security';
 import { SyncAutoRun } from '@/features/sync';
 import { useTheme } from '@/theme';
 
@@ -79,9 +80,11 @@ export default function RootLayout() {
             <Stack.Screen name="more" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="focus" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
             <Stack.Screen name="review" />
+            <Stack.Screen name="security-pin" />
           </Stack>
           <GoogleCalendarAutoSync />
           <SyncAutoRun />
+          <LockGate />
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </ThemeProvider>
       </QueryClientProvider>

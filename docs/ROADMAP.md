@@ -46,7 +46,7 @@
 - [x] Google Calendar import (read-only, หลายบัญชี) — `supabase/functions/gcal`, `src/features/google-calendar`
 - [x] Supabase Auth (Google) + sync engine — `src/features/auth`, `src/features/sync`
 - [x] Supabase Auth (Apple) — `src/features/auth/apple.ts` (iOS: ระบบ Apple sheet → `signInWithIdToken`; Android/web: Supabase OAuth)
-- [ ] PIN / Face ID
+- [x] PIN / Face ID
 
 ## Phase 3 — จุดขายไทย
 

@@ -7,13 +7,14 @@ import { signOut } from '@/features/auth';
 import { clearCalendarSyncState, disconnectGoogle, forgetDeviceKey } from '@/features/google-calendar';
 import { removeKey } from '@/features/profile/storage';
 import { defaultProfile, PROFILE_KEY, useProfile } from '@/features/profile/store';
+import { useSecurity } from '@/features/security/store';
 import { clearPullCursors, useSyncStatus } from '@/features/sync';
 
 import { EXPORT_TABLES } from './export';
 
 /**
  * PDPA erasure on this device: sign out (so nothing below is pushed to the cloud), drop every
- * row and every kv-store key, cancel scheduled reminders, then put the default areas / categories
+ * row and every kv-store key, turn off the app lock (PIN), cancel scheduled reminders, then put the default areas / categories
  * / wallet back so the app is usable, and send the user through onboarding again.
  *
  * Cloud data is untouched — that is `deleteAccount` (account.ts). Signing out first matters:
@@ -33,6 +34,9 @@ export async function eraseLocalData({ local = false } = {}): Promise<void> {
   removeKey(PROFILE_KEY);
   useProfile.setState(defaultProfile());
   useSyncStatus.setState({ busy: false, lastSyncedAt: null, error: null });
+  // The app-lock PIN lives in the keychain (security/storage.ts), not kv-store: turn it off too, so
+  // whoever onboards next is not locked out by the previous user's PIN.
+  useSecurity.getState().disable();
 
   await seedIfEmpty(db);
 }

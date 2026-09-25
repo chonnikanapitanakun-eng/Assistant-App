@@ -64,6 +64,12 @@
           "microphonePermission": false,
           "recordAudioAndroid": false
         }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Veyra to use Face ID to unlock the app."
+        }
       ]
     ],
     "experiments": {
