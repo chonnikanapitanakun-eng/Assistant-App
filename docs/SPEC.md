@@ -209,6 +209,7 @@ calendar_events external_id, source (google), calendar_name, title,
 
 links           from_type, from_id, to_type, to_id, relation
                 (task↔contact, task↔event, transaction↔contact, note↔task, ...)
+                relation: with | extracted | related — query pattern + UI: docs/LINKS.md
 
 fts_index       (SQLite FTS5 virtual table) type, id, title, body, tags
 ```

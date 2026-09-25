@@ -6,6 +6,7 @@ import { View } from 'react-native';
 import { Button, Icon, PressableScale, Tag, Text } from '@/components/ui';
 import type { Category, RecurringBill } from '@/db';
 import { formatMoney } from '@/lib/currency';
+import { background } from '@/lib/background';
 import { toDateKey } from '@/lib/date';
 import { useTheme, type TintName } from '@/theme';
 
@@ -36,8 +37,8 @@ export function BillRow({ bill, category, compact }: { bill: RecurringBill; cate
           ? t('money.due_tomorrow')
           : t('money.due_on', { date: new Date(`${due}T00:00:00`).toLocaleDateString(i18n.language === 'th' ? 'th-TH' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) });
 
-  const pay = () => setNoWallet(!markBillPaid(bill));
-  const undo = () => undoBillPaid(bill);
+  const pay = () => background(markBillPaid(bill).then((paid) => setNoWallet(!paid)), 'Mark bill paid');
+  const undo = () => background(undoBillPaid(bill), 'Undo bill payment');
 
   return (
     <View style={{ gap: spacing.sm, paddingVertical: spacing.xs }}>

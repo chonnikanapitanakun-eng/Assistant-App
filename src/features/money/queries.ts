@@ -1,36 +1,31 @@
 import { and, asc, desc, eq, isNull } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 
-import { categories, db, recurringBills, transactions, wallets, type Category, type RecurringBill, type Transaction, type Wallet } from '@/db';
+import { categories, commit, db, recurringBills, transactions, useRows, wallets, type Category, type RecurringBill, type Transaction, type Wallet } from '@/db';
 import { toDateKey } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
 
 import { nextDueDate } from './model';
 
 export function useWallets(): Wallet[] {
-  const { data } = useLiveQuery(db.select().from(wallets).where(isNull(wallets.deletedAt)).orderBy(asc(wallets.sortOrder)));
-  return data;
+  return useRows(db.select().from(wallets).where(isNull(wallets.deletedAt)).orderBy(asc(wallets.sortOrder))).data;
 }
 
 /** All live transactions, newest first. Money screens filter by month/currency in memory. */
 export function useTransactions(): Transaction[] {
-  const { data } = useLiveQuery(db.select().from(transactions).where(isNull(transactions.deletedAt)).orderBy(desc(transactions.date), desc(transactions.createdAt)));
-  return data;
+  return useRows(db.select().from(transactions).where(isNull(transactions.deletedAt)).orderBy(desc(transactions.date), desc(transactions.createdAt))).data;
 }
 
 export function useCategories(): Category[] {
-  const { data } = useLiveQuery(db.select().from(categories).where(isNull(categories.deletedAt)).orderBy(asc(categories.sortOrder)));
-  return data;
+  return useRows(db.select().from(categories).where(isNull(categories.deletedAt)).orderBy(asc(categories.sortOrder))).data;
 }
 
 export function useBills(): RecurringBill[] {
-  const { data } = useLiveQuery(db.select().from(recurringBills).where(isNull(recurringBills.deletedAt)));
-  return data;
+  return useRows(db.select().from(recurringBills).where(isNull(recurringBills.deletedAt))).data;
 }
 
 function useOne<T>(table: typeof transactions | typeof recurringBills | typeof wallets | typeof categories, id: string): { row: T | undefined; loaded: boolean } {
-  const { data, updatedAt } = useLiveQuery(db.select().from(table).where(and(eq(table.id, id), isNull(table.deletedAt))), [id]);
-  return { row: data[0] as T | undefined, loaded: updatedAt !== undefined };
+  const { data, loaded } = useRows<unknown>(db.select().from(table).where(and(eq(table.id, id), isNull(table.deletedAt))));
+  return { row: data[0] as T | undefined, loaded };
 }
 export const useTransaction = (id: string) => useOne<Transaction>(transactions, id);
 export const useBill = (id: string) => useOne<RecurringBill>(recurringBills, id);
@@ -55,23 +50,23 @@ export type TransactionFormValues = {
 };
 
 /** Currency always follows the source wallet. */
-function currencyOf(walletId: string): string {
-  return db.select({ c: wallets.currency }).from(wallets).where(eq(wallets.id, walletId)).get()?.c ?? 'THB';
+async function currencyOf(walletId: string): Promise<string> {
+  return (await db.select({ c: wallets.currency }).from(wallets).where(eq(wallets.id, walletId)).get())?.c ?? 'THB';
 }
 
-export function createTransaction(v: TransactionFormValues): string {
+export async function createTransaction(v: TransactionFormValues): Promise<string> {
   const id = newId();
-  db.insert(transactions).values({ id, ...v, currency: currencyOf(v.walletId), source: 'manual', ...stamp() }).run();
+  await db.insert(transactions).values({ id, ...v, currency: await currencyOf(v.walletId), source: 'manual', ...stamp() });
   return id;
 }
 
-export function updateTransaction(id: string, v: TransactionFormValues) {
-  db.update(transactions).set({ ...v, currency: currencyOf(v.walletId), updatedAt: now() }).where(eq(transactions.id, id)).run();
+export async function updateTransaction(id: string, v: TransactionFormValues) {
+  await db.update(transactions).set({ ...v, currency: await currencyOf(v.walletId), updatedAt: now() }).where(eq(transactions.id, id));
 }
 
-export function deleteTransaction(id: string) {
+export async function deleteTransaction(id: string) {
   const t = now();
-  db.update(transactions).set({ deletedAt: t, updatedAt: t }).where(eq(transactions.id, id)).run();
+  await db.update(transactions).set({ deletedAt: t, updatedAt: t }).where(eq(transactions.id, id));
 }
 
 // ── Bills ──────────────────────────────────────────────────────────────
@@ -89,19 +84,19 @@ export type BillFormValues = {
   isSubscription: boolean;
 };
 
-export function createBill(v: BillFormValues): string {
+export async function createBill(v: BillFormValues): Promise<string> {
   const id = newId();
-  db.insert(recurringBills).values({ id, ...v, ...stamp() }).run();
+  await db.insert(recurringBills).values({ id, ...v, ...stamp() });
   return id;
 }
 
-export function updateBill(id: string, v: BillFormValues) {
-  db.update(recurringBills).set({ ...v, updatedAt: now() }).where(eq(recurringBills.id, id)).run();
+export async function updateBill(id: string, v: BillFormValues) {
+  await db.update(recurringBills).set({ ...v, updatedAt: now() }).where(eq(recurringBills.id, id));
 }
 
-export function deleteBill(id: string) {
+export async function deleteBill(id: string) {
   const t = now();
-  db.update(recurringBills).set({ deletedAt: t, updatedAt: t }).where(eq(recurringBills.id, id)).run();
+  await db.update(recurringBills).set({ deletedAt: t, updatedAt: t }).where(eq(recurringBills.id, id));
 }
 
 /**
@@ -109,56 +104,56 @@ export function deleteBill(id: string) {
  * wallet in the same currency), then advance `paidThrough`. Returns false when
  * there is no wallet to pay from.
  */
-export function markBillPaid(bill: RecurringBill): boolean {
-  const walletList = db.select().from(wallets).where(isNull(wallets.deletedAt)).orderBy(asc(wallets.sortOrder)).all();
+export async function markBillPaid(bill: RecurringBill): Promise<boolean> {
+  const walletList = await db.select().from(wallets).where(isNull(wallets.deletedAt)).orderBy(asc(wallets.sortOrder)).all();
   const wallet = walletList.find((w) => w.id === bill.walletId) ?? walletList.find((w) => w.currency === bill.currency);
   if (!wallet) return false;
   const due = nextDueDate(bill);
   const txId = newId();
-  db.transaction((tx) => {
-    tx.insert(transactions)
-      .values({ id: txId, walletId: wallet.id, amount: bill.amount, currency: wallet.currency, type: 'expense', categoryId: bill.categoryId, date: toDateKey(), note: bill.name, source: 'manual', ...stamp() })
-      .run();
-    tx.update(recurringBills).set({ paidThrough: due, previousPaidThrough: bill.paidThrough, lastPaymentId: txId, updatedAt: now() }).where(eq(recurringBills.id, bill.id)).run();
-  });
+  await commit([
+    db
+      .insert(transactions)
+      .values({ id: txId, walletId: wallet.id, amount: bill.amount, currency: wallet.currency, type: 'expense', categoryId: bill.categoryId, date: toDateKey(), note: bill.name, source: 'manual', ...stamp() }),
+    db.update(recurringBills).set({ paidThrough: due, previousPaidThrough: bill.paidThrough, lastPaymentId: txId, updatedAt: now() }).where(eq(recurringBills.id, bill.id)),
+  ]);
   return true;
 }
 
 /** Undo the last "Mark paid": remove its expense and restore the previous paid-through date. */
-export function undoBillPaid(bill: RecurringBill) {
+export async function undoBillPaid(bill: RecurringBill) {
   if (!bill.lastPaymentId) return;
   const t = now();
-  db.transaction((tx) => {
-    tx.update(transactions).set({ deletedAt: t, updatedAt: t }).where(eq(transactions.id, bill.lastPaymentId!)).run();
-    tx.update(recurringBills).set({ paidThrough: bill.previousPaidThrough, lastPaymentId: null, previousPaidThrough: null, updatedAt: t }).where(eq(recurringBills.id, bill.id)).run();
-  });
+  await commit([
+    db.update(transactions).set({ deletedAt: t, updatedAt: t }).where(eq(transactions.id, bill.lastPaymentId)),
+    db.update(recurringBills).set({ paidThrough: bill.previousPaidThrough, lastPaymentId: null, previousPaidThrough: null, updatedAt: t }).where(eq(recurringBills.id, bill.id)),
+  ]);
 }
 
 // ── Wallets & budgets ──────────────────────────────────────────────────
 
 export type WalletFormValues = { name: string; type: Wallet['type']; currency: string; balance: number };
 
-export function createWallet(v: WalletFormValues): string {
+export async function createWallet(v: WalletFormValues): Promise<string> {
   const id = newId();
-  const order = db.select({ o: wallets.sortOrder }).from(wallets).orderBy(desc(wallets.sortOrder)).limit(1).get()?.o ?? 0;
-  db.insert(wallets).values({ id, ...v, sortOrder: order + 1, ...stamp() }).run();
+  const order = (await db.select({ o: wallets.sortOrder }).from(wallets).orderBy(desc(wallets.sortOrder)).limit(1).get())?.o ?? 0;
+  await db.insert(wallets).values({ id, ...v, sortOrder: order + 1, ...stamp() });
   return id;
 }
 
-export function updateWallet(id: string, v: WalletFormValues) {
-  db.update(wallets).set({ ...v, updatedAt: now() }).where(eq(wallets.id, id)).run();
+export async function updateWallet(id: string, v: WalletFormValues) {
+  await db.update(wallets).set({ ...v, updatedAt: now() }).where(eq(wallets.id, id));
 }
 
 /** Hides the account; its transactions are kept for history. */
-export function deleteWallet(id: string) {
+export async function deleteWallet(id: string) {
   const t = now();
-  db.update(wallets).set({ deletedAt: t, updatedAt: t }).where(eq(wallets.id, id)).run();
+  await db.update(wallets).set({ deletedAt: t, updatedAt: t }).where(eq(wallets.id, id));
 }
 
-export function setBudget(categoryId: string, amount: number | null) {
-  db.update(categories).set({ budgetMonthly: amount, updatedAt: now() }).where(eq(categories.id, categoryId)).run();
+export async function setBudget(categoryId: string, amount: number | null) {
+  await db.update(categories).set({ budgetMonthly: amount, updatedAt: now() }).where(eq(categories.id, categoryId));
 }
 
-export function getBill(id: string): RecurringBill | undefined {
+export function getBill(id: string): Promise<RecurringBill | undefined> {
   return db.select().from(recurringBills).where(and(eq(recurringBills.id, id), isNull(recurringBills.deletedAt))).get();
 }

@@ -202,7 +202,8 @@
     "close": "ปิด",
     "coming_soon": "กำลังออกแบบหน้านี้",
     "coming_soon_body": "หน้านี้กำลังจะมา ลองใช้หน้าหลักก่อนได้เลย",
-    "back": "กลับ"
+    "back": "กลับ",
+    "save_failed": "บันทึกไม่สำเร็จ ลองอีกครั้ง"
   },
   "nav": {
     "home": "หน้าหลัก",
@@ -546,5 +547,44 @@
     "replay": "ดูแนะนำการใช้งานอีกครั้ง",
     "replay_body": "ตั้งค่าใหม่ทีละขั้น ข้อมูลเดิมไม่หาย",
     "version": "เวอร์ชัน {{version}}"
+  },
+  "links": {
+    "title": "เกี่ยวข้องกับ",
+    "add": "เชื่อมโยง",
+    "search_placeholder": "พิมพ์ชื่อเพื่อค้นหา…",
+    "empty": "ยังไม่ได้เชื่อมกับอะไร",
+    "no_results": "ไม่พบรายการ",
+    "open": "เปิด {{title}}",
+    "remove": "ยกเลิกการเชื่อม {{title}}",
+    "link_to": "เชื่อมกับ {{title}}",
+    "type_task": "งาน",
+    "type_event": "นัดหมาย",
+    "type_note": "โน้ต",
+    "type_transaction": "รายการเงิน",
+    "type_contact": "ผู้ติดต่อ",
+    "type_area": "หมวด",
+    "rel_with": "กับ",
+    "rel_with_in": "มีส่วนร่วม",
+    "rel_extracted": "แยกจากโน้ตนี้",
+    "rel_extracted_in": "จากโน้ต",
+    "rel_related": "เกี่ยวข้อง"
+  },
+  "search": {
+    "title": "ค้นหา",
+    "placeholder": "ค้นงาน โน้ต รายการเงิน นัด…",
+    "hint_title": "ค้นได้ทุกอย่าง",
+    "hint_body": "ค้นทีเดียวเจอทั้งงาน นัด โน้ต รายการเงิน และผู้ติดต่อ",
+    "no_results": "ไม่พบผลลัพธ์",
+    "no_results_body": "ลองคำอื่น หรือพิมพ์แค่บางส่วนของคำ",
+    "all": "ทั้งหมด",
+    "group_task": "งาน",
+    "group_event": "นัดหมาย",
+    "group_note": "โน้ต",
+    "group_transaction": "การเงิน",
+    "group_contact": "ผู้ติดต่อ",
+    "see_all": "ดูทั้งหมด {{count}}",
+    "results_one": "{{count}} รายการ",
+    "results_other": "{{count}} รายการ",
+    "all_day": "ทั้งวัน"
   }
 }

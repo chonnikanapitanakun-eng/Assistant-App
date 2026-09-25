@@ -30,8 +30,8 @@
 - [ ] Notes: CRUD, markdown, tags, pin
 - [ ] Money: wallets, transactions, categories, สรุปเดือน
 - [ ] Contacts + Areas: CRUD, ผูกกับ record
-- [ ] Links table + UI "เกี่ยวข้องกับ"
-- [ ] Universal search
+- [x] Links table + UI "เกี่ยวข้องกับ" (docs/LINKS.md)
+- [x] Universal search (FTS5 trigram, grouped by type)
 - [x] Quick Capture: text → Supabase Edge Function `ai-capture` → preview → save (Claude structured output + `ai_usage` log; local parser เป็น fallback)
 - [ ] Voice capture (expo-speech-recognition)
 

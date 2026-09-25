@@ -17,6 +17,7 @@ import { useFocusSessions } from '@/features/focus/queries';
 import { BREAK_MINUTES, FOCUS_PRESETS, useFocus } from '@/features/focus/store';
 import { clock, MIN, progress, remaining } from '@/features/focus/timer';
 import { toggleTaskDone, useAllTasks } from '@/features/tasks/queries';
+import { background } from '@/lib/background';
 import { toDateKey } from '@/lib/date';
 import { useBreakpoint, useTheme } from '@/theme';
 
@@ -205,7 +206,7 @@ function FinishedView({ task }: { task?: Task }) {
       <Mascot pose={wasFocus ? 'celebrate' : 'calm'} size={140} />
       <Text variant="title" tone={ink.fg} align="center">{wasFocus ? t('focus.done_title', { count: finished.minutes }) : t('focus.break_done_title')}</Text>
       <Text variant="body" tone={ink.fg2} align="center">{wasFocus ? t('focus.done_body') : t('focus.break_done_body')}</Text>
-      {wasFocus && task && !task.isDone ? <PillButton icon="check" label={t('focus.mark_task_done', { title: task.title })} onPress={() => toggleTaskDone(task)} /> : null}
+      {wasFocus && task && !task.isDone ? <PillButton icon="check" label={t('focus.mark_task_done', { title: task.title })} onPress={() => background(toggleTaskDone(task), 'Toggle task')} /> : null}
       {wasFocus && task?.isDone ? <Text variant="label" tone={ink.fg2}>✓ {t('focus.task_marked_done')}</Text> : null}
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.sm }}>
         {wasFocus ? <PillButton icon="coffee" label={t('focus.take_break', { count: BREAK_MINUTES })} primary onPress={() => start('break')} /> : null}

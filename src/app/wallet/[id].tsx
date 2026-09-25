@@ -10,6 +10,7 @@ import { walletIcon } from '@/features/money/category-icon';
 import { walletBalance } from '@/features/money/model';
 import { createWallet, deleteWallet, updateWallet, useTransactions, useWallet } from '@/features/money/queries';
 import { currencySymbol, formatMoney, parseAmount, supportedCurrencies } from '@/lib/currency';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme } from '@/theme';
 
@@ -30,6 +31,7 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
   const input = useInputStyle();
   const txs = useTransactions();
   const { armed, confirm } = useConfirm();
+  const { busy, failed, run } = useAsyncAction();
 
   const [name, setName] = useState(existing?.name ?? '');
   const [type, setType] = useState<Wallet['type']>(existing?.type ?? 'bank');
@@ -47,9 +49,11 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
       return;
     }
     const values = { name: name.trim(), type, currency, balance: parsed };
-    if (existing) updateWallet(existing.id, values);
-    else createWallet(values);
-    onClose();
+    void run(async () => {
+      if (existing) await updateWallet(existing.id, values);
+      else await createWallet(values);
+      onClose();
+    });
   };
 
   return (
@@ -59,9 +63,18 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
       subtitle={existing ? t('money.current_balance', { amount: formatMoney(walletBalance(existing, txs), existing.currency, 'en-GB') }) : undefined}
       footer={
         <View style={{ gap: spacing.sm }}>
-          <Button fullWidth icon="check" label={t('common.save')} onPress={save} />
+          <FieldError message={failed ? t('common.save_failed') : null} />
+          <Button fullWidth icon="check" label={t('common.save')} disabled={busy} onPress={save} />
           {existing ? (
-            <Button fullWidth variant="ghost" icon="eye-off" label={armed ? t('tasks.delete_confirm') : t('money.hide_account')} accessibilityHint={t('money.hide_account_hint')} onPress={() => confirm(() => (deleteWallet(existing.id), onClose()))} />
+            <Button
+              fullWidth
+              variant="ghost"
+              icon="eye-off"
+              label={armed ? t('tasks.delete_confirm') : t('money.hide_account')}
+              accessibilityHint={t('money.hide_account_hint')}
+              disabled={busy}
+              onPress={() => confirm(() => void run(async () => { await deleteWallet(existing.id); onClose(); }))}
+            />
           ) : null}
         </View>
       }

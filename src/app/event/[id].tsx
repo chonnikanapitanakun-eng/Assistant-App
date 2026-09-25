@@ -8,8 +8,10 @@ import { Button, Chip, Field, FieldError, Sheet, Text, Toggle } from '@/componen
 import type { CalendarEvent } from '@/db';
 import { eventToItem, fromMinutes, toMinutes } from '@/features/calendar/model';
 import { createEvent, deleteEvent, updateEvent, useEvent, type EventFormValues } from '@/features/calendar/queries';
+import { RelatedSection } from '@/features/links/components/related-section';
 import { isValidDate, isValidTime } from '@/features/tasks/model';
 import { addDays, toDateKey } from '@/lib/date';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useTheme } from '@/theme';
 
 export default function EventScreen() {
@@ -19,8 +21,8 @@ export default function EventScreen() {
   const close = () => (router.canGoBack() ? router.back() : router.replace('/calendar'));
 
   if (!isNew && !event) return loaded ? <NotFound onClose={close} /> : null;
-  // Keyed on the linked contact too: it loads a moment after the event, and remounting picks it up.
-  return <EventForm key={event ? `${event.id}:${contactName ?? ''}` : 'new'} existing={event} contactName={contactName} initialDate={date} initialStart={start} onClose={close} />;
+  // useEvent loads the event and its linked contact together, so the form mounts with both.
+  return <EventForm key={event?.id ?? 'new'} existing={event} contactName={contactName} initialDate={date} initialStart={start} onClose={close} />;
 }
 
 /** Next whole hour from now, capped so the default 1h event stays within the day. */
@@ -46,6 +48,7 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
   const [person, setPerson] = useState(contactName ?? '');
   const [showErrors, setShowErrors] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const { busy, failed, run } = useAsyncAction();
   const readOnly = !!existing && existing.source !== 'veyra';
 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -72,9 +75,11 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
       return;
     }
     const values: EventFormValues = { title: title.trim(), date, allDay, startTime, endTime, location: location.trim() || null, contactName: person.trim() || null };
-    if (existing) updateEvent(existing.id, values);
-    else createEvent(values);
-    onClose();
+    void run(async () => {
+      if (existing) await updateEvent(existing.id, values);
+      else await createEvent(values);
+      onClose();
+    });
   };
 
   const onDelete = () => {
@@ -84,8 +89,10 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
       timer.current = setTimeout(() => setConfirmDelete(false), 4000);
       return;
     }
-    deleteEvent(existing.id);
-    onClose();
+    void run(async () => {
+      await deleteEvent(existing.id);
+      onClose();
+    });
   };
 
   const input = (error?: string | null) => ({
@@ -110,8 +117,9 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
       footer={
         readOnly ? undefined : (
           <View style={{ gap: spacing.sm }}>
-            <Button fullWidth icon="check" label={t('common.save')} onPress={onSave} />
-            {existing ? <Button fullWidth variant="ghost" icon="trash-2" label={confirmDelete ? t('tasks.delete_confirm') : t('common.delete')} onPress={onDelete} /> : null}
+            <FieldError message={failed ? t('common.save_failed') : null} />
+            <Button fullWidth icon="check" label={t('common.save')} disabled={busy} onPress={onSave} />
+            {existing ? <Button fullWidth variant="ghost" icon="trash-2" label={confirmDelete ? t('tasks.delete_confirm') : t('common.delete')} disabled={busy} onPress={onDelete} /> : null}
           </View>
         )
       }
@@ -164,6 +172,8 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
           <TextInput editable={!readOnly} value={person} onChangeText={setPerson} placeholder={t('calendar.with_placeholder')} placeholderTextColor={colors.textTertiary} accessibilityLabel={t('calendar.with')} style={input()} />
           <Text variant="caption" color="textTertiary">{t('calendar.with_hint')}</Text>
         </Field>
+
+        {existing ? <RelatedSection self={{ type: 'event', id: existing.id }} types={['task', 'note', 'transaction']} /> : null}
       </ScrollView>
     </Sheet>
   );

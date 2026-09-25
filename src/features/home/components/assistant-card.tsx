@@ -29,6 +29,16 @@ export function AssistantCard() {
     return card?.type === 'proposal' && card.proposal.kind === 'reschedule_task' ? card.proposal : null;
   }, [getContext, t]);
 
+  const accept = async (p: Proposal) => {
+    let ok = false;
+    try {
+      ok = await runProposal(p);
+    } catch (e) {
+      console.error('Assistant suggestion failed:', e);
+    }
+    setState(ok ? 'done' : 'dismissed');
+  };
+
   const ask = (q: string) => router.push({ pathname: '/assistant', params: { q } });
   const chips = (
     <>
@@ -50,7 +60,7 @@ export function AssistantCard() {
           </View>
         </View>
 
-        {suggestion && state !== 'dismissed' ? <Suggestion p={suggestion} state={state} onAccept={() => setState(runProposal(suggestion) ? 'done' : 'dismissed')} onDismiss={() => setState('dismissed')} /> : null}
+        {suggestion && state !== 'dismissed' ? <Suggestion p={suggestion} state={state} onAccept={() => void accept(suggestion)} onDismiss={() => setState('dismissed')} /> : null}
 
         {isMobile ? (
           // One swipeable row on phones instead of four stacked pills.

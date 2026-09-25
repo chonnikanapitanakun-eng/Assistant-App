@@ -8,6 +8,8 @@ import { Button, Chip, Gradient, Icon, IconButton, PressableScale, Text, type Ic
 import type { Note } from '@/db';
 import { saveCaptureItems } from '@/features/ai/save';
 import { DetectedItem } from '@/features/capture/detected-item';
+import { RelatedSection } from '@/features/links/components/related-section';
+import { background } from '@/lib/background';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme } from '@/theme';
 
@@ -75,7 +77,7 @@ function NoteForm({ note, startInEdit, onBack, onDeleted }: Props & { note: Note
     latest.current = { title, body, tags, dirty: latest.current.dirty };
     if (!latest.current.dirty) return;
     const h = setTimeout(() => {
-      updateNote(note.id, { title, body, tags });
+      background(updateNote(note.id, { title, body, tags }), 'Autosave note');
       latest.current.dirty = false;
     }, 400);
     return () => clearTimeout(h);
@@ -84,8 +86,8 @@ function NoteForm({ note, startInEdit, onBack, onDeleted }: Props & { note: Note
     () => () => {
       if (deleted.current) return;
       const l = latest.current;
-      if (!l.title.trim() && !l.body.trim() && !l.tags.length) deleteNote(note.id);
-      else if (l.dirty) updateNote(note.id, { title: l.title, body: l.body, tags: l.tags });
+      if (!l.title.trim() && !l.body.trim() && !l.tags.length) background(deleteNote(note.id), 'Discard empty note');
+      else if (l.dirty) background(updateNote(note.id, { title: l.title, body: l.body, tags: l.tags }), 'Save note');
     },
     [note.id],
   );
@@ -115,7 +117,7 @@ function NoteForm({ note, startInEdit, onBack, onDeleted }: Props & { note: Note
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.sm }}>
         {onBack ? <IconButton icon="chevron-left" label={t('common.back')} onPress={onBack} /> : null}
         <View style={{ flex: 1 }} />
-        <IconButton icon="bookmark" label={note.pinned ? t('notes.unpin') : t('notes.pin')} color={note.pinned ? 'primary' : 'textSecondary'} filled={note.pinned} onPress={() => updateNote(note.id, { pinned: !note.pinned })} />
+        <IconButton icon="bookmark" label={note.pinned ? t('notes.unpin') : t('notes.pin')} color={note.pinned ? 'primary' : 'textSecondary'} filled={note.pinned} onPress={() => background(updateNote(note.id, { pinned: !note.pinned }), 'Pin note')} />
         <IconButton icon={editing ? 'book-open' : 'edit-3'} label={editing ? t('notes.read') : t('common.edit')} onPress={() => setEditing(!editing)} />
       </View>
 
@@ -206,6 +208,8 @@ function NoteForm({ note, startInEdit, onBack, onDeleted }: Props & { note: Note
           </PressableScale>
         )}
 
+        <RelatedSection self={{ type: 'note', id: note.id }} />
+
         <View style={{ height: 1, backgroundColor: colors.border, marginTop: spacing.xl }} />
         <View style={{ alignSelf: 'flex-start' }}>
           <Button
@@ -216,7 +220,7 @@ function NoteForm({ note, startInEdit, onBack, onDeleted }: Props & { note: Note
             onPress={() =>
               confirm(() => {
                 deleted.current = true;
-                deleteNote(note.id);
+                background(deleteNote(note.id), 'Delete note');
                 onDeleted();
               })
             }
@@ -260,6 +264,7 @@ function ExtractPanel({ items, noteId }: { items: ReturnType<typeof extractItems
   const [excluded, setExcluded] = useState<Set<number>>(new Set());
   const [saved, setSaved] = useState<number | null>(null);
   const [error, setError] = useState(false);
+  const [saving, setSaving] = useState(false);
   const chosen = items.filter((_, i) => !excluded.has(i));
 
   if (saved !== null) {
@@ -296,13 +301,18 @@ function ExtractPanel({ items, noteId }: { items: ReturnType<typeof extractItems
           <Button
             fullWidth
             icon="check"
-            disabled={!chosen.length}
+            disabled={!chosen.length || saving}
             label={chosen.length ? t('capture.save_count', { count: chosen.length }) : t('capture.save')}
-            onPress={() => {
+            onPress={async () => {
+              setSaving(true);
+              setError(false);
               try {
-                setSaved(saveCaptureItems(chosen, { sourceNoteId: noteId }));
-              } catch {
+                setSaved(await saveCaptureItems(chosen, { sourceNoteId: noteId }));
+              } catch (e) {
+                console.error('Saving note items failed:', e);
                 setError(true);
+              } finally {
+                setSaving(false);
               }
             }}
           />

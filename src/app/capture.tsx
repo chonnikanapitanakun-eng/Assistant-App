@@ -73,6 +73,7 @@ export default function CaptureScreen() {
       controller.abort();
     };
   }, [text, phase.kind, captureContext]);
+  const [saving, setSaving] = useState(false);
 
   const detected = useMemo(() => {
     const base = remote && remote.text === text.trim() ? remote.items : parseCaptureLocally(text);
@@ -102,13 +103,17 @@ export default function CaptureScreen() {
       return next;
     });
 
-  const save = () => {
-    if (!selected.length) return;
+  const save = async () => {
+    if (!selected.length || saving) return;
+    setSaving(true);
     try {
-      const count = saveCaptureItems(selected.map((d) => d.item));
+      const count = await saveCaptureItems(selected.map((d) => d.item));
       setPhase({ kind: 'saved', count });
-    } catch {
+    } catch (e) {
+      console.error('Quick capture save failed:', e);
       setPhase({ kind: 'error' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -123,8 +128,8 @@ export default function CaptureScreen() {
             fullWidth
             icon="check"
             label={selected.length ? t('capture.save_count', { count: selected.length }) : t('capture.save')}
-            disabled={!selected.length}
-            onPress={save}
+            disabled={!selected.length || saving}
+            onPress={() => void save()}
           />
         ) : undefined
       }
