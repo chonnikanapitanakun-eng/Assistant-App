@@ -55,8 +55,8 @@
 - [ ] `ai-breakdown`
 - [ ] Slip OCR
 - [ ] Export Excel / CSV
-- [ ] Home / lock screen widgets
-- [ ] Context-aware reminder
+- [x] Home / lock screen widgets — `src/features/widgets` (iOS: expo-widgets home + lock screen; Android: react-native-android-widget home screen; ต้องใช้ development build)
+- [x] Context-aware reminder — `src/features/context-reminders` (rule-based offline: ก่อนนัด X นาที เตือนงานที่ยังไม่เสร็จซึ่งผูกกับนัด/คนในนัด → แตะเปิด Focus; ตั้งเวลาใน Settings)
 
 ## Phase 4 — ปล่อยคนอื่นใช้
 

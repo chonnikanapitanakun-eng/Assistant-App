@@ -12,9 +12,11 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { isDatabaseLocked, queryClient, useDatabase } from '@/db';
 import { Text } from '@/components/ui';
+import { ContextReminderAutoRun, ContextReminderTaps } from '@/features/context-reminders';
 import { GoogleCalendarAutoSync } from '@/features/google-calendar';
 import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
 import { SyncAutoRun } from '@/features/sync';
+import { WidgetAutoRefresh } from '@/features/widgets';
 import { useTheme } from '@/theme';
 
 void SplashScreen.preventAutoHideAsync();
@@ -73,6 +75,9 @@ export default function RootLayout() {
           </Stack>
           <GoogleCalendarAutoSync />
           <SyncAutoRun />
+          <WidgetAutoRefresh />
+          <ContextReminderAutoRun />
+          <ContextReminderTaps />
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </ThemeProvider>
       </QueryClientProvider>

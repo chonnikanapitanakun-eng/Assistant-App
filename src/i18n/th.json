@@ -556,7 +556,11 @@
     "fx_rates": "อัตราแลกเปลี่ยน",
     "fx_rates_hint": "ใช้แปลงสกุลเงินอื่นเป็นสกุลเงินหลักสำหรับมูลค่าสุทธิ ใส่และอัปเดตอัตราเองได้ — Veyra ไม่ได้ดึงอัตราสดให้",
     "fx_rate_label": "1 {{currency}} =",
-    "fx_rate_placeholder": "เช่น 44.50"
+    "fx_rate_placeholder": "เช่น 44.50",
+    "context_reminder": "เตือนเตรียมตัว",
+    "context_reminder_hint": "ก่อนถึงนัด เตือนงานที่ยังไม่เสร็จซึ่งผูกกับนัดนั้น หรือกับคนที่อยู่ในนัด",
+    "context_off": "ปิด",
+    "context_min": "ก่อน {{count}} นาที"
   },
   "links": {
     "title": "เกี่ยวข้องกับ",
@@ -636,5 +640,22 @@
   "db": {
     "locked_title": "Veyra เปิดอยู่ในแท็บอื่น",
     "locked_body": "ปิดแท็บอื่นก่อน แล้วโหลดหน้านี้ใหม่"
+  },
+  "widgets": {
+    "next_up": "ถัดไป",
+    "free": "วันนี้ไม่มีอะไรแล้ว",
+    "progress": "เสร็จ {{done}}/{{total}}",
+    "bill_overdue": "เลยกำหนด",
+    "bill_today": "ครบกำหนดวันนี้",
+    "bill_in_one": "ครบกำหนดพรุ่งนี้",
+    "bill_in_other": "อีก {{count}} วันครบกำหนด",
+    "capture": "จดเร็ว"
+  },
+  "context": {
+    "title": "{{time}} · {{event}}",
+    "title_with": "{{time}} · {{event}} กับ {{contact}}",
+    "body_one": "ยังไม่ได้ทำ \"{{task}}\" เริ่ม Focus ไหม?",
+    "body_many_one": "ยังค้าง {{count}} งาน: {{tasks}} เริ่ม Focus ไหม?",
+    "body_many_other": "ยังค้าง {{count}} งาน: {{tasks}} เริ่ม Focus ไหม?"
   }
 }

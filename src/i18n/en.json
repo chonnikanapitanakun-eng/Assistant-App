@@ -556,7 +556,11 @@
     "fx_rates": "Exchange rates",
     "fx_rates_hint": "Used to convert other currencies into your primary currency for net worth. Enter and update rates yourself — Veyra doesn't fetch live rates.",
     "fx_rate_label": "1 {{currency}} =",
-    "fx_rate_placeholder": "e.g. 44.50"
+    "fx_rate_placeholder": "e.g. 44.50",
+    "context_reminder": "Prep reminders",
+    "context_reminder_hint": "Before an event, remind me about unfinished tasks linked to it or to the people on it.",
+    "context_off": "Off",
+    "context_min": "{{count}} min before"
   },
   "links": {
     "title": "Related",
@@ -636,5 +640,22 @@
   "db": {
     "locked_title": "Veyra is open in another tab",
     "locked_body": "Close the other tab, then reload this page."
+  },
+  "widgets": {
+    "next_up": "Next up",
+    "free": "Nothing else today",
+    "progress": "{{done}}/{{total}} done",
+    "bill_overdue": "Overdue",
+    "bill_today": "Due today",
+    "bill_in_one": "Due tomorrow",
+    "bill_in_other": "Due in {{count}} days",
+    "capture": "Capture"
+  },
+  "context": {
+    "title": "{{time}} · {{event}}",
+    "title_with": "{{time}} · {{event}} with {{contact}}",
+    "body_one": "\"{{task}}\" isn't done yet. Start Focus?",
+    "body_many_one": "{{count}} task isn't done yet: {{tasks}}. Start Focus?",
+    "body_many_other": "{{count}} tasks aren't done yet: {{tasks}}. Start Focus?"
   }
 }
