@@ -52,7 +52,7 @@
 
 - [ ] `ai-ask` Q&A ข้ามข้อมูล — [x] P3-01 retrieval pipeline + prompt (`src/features/ai/ask`, `supabase/functions/ai-ask`) · [ ] P3-02 UI
 - [x] `ai-plan` จัดวันให้ + approve — `supabase/functions/ai-plan`, `src/features/assistant/plan.ts`, การ์ด `apply_plan` (เอาแถวออกได้ก่อนยืนยัน)
-- [ ] `ai-breakdown`
+- [x] `ai-breakdown` — `supabase/functions/ai-breakdown`, `src/features/ai/breakdown.ts`, `src/features/tasks/components/breakdown-suggestions.tsx`
 - [x] Slip OCR — ขั้น 1: slip QR (ฟรี) + `slip-ocr` (Claude Haiku) + จับคู่บัญชี/หมวด — `supabase/functions/slip-ocr`, `src/features/slip`, `src/app/slip.tsx`
 - [ ] Slip OCR ขั้น 2: on-device OCR (ML Kit / Apple Vision, dev build) ก่อนเรียก Haiku
 - [ ] Export Excel / CSV

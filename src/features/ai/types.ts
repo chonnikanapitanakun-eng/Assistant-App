@@ -66,3 +66,15 @@ export type AskResponse = {
   /** Set by the function when it could not answer (refusal / unparseable output); `answer` is then empty. */
   status?: 'refusal' | 'invalid';
 };
+
+/**
+ * Contract ของ ai-breakdown (SPEC §6.4)
+ * ใช้ร่วมกันระหว่าง app กับ Edge Function — เปลี่ยนที่นี่ต้องเปลี่ยนที่ supabase/functions/ai-breakdown ด้วย
+ */
+export type BreakdownSubtask = {
+  text: string;
+};
+
+export type BreakdownResponse = {
+  subtasks: BreakdownSubtask[];
+};

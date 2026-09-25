@@ -8,6 +8,7 @@ import { Button, Chip, Field, FieldError, Icon, IconButton, PressableScale, Shee
 import type { Task } from '@/db';
 import { isValidDate, isValidTime, priorityLevel, priorityTint, priorityValue, type PriorityLevel } from '@/features/tasks/model';
 import { RelatedSection } from '@/features/links/components/related-section';
+import { BreakdownSuggestions } from '@/features/tasks/components/breakdown-suggestions';
 import { createTask, deleteTask, updateTask, useAreas, useTask, type ChecklistItem, type TaskFormValues } from '@/features/tasks/queries';
 import { addDays, toDateKey } from '@/lib/date';
 import { newId } from '@/lib/ids';
@@ -276,6 +277,7 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
             />
             <IconButton icon="plus" label={t('tasks.add_item')} color="primary" filled onPress={addItem} />
           </View>
+          <BreakdownSuggestions title={title} notes={notes} existing={checklist} onAdd={(items) => setChecklist((prev) => [...prev, ...items])} />
         </Field>
 
         {existing?.routineId ? (

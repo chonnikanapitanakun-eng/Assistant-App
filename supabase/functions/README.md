@@ -8,6 +8,7 @@
 | `ai-summary` | 2 | `src/features/ai/summary.ts` → `SummaryResponse` — structured output ตาม `_shared/summary-contract.ts`, prompt ใน `ai-summary/prompt.ts` |
 | `ai-ask` | 3 | `src/features/ai/types.ts` → `AskResponse` — structured output ตาม `_shared/ask-contract.ts`, prompt ใน `ai-ask/prompt.ts`; retrieval ฝั่งแอป `src/features/ai/ask/` ดู § ai-ask ด้านล่าง |
 | `ai-plan` | 3 | `_shared/plan-contract.ts` → `PlanRequest` / `PlanResponse` — จัดงานค้างลงช่วงว่างของวัน, app แสดงเป็นการ์ดเดียวให้ approve ก่อนย้ายงาน; ดู § ai-plan ด้านล่าง |
+| `ai-breakdown` | 3 | `src/features/ai/types.ts` → `BreakdownResponse` — structured output ตาม `_shared/breakdown-contract.ts`, prompt ใน `ai-breakdown/prompt.ts`; UI `src/features/tasks/components/breakdown-suggestions.tsx` (หน้าแก้งาน, เลือกข้อก่อนเพิ่มเข้า checklist) |
 | `account` | 4 | PDPA: ลบบัญชี (`{ action: 'delete' }` + JWT ผู้ใช้) → ลบ auth user, ตาราง sync / `ai_usage` / `gcal_accounts` cascade ตาม; ดู § account ด้านล่าง |
 | `slip-ocr` | 3 | `src/features/slip/types.ts` → `SlipResult` — structured output ตาม `_shared/slip-contract.ts`, prompt ใน `slip-ocr/prompt.ts`; ดู § slip-ocr ด้านล่าง |
 
@@ -82,7 +83,7 @@ npx supabase login
 npx supabase link --project-ref <ref>
 npx supabase db push                       # สร้างตาราง ai_usage
 npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-npx supabase functions deploy ai-capture ai-summary ai-ask ai-plan assistant slip-ocr account
+npx supabase functions deploy ai-capture ai-summary ai-ask ai-plan ai-breakdown assistant slip-ocr account
 ```
 
 ทดสอบเรียกตรง:
