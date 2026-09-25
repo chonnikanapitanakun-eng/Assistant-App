@@ -684,5 +684,29 @@
     "start": "Start",
     "end": "End",
     "no_time": "No time"
+  },
+  "repeat": {
+    "title": "Repeat",
+    "none": "Never",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "yearly": "Yearly",
+    "needs_date": "Pick a date to make it repeat",
+    "task_hint": "Tick it off and the next one is created for you",
+    "event_hint": "Editing or deleting changes every occurrence"
+  },
+  "remind": {
+    "title": "Reminder",
+    "none": "None",
+    "before_0": "At start",
+    "before_10": "10 min before",
+    "before_30": "30 min before",
+    "before_60": "1 hour before",
+    "before_1440": "1 day before",
+    "untimed_0": "That morning, 09:00",
+    "untimed_1440": "Day before, 09:00",
+    "needs_date": "Pick a date to set a reminder",
+    "no_web": "Reminders work in the mobile app only"
   }
 }

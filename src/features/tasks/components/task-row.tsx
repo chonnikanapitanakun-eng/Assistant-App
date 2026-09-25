@@ -94,6 +94,7 @@ export function TaskRow({ task, areaName, showDate, overdue }: Props) {
             {checklist.length ? <Meta icon="check-square" label={`${checked}/${checklist.length}`} /> : null}
             {task.energy ? <Meta icon={task.energy === 'high' ? 'zap' : 'battery'} label={t(`task.energy_${task.energy}`)} /> : null}
             {task.reminderNotificationId || (task.reminderAt && !task.isDone) ? <Meta icon="bell" label="" /> : null}
+            {task.repeat ? <Meta icon="repeat" label={t(`repeat.${task.repeat}`)} /> : null}
           </View>
         </View>
         {!task.isDone && level !== 'medium' ? <Tag label={t(`home.priority_${level}`)} tint={priorityTint[level]} /> : null}
@@ -103,7 +104,7 @@ export function TaskRow({ task, areaName, showDate, overdue }: Props) {
   );
 }
 
-function Meta({ icon, label, tone }: { icon: 'clock' | 'folder' | 'check-square' | 'zap' | 'battery' | 'bell'; label: string; tone?: string }) {
+function Meta({ icon, label, tone }: { icon: 'clock' | 'folder' | 'check-square' | 'zap' | 'battery' | 'bell' | 'repeat'; label: string; tone?: string }) {
   const { colors } = useTheme();
   const c = tone ?? colors.textSecondary;
   return (

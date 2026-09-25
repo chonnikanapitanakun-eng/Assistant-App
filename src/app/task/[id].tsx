@@ -1,17 +1,19 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, TextInput, View } from 'react-native';
+import { Platform, ScrollView, TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Chip, Field, FieldError, Icon, IconButton, type IconName, PressableScale, Sheet, showToast, Text, Toggle, useInputStyle } from '@/components/ui';
 import type { Task } from '@/db';
 import { DateField, TimeRangeField } from '@/features/calendar/components/date-field';
+import { ReminderChips, RepeatChips } from '@/features/calendar/components/repeat-remind';
 import { isValidDate, isValidTime, priorityLevel, priorityTint, priorityValue, type PriorityLevel } from '@/features/tasks/model';
 import { RelatedSection } from '@/features/links/components/related-section';
 import { createTask, deleteTask, restoreTask, updateTask, useAreas, useTask, type ChecklistItem, type TaskFormValues } from '@/features/tasks/queries';
 import { addDays, toDateKey } from '@/lib/date';
 import { newId } from '@/lib/ids';
+import type { RepeatRule } from '@/lib/recurrence';
 import { useAsyncAction } from '@/lib/use-async-action';
 import { useConfirm } from '@/lib/use-confirm';
 import { useDirty } from '@/lib/use-dirty';
@@ -52,13 +54,24 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
   const [energy, setEnergy] = useDraft(`${draft}:energy`, existing?.energy ?? null);
   const [areaId, setAreaId] = useDraft(`${draft}:areaId`, existing?.areaId ?? null);
   const [isDone, setIsDone] = useDraft(`${draft}:isDone`, existing?.isDone ?? false);
-  const [remind, setRemind] = useDraft(`${draft}:remind`, existing ? !!existing.reminderAt : true);
+  const [remindBefore, setRemindBefore] = useDraft<number | null>(`${draft}:remindBefore`, existing ? existing.remindBefore : null);
+  const [repeat, setRepeat] = useDraft<RepeatRule | null>(`${draft}:repeat`, existing?.repeat ?? null);
+  // New tasks remind at the start time once one is picked, unless the reminder was set by hand.
+  const [remindTouched, setRemindTouched] = useState(!!existing);
+  const pickStart = (v: string) => {
+    setStartTime(v);
+    if (!remindTouched && v && remindBefore === null) setRemindBefore(0);
+  };
+  const pickReminder = (v: number | null) => {
+    setRemindTouched(true);
+    setRemindBefore(v);
+  };
   const [checklist, setChecklist] = useDraft<ChecklistItem[]>(`${draft}:checklist`, existing?.checklist ?? []);
   const [newItem, setNewItem] = useDraft(`${draft}:newItem`, '');
   const [showErrors, setShowErrors] = useState(false);
   const { armed: confirmDelete, confirm } = useConfirm();
   const { busy, failed, run } = useAsyncAction();
-  const dirty = useDirty({ title, notes, date, startTime, endTime, priority, energy, areaId, isDone, remind, checklist, newItem });
+  const dirty = useDirty({ title, notes, date, startTime, endTime, priority, energy, areaId, isDone, remindBefore, repeat, checklist, newItem });
 
   const errors = {
     title: !title.trim() ? t('task.title_required') : null,
@@ -67,7 +80,7 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
     endTime: endTime && (!isValidTime(endTime) || (isValidTime(startTime) && endTime <= startTime)) ? t('tasks.invalid_end') : null,
   };
   const hasErrors = Object.values(errors).some(Boolean);
-  const canRemind = !!date && isValidDate(date) && isValidTime(startTime);
+  const hasDate = !!date && isValidDate(date);
 
   const quickDates = [
     { key: 'today', value: toDateKey() },
@@ -92,7 +105,8 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
       areaId,
       isDone,
       checklist: checklist.length ? checklist : null,
-      remind: remind && canRemind,
+      remindBefore: hasDate ? remindBefore : null,
+      repeat: hasDate ? repeat : null,
     };
     void run(async () => {
       if (existing) await updateTask(existing, values);
@@ -180,15 +194,18 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
         </Field>
 
         <Field label={t('tasks.time')} icon="clock">
-          <TimeRangeField start={startTime} end={endTime} onChangeStart={setStartTime} onChangeEnd={setEndTime} invalid={showErrors && !!(errors.startTime ?? errors.endTime)} clearable />
+          <TimeRangeField start={startTime} end={endTime} onChangeStart={pickStart} onChangeEnd={setEndTime} invalid={showErrors && !!(errors.startTime ?? errors.endTime)} clearable />
           <FieldError message={showErrors ? (errors.startTime ?? errors.endTime) : null} />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 44 }}>
-            <Icon name="bell" size={16} color={canRemind ? 'primary' : 'textTertiary'} />
-            <Text variant="bodySm" color={canRemind ? 'text' : 'textTertiary'} style={{ flex: 1 }}>
-              {canRemind ? t('tasks.remind_at', { time: startTime }) : t('tasks.remind_needs_time')}
-            </Text>
-            <Toggle value={remind && canRemind} disabled={!canRemind} onValueChange={setRemind} label={t('tasks.reminder')} />
-          </View>
+        </Field>
+
+        <Field label={t('remind.title')} icon="bell">
+          {hasDate ? <ReminderChips value={remindBefore} onChange={pickReminder} timed={isValidTime(startTime)} /> : <Text variant="caption" color="textTertiary">{t('remind.needs_date')}</Text>}
+          {hasDate && remindBefore !== null && Platform.OS === 'web' ? <Text variant="caption" color="textTertiary">{t('remind.no_web')}</Text> : null}
+        </Field>
+
+        <Field label={t('repeat.title')} icon="repeat">
+          {hasDate ? <RepeatChips value={repeat} onChange={setRepeat} /> : <Text variant="caption" color="textTertiary">{t('repeat.needs_date')}</Text>}
+          {hasDate && repeat ? <Text variant="caption" color="textTertiary">{t('repeat.task_hint')}</Text> : null}
         </Field>
 
         <Field label={t('task.priority')} icon="flag">

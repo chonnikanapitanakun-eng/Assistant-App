@@ -81,7 +81,7 @@ function Block({ p, compact, onOpen, onMove }: { p: Positioned; compact?: boolea
   const y = useSharedValue(0);
   const lifted = useSharedValue(false);
   const lastStep = useSharedValue(0);
-  const canMove = !!onMove && !p.readOnly;
+  const canMove = !!onMove && !p.readOnly && !p.repeat;
 
   const slotFor = (dy: number) => moveSlot(p.start!, p.end!, (dy / HOUR_HEIGHT) * 60);
   const showPreview = (dy: number) => setPreview(slotFor(dy));

@@ -13,8 +13,9 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { isDatabaseLocked, queryClient, useDatabase } from '@/db';
 import { Text, Toaster } from '@/components/ui';
 import { GoogleCalendarAutoSync } from '@/features/google-calendar';
-import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
+import { configureAndroidChannel, configureNotificationHandler, resyncEventReminders } from '@/features/notifications';
 import { SyncAutoRun } from '@/features/sync';
+import { background } from '@/lib/background';
 import { useTheme } from '@/theme';
 
 void SplashScreen.preventAutoHideAsync();
@@ -32,6 +33,11 @@ export default function RootLayout() {
   useEffect(() => {
     if ((ready || error) && fontsReady) void SplashScreen.hideAsync();
   }, [ready, error, fontsReady]);
+
+  // Repeating events may hold a one-off reminder for their next occurrence; move it along.
+  useEffect(() => {
+    if (ready) background(resyncEventReminders(), 'Event reminders');
+  }, [ready]);
 
   if (error) {
     return (
