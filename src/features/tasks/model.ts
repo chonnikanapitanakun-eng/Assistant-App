@@ -8,6 +8,7 @@ export const priorityValue: Record<PriorityLevel, number> = { high: 1, medium: 2
 export const priorityTint: Record<PriorityLevel, TintName> = { high: 'priorityHigh', medium: 'priorityMedium', low: 'priorityLow' };
 
 export type TaskFilter = 'all' | 'today' | 'upcoming' | 'done';
+export type Energy = NonNullable<Task['energy']>;
 export type SectionKey = 'overdue' | 'today' | 'upcoming' | 'anytime' | 'done';
 export type TaskSection = { key: SectionKey; tasks: Task[] };
 

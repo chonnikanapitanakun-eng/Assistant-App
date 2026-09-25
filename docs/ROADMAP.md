@@ -40,7 +40,7 @@
 - [ ] Check-in (mood/energy) + Review screen
 - [ ] `ai-summary` daily / weekly + morning briefing notification
 - [ ] Focus timer + focus_sessions
-- [ ] Routines + energy tag
+- [x] Routines + energy tag (สร้าง task วันนี้อัตโนมัติจาก rule ตอนเปิดแอป, filter ตาม energy)
 - [ ] Budget ต่อหมวด + เตือน, recurring bills / subscriptions
 - [ ] Net worth (FX rate manual / API)
 - [ ] Google Calendar import (read-only)

@@ -2,7 +2,7 @@
  * Drizzle schema — ตรงกับ docs/SPEC.md §6.3
  * ทุกตารางมี base columns สำหรับ sync (Phase 2)
  */
-import { index, integer, real, sqliteTable, text } from 'drizzle-orm/sqlite-core';
+import { index, integer, real, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 const base = {
   id: text('id').primaryKey(),
@@ -39,13 +39,22 @@ export const contacts = sqliteTable(
   (t) => [index('contacts_name_idx').on(t.name)],
 );
 
+/** What each generated task gets. Steps become the task's checklist. */
+export type RoutineTemplate = {
+  startTime?: string | null; // HH:mm
+  endTime?: string | null;
+  energy?: 'low' | 'med' | 'high' | null;
+  steps?: string[];
+};
+
 export const routines = sqliteTable('routines', {
   ...base,
   title: text('title').notNull(),
-  rule: text('rule').notNull(), // daily | weekly | rrule string
+  rule: text('rule').notNull(), // daily | weekly:<days, 0 = Sunday> e.g. weekly:1,3,5 — see features/routines/model.ts
   period: text('period', { enum: ['morning', 'day', 'night'] }),
-  template: text('template', { mode: 'json' }),
+  template: text('template', { mode: 'json' }).$type<RoutineTemplate>(),
   areaId: text('area_id'),
+  active: integer('active', { mode: 'boolean' }).notNull().default(true),
 });
 
 export const tasks = sqliteTable(
@@ -71,7 +80,13 @@ export const tasks = sqliteTable(
     reminderNotificationId: text('reminder_notification_id'),
     sortOrder: integer('sort_order').notNull().default(0),
   },
-  (t) => [index('tasks_date_idx').on(t.date), index('tasks_done_idx').on(t.isDone)],
+  (t) => [
+    index('tasks_date_idx').on(t.date),
+    index('tasks_done_idx').on(t.isDone),
+    // One task per routine per day (NULL routine_id never collides). Kept after soft delete, so a
+    // routine task the user deleted today is not generated again.
+    uniqueIndex('tasks_routine_date_uniq').on(t.routineId, t.date),
+  ],
 );
 
 export const notes = sqliteTable('notes', {
@@ -202,6 +217,7 @@ export const links = sqliteTable(
 
 export type Area = typeof areas.$inferSelect;
 export type Contact = typeof contacts.$inferSelect;
+export type Routine = typeof routines.$inferSelect;
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
 export type Note = typeof notes.$inferSelect;

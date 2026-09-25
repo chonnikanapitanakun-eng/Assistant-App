@@ -5,21 +5,27 @@ import { ScrollView, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Card, Chip, Icon, IconButton, PressableScale, Screen, Text } from '@/components/ui';
+import { Card, Chip, Icon, IconButton, PressableScale, Screen, Text, type IconName } from '@/components/ui';
 import { NotificationPermissionBanner } from '@/features/notifications';
 import { ProgressCard } from '@/features/tasks/components/progress-card';
 import { TaskRow } from '@/features/tasks/components/task-row';
-import { groupTasks, todayProgress, type SectionKey, type TaskFilter } from '@/features/tasks/model';
+import { groupTasks, todayProgress, type Energy, type SectionKey, type TaskFilter } from '@/features/tasks/model';
 import { useAllTasks, useAreas } from '@/features/tasks/queries';
 import { toDateKey } from '@/lib/date';
 import { useTheme } from '@/theme';
 
 const filters: TaskFilter[] = ['all', 'today', 'upcoming', 'done'];
+const energies: { key: Energy; icon: IconName }[] = [
+  { key: 'low', icon: 'battery' },
+  { key: 'med', icon: 'battery-charging' },
+  { key: 'high', icon: 'zap' },
+];
 
 export default function TasksScreen() {
   const { t, i18n } = useTranslation();
   const { colors, tints, spacing, motion } = useTheme();
   const [filter, setFilter] = useState<TaskFilter>('all');
+  const [energy, setEnergy] = useState<Energy | null>(null);
   const today = toDateKey();
   const tasks = useAllTasks();
   const areas = useAreas();
@@ -28,7 +34,7 @@ export default function TasksScreen() {
     const th = i18n.language === 'th';
     return new Map(areas.map((a) => [a.id, th ? a.nameTh : a.nameEn]));
   }, [areas, i18n.language]);
-  const sections = useMemo(() => groupTasks(tasks, today, filter), [tasks, today, filter]);
+  const sections = useMemo(() => groupTasks(energy ? tasks.filter((x) => x.energy === energy) : tasks, today, filter), [tasks, today, filter, energy]);
   const progress = todayProgress(tasks, today);
   const hasTimed = tasks.some((x) => !x.isDone && x.startTime);
 
@@ -37,8 +43,11 @@ export default function TasksScreen() {
   return (
     <Screen maxWidth={880}>
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text variant="title" accessibilityRole="header">{t('nav.tasks')}</Text>
-        <IconButton icon="plus" label={t('tasks.add')} color="primary" filled onPress={() => router.push({ pathname: '/task/[id]', params: { id: 'new' } })} />
+        <Text variant="title" accessibilityRole="header" style={{ flex: 1 }}>{t('nav.tasks')}</Text>
+        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+          <IconButton icon="repeat" label={t('routines.title')} onPress={() => router.push('/routines')} />
+          <IconButton icon="plus" label={t('tasks.add')} color="primary" filled onPress={() => router.push({ pathname: '/task/[id]', params: { id: 'new' } })} />
+        </View>
       </View>
 
       <ProgressCard done={progress.done} total={progress.total} />
@@ -48,6 +57,16 @@ export default function TasksScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
         {filters.map((f) => (
           <Chip key={f} label={t(`tasks.filter_${f}`)} selected={filter === f} onPress={() => setFilter(f)} />
+        ))}
+        <View style={{ width: 1, alignSelf: 'stretch', marginVertical: spacing.sm, backgroundColor: colors.border }} />
+        {energies.map((e) => (
+          <Chip
+            key={e.key}
+            icon={e.icon}
+            label={t(`task.energy_${e.key}`)}
+            selected={energy === e.key}
+            onPress={() => setEnergy(energy === e.key ? null : e.key)}
+          />
         ))}
       </ScrollView>
 
@@ -66,8 +85,8 @@ export default function TasksScreen() {
       {sections.length === 0 ? (
         <Animated.View entering={FadeIn.duration(motion.base)} style={{ alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xxxl }}>
           <Mascot pose={filter === 'done' ? 'thinking' : 'calm'} size={112} />
-          <Text variant="heading" align="center">{t(`tasks.empty_${filter}_title`)}</Text>
-          <Text variant="bodySm" color="textSecondary" align="center">{t(`tasks.empty_${filter}_body`)}</Text>
+          <Text variant="heading" align="center">{energy ? t('tasks.empty_energy_title') : t(`tasks.empty_${filter}_title`)}</Text>
+          <Text variant="bodySm" color="textSecondary" align="center">{energy ? t('tasks.empty_energy_body') : t(`tasks.empty_${filter}_body`)}</Text>
         </Animated.View>
       ) : (
         sections.map((section) => (
