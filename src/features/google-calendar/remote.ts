@@ -30,3 +30,7 @@ export const revokeAccount = (accountId: string) => call<{ ok: true }>('disconne
 /** Attach this device's Google Calendar accounts to the signed-in user (features/sync/auto-sync.tsx). */
 export const claimGoogleAccounts = (accessToken: string) =>
   gcalEnabled ? call<{ ok: true }>('claim', {}, accessToken).then(() => undefined) : Promise.resolve();
+
+/** Link the Google account used to sign in, from the refresh token Supabase Auth returned (connect.ts). */
+export const linkSignInAccount = (accessToken: string, refreshToken: string) =>
+  call<{ account: { id: string; email: string; status: AccountStatus } }>('link', { refreshToken }, accessToken);
