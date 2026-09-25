@@ -12,10 +12,10 @@ import type { Card, ListRow, Proposal } from '../types';
 
 type ProposalCard = Extract<Card, { type: 'proposal' }>;
 
-export function CardView({ card, onConfirm, onDismiss }: { card: Card; onConfirm: (c: ProposalCard) => void; onDismiss: (c: ProposalCard) => void }) {
+export function CardView({ card, busy, onConfirm, onDismiss }: { card: Card; busy?: boolean; onConfirm: (c: ProposalCard) => void; onDismiss: (c: ProposalCard) => void }) {
   if (card.type === 'list') return <ListCard title={card.title} rows={card.rows} />;
   if (card.type === 'stats') return <StatsCard rows={card.rows} />;
-  return <ProposalView card={card} onConfirm={() => onConfirm(card)} onDismiss={() => onDismiss(card)} />;
+  return <ProposalView card={card} busy={!!busy} onConfirm={() => onConfirm(card)} onDismiss={() => onDismiss(card)} />;
 }
 
 const rowIcon: Record<ListRow['kind'], IconName> = { task: 'check-square', event: 'calendar', bill: 'file-text' };
@@ -95,7 +95,7 @@ function useProposalLines(p: Proposal): { icon: IconName; tint: string; bg: stri
   }
 }
 
-function ProposalView({ card, onConfirm, onDismiss }: { card: ProposalCard; onConfirm: () => void; onDismiss: () => void }) {
+function ProposalView({ card, busy, onConfirm, onDismiss }: { card: ProposalCard; busy: boolean; onConfirm: () => void; onDismiss: () => void }) {
   const { t } = useTranslation();
   const { colors, spacing, radius } = useTheme();
   const lines = useProposalLines(card.proposal);
@@ -116,8 +116,8 @@ function ProposalView({ card, onConfirm, onDismiss }: { card: ProposalCard; onCo
       ))}
       {pending ? (
         <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
-          <Button size="sm" icon="check" label={t('assistant.confirm')} onPress={onConfirm} />
-          <Button size="sm" variant="ghost" label={t('home.ai_not_now')} onPress={onDismiss} />
+          <Button size="sm" icon="check" label={t('assistant.confirm')} onPress={onConfirm} disabled={busy} />
+          <Button size="sm" variant="ghost" label={t('home.ai_not_now')} onPress={onDismiss} disabled={busy} />
         </View>
       ) : (
         <View accessibilityLiveRegion="polite">
