@@ -41,7 +41,8 @@ function bestWallet(party: SlipParty, wallets: WalletLike[]): { id: string | nul
   return best;
 }
 
-const TITLES = /^(นาย|นางสาว|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.|mr|mrs|ms|miss)\.?\s*/i;
+// English titles need a dot or space after them, so "Mrinal" keeps its "Mr".
+const TITLES = /^((นางสาว|นาย|นาง|น\.ส\.|ด\.ช\.|ด\.ญ\.)\s*|(mrs|mr|ms|miss)(\.\s*|\s+))/i;
 const COMPANY = /บริษัท|บจก\.?|หจก\.?|จำกัด|\(?มหาชน\)?|\b(co|ltd|limited|company|plc)\b\.?/gi;
 
 /** "นาย สมชาย ใจดี" / "สมชาย ใจ" → comparable keys; company words, titles and punctuation go. */

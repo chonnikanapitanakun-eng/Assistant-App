@@ -68,3 +68,12 @@ describe('suggestFromSlip', () => {
     expect(suggestFromSlip(slip({ to: { name: 'X' } }), wallets, [])).toMatchObject({ type: 'expense', walletId: null, payee: 'X' });
   });
 });
+
+describe('payeeKey titles', () => {
+  it('strips English titles only when they are titles', () => {
+    expect(payeeKey('MS. JANE DOE')).toBe('janedoe');
+    expect(payeeKey('Mrs Smith')).toBe('smith');
+    expect(payeeKey('Mrinal Das')).toBe('mrinaldas');
+    expect(payeeKey('น.ส. สมหญิง')).toBe('สมหญิง');
+  });
+});

@@ -14,8 +14,11 @@ export type SlipResult = {
   memo?: string;
 };
 
-/** Thai bank codes (Bank of Thailand) the model may answer with; keep in sync with src/features/slip/banks.ts. */
-export const BANK_CODES = ['002', '004', '006', '011', '014', '022', '024', '025', '030', '033', '034', '066', '067', '069', '073', '098'] as const;
+/**
+ * Thai bank codes (Bank of Thailand) the model may answer with, plus TMN for TrueMoney Wallet (not a bank,
+ * but slips name it the same way). Keep in sync with src/features/slip/banks.ts.
+ */
+export const BANK_CODES = ['002', '004', '006', '011', '014', '022', '024', '025', '030', '033', '034', '066', '067', '069', '073', '098', 'TMN'] as const;
 
 const nullable = <T extends object>(s: T) => ({ anyOf: [s, { type: 'null' }] });
 const str = { type: 'string' } as const;
@@ -23,7 +26,7 @@ const party = {
   type: 'object',
   properties: {
     name: nullable({ ...str, description: 'account holder / shop name exactly as printed (keep นาย/นาง/บจก.)' }),
-    bank: nullable({ type: 'string', enum: [...BANK_CODES], description: 'bank code from the list, or null (PromptPay e-wallet, unknown)' }),
+    bank: nullable({ type: 'string', enum: [...BANK_CODES], description: 'bank code from the list, or null (shop, biller, unknown)' }),
     account: nullable({ ...str, description: 'account / PromptPay number as printed, masked digits included (e.g. xxx-x-x1234-x)' }),
   },
   required: ['name', 'bank', 'account'],
@@ -66,13 +69,17 @@ export function accountDigits(v: unknown): string | undefined {
   return best.length >= 3 ? best : undefined;
 }
 
-/** Accept YYYY-MM-DD in either era; Buddhist years (> 2400) become Gregorian. */
+/**
+ * Accept YYYY-MM-DD in either era; Buddhist years (> 2400) become Gregorian. A short Buddhist year read
+ * as 20YY ("25 ก.ย. 69" → 2069) is also caught: no slip is dated 2050 or later, so 20YY there means 25YY.
+ */
 export function normalizeDate(v: unknown): string | undefined {
   if (typeof v !== 'string') return undefined;
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v.trim());
   if (!m) return undefined;
   let y = Number(m[1]);
   if (y > 2400) y -= 543;
+  else if (y >= 2050 && y < 2100) y = y + 500 - 543;
   const mo = Number(m[2]);
   const d = Number(m[3]);
   if (y < 2000 || y > 2100 || mo < 1 || mo > 12 || d < 1 || d > 31) return undefined;
@@ -88,7 +95,8 @@ function normalizeParty(raw: unknown): SlipParty {
 /** Claude's raw output → the app contract. Never throws; unusable output becomes `{ isSlip: false }`. */
 export function normalizeSlip(raw: unknown): SlipResult {
   const r = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : {};
-  const time = typeof r.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(r.time.trim()) ? r.time.trim() : undefined;
+  // Some slips print seconds (TrueMoney: 15:44:40); keep HH:mm.
+  const time = typeof r.time === 'string' && /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/.test(r.time.trim()) ? r.time.trim().slice(0, 5) : undefined;
   const ref = text(r.ref)?.replace(/\s/g, '');
   const amount = money(r.amount);
   return {
