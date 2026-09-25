@@ -219,7 +219,7 @@ fts_index       (SQLite FTS5 virtual table) type, id, title, body, tags
 | Function | Input | Output | Phase |
 |---|---|---|---|
 | `ai-capture` | text, locale, today, contacts[], areas[], wallets[] | `{items: [{type: task\|event\|expense\|income\|note\|contact, fields...}], confidence}` | 1 |
-| `ai-summary` | scope (day/week), tasks, events, transactions, checkins | summary_th, highlights[], needs_attention[] | 2 |
+| `ai-summary` | scope (day/week), from/to, tasks, events, bills, money (totals ในช่วง + หมวดที่เกินงบ), checkins | headline, summary, highlights[], needsAttention[] (ภาษาตาม locale) | 2 |
 | `ai-ask` | question, retrieved_context (จาก FTS + query ไม่ส่งทั้ง DB) | answer, sources[], suggested_actions[] | 3 |
 | `ai-plan` | date, backlog, events, energy pattern | schedule[] (user approve ก่อน commit) | 3 |
 | `ai-breakdown` | task | subtasks[] | 3 |

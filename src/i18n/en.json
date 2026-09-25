@@ -256,7 +256,8 @@
     "part_bills_one": "{{count}} bill",
     "part_bills_other": "{{count}} bills",
     "ai_slot": "You're free {{start}}–{{end}}. Shall I block that time for “{{title}}”?",
-    "ai_scheduled": "Scheduled for {{start}}"
+    "ai_scheduled": "Scheduled for {{start}}",
+    "ai_review": "Daily review"
   },
   "assistant": {
     "hello": "Hi {{name}}. How can I help?",
@@ -442,7 +443,8 @@
     "search": "Search",
     "contacts": "Contacts",
     "settings": "Settings",
-    "soon": "Soon"
+    "soon": "Soon",
+    "review": "Review"
   },
   "focus": {
     "tab_timer": "Timer",
@@ -546,7 +548,11 @@
     "help": "Help",
     "replay": "Replay the welcome tour",
     "replay_body": "Walk through setup again. Your data stays as it is.",
-    "version": "version {{version}}"
+    "version": "version {{version}}",
+    "briefing": "Morning briefing",
+    "briefing_body": "One notification each morning: events, tasks and bills for the day.",
+    "briefing_time": "Time",
+    "briefing_hint": "Tap it to open the daily review."
   },
   "links": {
     "title": "Related",
@@ -586,5 +592,51 @@
     "results_one": "{{count}} result",
     "results_other": "{{count}} results",
     "all_day": "All day"
+  },
+  "review": {
+    "title": "Review",
+    "refresh": "Refresh the review",
+    "scope_day": "Today",
+    "scope_week": "This week",
+    "loading": "Veyra is writing your review…",
+    "by_veyra": "Written by Veyra AI",
+    "local": "Quick summary from your data",
+    "offline": "Veyra AI is unavailable — showing the quick summary",
+    "generated_at": "Updated {{time}}",
+    "needs_attention": "Needs attention",
+    "highlights": "Highlights",
+    "nothing_pending": "Nothing pending. Nice.",
+    "no_highlights": "Nothing to note yet.",
+    "open_tasks": "Tasks",
+    "open_calendar": "Calendar",
+    "ask_veyra": "Ask Veyra",
+    "ask_day": "What should I focus on today?",
+    "ask_week": "How did this week go?",
+    "local_day_counts_one": "Today has {{events}} events and {{count}} open task, with {{done}} done.",
+    "local_day_counts_other": "Today has {{events}} events and {{count}} open tasks, with {{done}} done.",
+    "local_week_counts_one": "This week has {{events}} events and {{count}} open task, with {{done}} done.",
+    "local_week_counts_other": "This week has {{events}} events and {{count}} open tasks, with {{done}} done.",
+    "local_first_event": "First up: {{title}} at {{time}}.",
+    "local_money": "Spent {{expense}} {{currency}}, received {{income}} {{currency}}.",
+    "local_done": "Done: {{title}}",
+    "local_income": "Received {{amount}} {{currency}}",
+    "local_free_day": "No meetings — a clear day",
+    "local_overdue": "Overdue: {{title}}",
+    "local_bill": "Bill due: {{name}} ({{amount}} {{currency}})",
+    "local_high": "High priority: {{title}}",
+    "local_over_budget": "Over budget: {{name}}",
+    "local_headline_overdue_one": "{{count}} overdue task to clear",
+    "local_headline_overdue_other": "{{count}} overdue tasks to clear",
+    "local_headline_bill": "{{name}} is due",
+    "local_headline_event": "{{title}} at {{time}}",
+    "local_headline_tasks_one": "{{count}} task on the list",
+    "local_headline_tasks_other": "{{count}} tasks on the list",
+    "local_headline_clear": "All clear",
+    "briefing_title": "Good morning ☀️",
+    "briefing_title_name": "Good morning, {{name}} ☀️",
+    "briefing_nothing": "Nothing scheduled — a clear day",
+    "briefing_overdue_one": "{{count}} overdue",
+    "briefing_overdue_other": "{{count}} overdue",
+    "briefing_first": "First: {{title}} {{time}}"
   }
 }

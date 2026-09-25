@@ -44,6 +44,7 @@ export function Sidebar({ state, navigation }: BottomTabBarProps) {
 
       <SidebarItem icon="target" label={t('more.focus')} focused={false} onPress={() => router.push('/focus')} />
       <SidebarItem icon="search" label={t('more.search')} focused={false} onPress={() => router.push('/search')} />
+      <SidebarItem icon="sunrise" label={t('more.review')} focused={false} onPress={() => router.push('/review')} />
 
       <View style={{ height: 1, backgroundColor: colors.border, marginVertical: spacing.lg }} />
 

@@ -38,7 +38,7 @@
 ## Phase 2 — เทียบ Tiimo
 
 - [ ] Check-in (mood/energy) + Review screen
-- [ ] `ai-summary` daily / weekly + morning briefing notification
+- [x] `ai-summary` daily / weekly + morning briefing notification (Review screen `/review`, briefing ตั้งเวลาได้ใน Settings)
 - [ ] Focus timer + focus_sessions
 - [ ] Routines + energy tag
 - [ ] Budget ต่อหมวด + เตือน, recurring bills / subscriptions

@@ -7,6 +7,7 @@ import { Linking, Platform, TextInput, View } from 'react-native';
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Card, Chip, Icon, IconButton, PressableScale, Screen, Text, Toggle, type IconName } from '@/components/ui';
 import { useNotificationPermission } from '@/features/notifications';
+import { DEFAULT_BRIEFING } from '@/features/profile/store';
 import { setLanguage } from '@/features/profile/language';
 import { ALL_INTERESTS, useProfile, type Interest } from '@/features/profile/store';
 import { currencySymbol, supportedCurrencies } from '@/lib/currency';
@@ -84,7 +85,12 @@ export default function SettingsScreen() {
         })}
       </Section>
 
-      {Platform.OS !== 'web' ? <NotificationsSection /> : null}
+      {Platform.OS !== 'web' ? (
+        <>
+          <NotificationsSection />
+          <BriefingSection />
+        </>
+      ) : null}
 
       <Section title={t('settings.help')}>
         <PressableScale accessibilityRole="button" accessibilityLabel={t('settings.replay')} onPress={() => router.push({ pathname: '/onboarding', params: { replay: '1' } })}>
@@ -116,6 +122,48 @@ function NotificationsSection() {
           <Button size="sm" variant="secondary" label={state === 'denied' ? t('notifications.open_settings') : t('notifications.enable')} onPress={() => (state === 'denied' ? void Linking.openSettings() : void request())} />
         )}
       </Row>
+    </Section>
+  );
+}
+
+const BRIEFING_TIMES = [
+  { hour: 6, minute: 30 },
+  { hour: 7, minute: 0 },
+  { hour: 7, minute: 30 },
+  { hour: 8, minute: 0 },
+  { hour: 8, minute: 30 },
+];
+const hhmm = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+/** Morning briefing: on/off and the time. Turning it on asks for permission if the app never has. */
+function BriefingSection() {
+  const { t } = useTranslation();
+  const briefing = useProfile((p) => p.briefing) ?? DEFAULT_BRIEFING;
+  const update = useProfile((p) => p.update);
+  const { state, request } = useNotificationPermission();
+  const set = (patch: Partial<typeof briefing>) => update({ briefing: { ...briefing, ...patch } });
+  const toggle = async (on: boolean) => {
+    set({ enabled: on });
+    if (!on) return;
+    if (state === 'denied') void Linking.openSettings();
+    else if (state === 'undetermined') await request();
+  };
+  const blocked = briefing.enabled && state === 'denied';
+  return (
+    <Section title={t('settings.briefing')} hint={t('settings.briefing_hint')}>
+      <Row icon="sunrise" label={t('settings.briefing')} sub={blocked ? t('settings.notify_denied') : t('settings.briefing_body')}>
+        <Toggle value={briefing.enabled} onValueChange={(v) => void toggle(v)} label={t('settings.briefing')} />
+      </Row>
+      {briefing.enabled ? (
+        <>
+          <Divider />
+          <Stacked icon="clock" label={t('settings.briefing_time')}>
+            {BRIEFING_TIMES.map((x) => (
+              <Chip key={hhmm(x.hour, x.minute)} label={hhmm(x.hour, x.minute)} selected={briefing.hour === x.hour && briefing.minute === x.minute} onPress={() => set(x)} />
+            ))}
+          </Stacked>
+        </>
+      ) : null}
     </Section>
   );
 }

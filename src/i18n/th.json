@@ -256,7 +256,8 @@
     "part_bills_one": "บิล {{count}} รายการ",
     "part_bills_other": "บิล {{count}} รายการ",
     "ai_slot": "ช่วง {{start}}–{{end}} ว่างอยู่ ให้กันเวลาไว้ทำ “{{title}}” ไหม?",
-    "ai_scheduled": "ลงเวลาไว้ {{start}} แล้ว"
+    "ai_scheduled": "ลงเวลาไว้ {{start}} แล้ว",
+    "ai_review": "สรุปวันนี้"
   },
   "assistant": {
     "hello": "สวัสดี {{name}} ให้ช่วยอะไรดี?",
@@ -442,7 +443,8 @@
     "search": "ค้นหา",
     "contacts": "ผู้ติดต่อ",
     "settings": "ตั้งค่า",
-    "soon": "เร็วๆ นี้"
+    "soon": "เร็วๆ นี้",
+    "review": "สรุปวัน"
   },
   "focus": {
     "tab_timer": "จับเวลา",
@@ -546,7 +548,11 @@
     "help": "ช่วยเหลือ",
     "replay": "ดูแนะนำการใช้งานอีกครั้ง",
     "replay_body": "ตั้งค่าใหม่ทีละขั้น ข้อมูลเดิมไม่หาย",
-    "version": "เวอร์ชัน {{version}}"
+    "version": "เวอร์ชัน {{version}}",
+    "briefing": "สรุปเช้า",
+    "briefing_body": "แจ้งเตือนทุกเช้า 1 ครั้ง: นัด งาน และบิลของวันนั้น",
+    "briefing_time": "เวลา",
+    "briefing_hint": "แตะการแจ้งเตือนเพื่อเปิดหน้าสรุปวัน"
   },
   "links": {
     "title": "เกี่ยวข้องกับ",
@@ -586,5 +592,46 @@
     "results_one": "{{count}} รายการ",
     "results_other": "{{count}} รายการ",
     "all_day": "ทั้งวัน"
+  },
+  "review": {
+    "title": "สรุป",
+    "refresh": "สรุปใหม่",
+    "scope_day": "วันนี้",
+    "scope_week": "สัปดาห์นี้",
+    "loading": "Veyra กำลังเขียนสรุป…",
+    "by_veyra": "เขียนโดย Veyra AI",
+    "local": "สรุปแบบเร็วจากข้อมูลในเครื่อง",
+    "offline": "ใช้ Veyra AI ไม่ได้ตอนนี้ — แสดงสรุปแบบเร็วแทน",
+    "generated_at": "อัปเดต {{time}}",
+    "needs_attention": "ต้องจัดการ",
+    "highlights": "ไฮไลต์",
+    "nothing_pending": "ไม่มีอะไรค้าง เยี่ยม",
+    "no_highlights": "ยังไม่มีอะไรน่าบันทึก",
+    "open_tasks": "งาน",
+    "open_calendar": "ปฏิทิน",
+    "ask_veyra": "ถาม Veyra",
+    "ask_day": "วันนี้ควรโฟกัสอะไร",
+    "ask_week": "สัปดาห์นี้เป็นยังไงบ้าง",
+    "local_day_counts": "วันนี้มีนัด {{events}} นัด งานค้าง {{count}} งาน เสร็จแล้ว {{done}} งาน",
+    "local_week_counts": "สัปดาห์นี้มีนัด {{events}} นัด งานค้าง {{count}} งาน เสร็จแล้ว {{done}} งาน",
+    "local_first_event": "เริ่มที่ {{title}} เวลา {{time}}",
+    "local_money": "ใช้ไป {{expense}} {{currency}} รับเข้า {{income}} {{currency}}",
+    "local_done": "เสร็จแล้ว: {{title}}",
+    "local_income": "รับเงิน {{amount}} {{currency}}",
+    "local_free_day": "ไม่มีนัด — วันว่าง",
+    "local_overdue": "เลยกำหนด: {{title}}",
+    "local_bill": "บิลถึงกำหนด: {{name}} ({{amount}} {{currency}})",
+    "local_high": "สำคัญมาก: {{title}}",
+    "local_over_budget": "เกินงบ: {{name}}",
+    "local_headline_overdue": "งานเลยกำหนด {{count}} งาน",
+    "local_headline_bill": "{{name}} ถึงกำหนดจ่าย",
+    "local_headline_event": "{{title}} เวลา {{time}}",
+    "local_headline_tasks": "งานวันนี้ {{count}} งาน",
+    "local_headline_clear": "ไม่มีอะไรค้าง",
+    "briefing_title": "อรุณสวัสดิ์ ☀️",
+    "briefing_title_name": "อรุณสวัสดิ์ {{name}} ☀️",
+    "briefing_nothing": "วันนี้ไม่มีนัด — วันว่าง",
+    "briefing_overdue": "เลยกำหนด {{count}} งาน",
+    "briefing_first": "เริ่มที่ {{title}} {{time}}"
   }
 }
