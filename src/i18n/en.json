@@ -309,17 +309,18 @@
       "complete": "Mark done",
       "schedule": "Schedule",
       "move": "Move to",
-      "pay": "Mark paid"
+      "pay": "Mark paid",
+      "plan": "Plan for {{day}}"
     },
     "r": {
       "greeting": "Hi {{name}}! What would you like to sort out?",
       "greeting_anon": "Hi! What would you like to sort out?",
       "help": "I can plan your day, find overdue tasks, review spending against your budgets, check bills, and add things for you — try a suggestion below.",
       "plan_clear": "Your day is clear — nothing scheduled and no tasks due. A good moment for something you've been putting off.",
-      "plan_slots_one": "You have {{events}} events and {{tasks}} open tasks today. I found a free slot for your most important task — want me to schedule it?",
-      "plan_slots_other": "You have {{events}} events and {{tasks}} open tasks today. I found free time for your top {{count}} tasks — want me to schedule them?",
-      "plan_free": "You have {{events}} events and {{tasks}} open tasks today, with some free time left. Everything important already has a time.",
-      "plan_full": "Today is full — {{events}} events and {{tasks}} open tasks, with no gaps of 45 minutes or more before 6pm. Consider moving something to tomorrow.",
+      "plan_slots_one": "You have {{events}} fixed blocks and {{tasks}} open tasks. I laid out one of them — check the plan and confirm to put it in your day.",
+      "plan_slots_other": "You have {{events}} fixed blocks and {{tasks}} open tasks. I laid out {{count}} of them — drop any you disagree with, then confirm.",
+      "plan_free": "You have {{events}} fixed blocks and {{tasks}} open tasks, with free time left. Everything important already has a time.",
+      "plan_full": "Today is full — {{events}} fixed blocks and {{tasks}} open tasks, with no gap of 15 minutes or more before 6pm. Consider moving something to tomorrow.",
       "overdue_none": "Nothing is overdue. Nice work.",
       "overdue_one": "One task is overdue. Want me to move it to today?",
       "overdue_other": "{{count}} tasks are overdue. Want me to move them to today?",
@@ -341,6 +342,19 @@
       "capture_one": "Want me to add this?",
       "capture_other": "I found {{count}} things to add. Want me to add them?",
       "unknown": "I'm not sure how to help with that yet. Want me to save it as a note? Or try one of these."
+    },
+    "plan": {
+      "blocks_one": "{{count}} block",
+      "blocks_other": "{{count}} blocks",
+      "remove": "Remove “{{title}}” from the plan",
+      "removed": "Removed",
+      "skipped": "Left out today",
+      "empty": "Nothing left to schedule",
+      "approve_one": "Schedule 1 task",
+      "approve_other": "Schedule {{count}} tasks",
+      "overdue": "Overdue",
+      "by_claude": "Planned by Claude",
+      "by_local": "Planned on-device"
     }
   },
   "notifications": {

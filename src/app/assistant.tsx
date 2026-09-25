@@ -11,10 +11,11 @@ import type { AssistantMessage } from '@/db';
 import { runProposal } from '@/features/assistant/actions';
 import { CardView } from '@/features/assistant/components/cards';
 import { Typing } from '@/features/assistant/components/typing';
-import { defaultSuggestions, respond } from '@/features/assistant/engine';
+import { defaultSuggestions, detectIntent, respond } from '@/features/assistant/engine';
+import { planDayWithAI } from '@/features/assistant/plan-remote';
 import { addMessage, clearChat, updateCard, useMessages, type ChatPayload } from '@/features/assistant/queries';
 import { askRemote, remoteEnabled } from '@/features/assistant/remote';
-import type { Card, Reply } from '@/features/assistant/types';
+import type { Card, Proposal, Reply } from '@/features/assistant/types';
 import { useAssistantContext } from '@/features/assistant/use-context';
 import { MarkdownView } from '@/features/notes/components/markdown-view';
 import { useProfile } from '@/features/profile/store';
@@ -47,18 +48,23 @@ export default function AssistantScreen() {
     const history = [...messages.map((m) => ({ role: m.role, text: m.text })), { role: 'user' as const, text }];
     background(addMessage('user', text), 'Save chat message');
     let reply: Reply;
-    if (remoteEnabled) {
+    if (remoteEnabled && detectIntent(text, getContext()).intent === 'plan_day') {
+      // "Plan my day" goes to the dedicated ai-plan function (P3-02); it falls back to the local planner itself.
+      setThinking(true);
+      reply = await planDayWithAI(getContext(), t, i18n.language);
+      setThinking(false);
+    } else if (remoteEnabled) {
       setThinking(true);
       try {
         reply = await askRemote(history, getContext(), i18n.language);
       } catch {
         // Offline or the function failed: answer on-device and say so.
-        const local = respond(text, getContext(), t);
+        const local = respond(text, getContext(), t, i18n.language);
         reply = { ...local, text: `${local.text}\n\n_${t('assistant.offline_note')}_` };
       }
       setThinking(false);
     } else {
-      reply = respond(text, getContext(), t);
+      reply = respond(text, getContext(), t, i18n.language);
     }
     background(addMessage('assistant', reply.text, { cards: reply.cards, suggestions: reply.suggestions, source: reply.source }), 'Save chat reply');
   };
@@ -118,7 +124,7 @@ export default function AssistantScreen() {
               <Text variant="bodySm" color="textSecondary" align="center" style={{ maxWidth: 420 }}>{t('assistant.intro')}</Text>
             </Animated.View>
           ) : (
-            messages.map((m) => (m.role === 'user' ? <UserBubble key={m.id} text={m.text} /> : <AssistantBubble key={m.id} message={m} onConfirm={(msg, card) => background(onConfirm(msg, card), 'Confirm proposal')} />))
+            messages.map((m) => (m.role === 'user' ? <UserBubble key={m.id} text={m.text} /> : <AssistantBubble key={m.id} message={m} onConfirm={(msg, card) => background(onConfirm(msg, card), 'Confirm proposal')} onEdit={(msg, card, proposal) => background(updateCard(msg, card.id, { proposal }), 'Edit plan')} />))
           )}
           {thinking ? (
             <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
@@ -184,7 +190,7 @@ function UserBubble({ text }: { text: string }) {
 }
 
 /** Veyra's message: soft gradient accent on the left edge, text, then cards. */
-function AssistantBubble({ message, onConfirm }: { message: AssistantMessage; onConfirm: (m: AssistantMessage, c: Extract<Card, { type: 'proposal' }>) => void }) {
+function AssistantBubble({ message, onConfirm, onEdit }: { message: AssistantMessage; onConfirm: (m: AssistantMessage, c: Extract<Card, { type: 'proposal' }>) => void; onEdit: (m: AssistantMessage, c: Extract<Card, { type: 'proposal' }>, proposal: Proposal) => void }) {
   const { t } = useTranslation();
   const { colors, spacing, radius } = useTheme();
   const payload = (message.payload as ChatPayload | null) ?? { cards: [], suggestions: [] };
@@ -201,7 +207,7 @@ function AssistantBubble({ message, onConfirm }: { message: AssistantMessage; on
           </View>
         ) : null}
         {payload.cards.map((c, i) => (
-          <CardView key={c.type === 'proposal' ? c.id : `${c.type}${i}`} card={c} onConfirm={(card) => onConfirm(message, card)} onDismiss={(card) => background(updateCard(message, card.id, { state: 'dismissed' }), 'Dismiss proposal')} />
+          <CardView key={c.type === 'proposal' ? c.id : `${c.type}${i}`} card={c} onConfirm={(card) => onConfirm(message, card)} onDismiss={(card) => background(updateCard(message, card.id, { state: 'dismissed' }), 'Dismiss proposal')} onEdit={(card, proposal) => onEdit(message, card, proposal)} />
         ))}
         {payload.source === 'claude' ? <Tag label="Claude" tint="focus" icon="zap" /> : null}
         {payload.cards.some((c) => c.type === 'proposal' && c.state === 'pending') ? <Text variant="caption" color="textTertiary">{t('assistant.confirm_hint')}</Text> : null}
