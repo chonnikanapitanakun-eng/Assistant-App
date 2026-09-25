@@ -27,6 +27,13 @@ export const getSession = () => useAuthStore.getState().session;
 export const useProviderRefreshToken = () => useAuthStore((s) => s.providerRefreshToken);
 export const clearProviderRefreshToken = () => useAuthStore.setState({ providerRefreshToken: null });
 
-export async function signOut() {
-  if (supabase) await supabase.auth.signOut();
+/**
+ * `local`: forget the session on this device only, without telling the server — for when the
+ * server side is already gone (account deletion) or unreachable.
+ */
+export async function signOut({ local = false } = {}) {
+  if (supabase) await supabase.auth.signOut(local ? { scope: 'local' } : undefined);
+  // SIGNED_OUT normally lands through onAuthStateChange; setting it here too keeps callers that
+  // continue synchronously (erase, delete account) from seeing a stale session.
+  useAuthStore.setState({ session: null, providerRefreshToken: null });
 }

@@ -67,5 +67,5 @@
 - [ ] Google Calendar 2 ทาง
 - [ ] `ai-prep-meeting`
 - [ ] Premium tier (RevenueCat)
-- [ ] PDPA: privacy policy, export / delete account
+- [x] PDPA: privacy policy, export / delete account — `src/app/privacy.tsx`, `src/features/privacy`, `supabase/functions/account`
 - [ ] App Store / Play Store release

@@ -1,13 +1,18 @@
 import { lt } from 'drizzle-orm';
 
 import { commit, db } from '@/db';
-import { readJSON, writeJSON } from '@/features/profile/storage';
+import { readJSON, removeKey, writeJSON } from '@/features/profile/storage';
 import { supabase } from '@/lib/supabase';
 
-import { fromRemote, remoteName, type SyncTable } from './tables';
+import { fromRemote, remoteName, SYNC_TABLES, type SyncTable } from './tables';
 
 const PULL_PAGE = 500;
 const cursorKey = (table: SyncTable) => `sync:cursor:${remoteName(table)}`;
+
+/** Forget every table's pull cursor — the next pull starts from scratch (device erase). */
+export function clearPullCursors() {
+  for (const table of SYNC_TABLES) removeKey(cursorKey(table));
+}
 
 type RemoteRow = Record<string, unknown> & { updated_at: number };
 
