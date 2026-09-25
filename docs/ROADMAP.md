@@ -50,7 +50,7 @@
 
 ## Phase 3 — จุดขายไทย
 
-- [ ] `ai-ask` Q&A ข้ามข้อมูล
+- [ ] `ai-ask` Q&A ข้ามข้อมูล — [x] P3-01 retrieval pipeline + prompt (`src/features/ai/ask`, `supabase/functions/ai-ask`) · [ ] P3-02 UI
 - [ ] `ai-plan` จัดวันให้ + approve
 - [ ] `ai-breakdown`
 - [x] Slip OCR — ขั้น 1: slip QR (ฟรี) + `slip-ocr` (Claude Haiku) + จับคู่บัญชี/หมวด — `supabase/functions/slip-ocr`, `src/features/slip`, `src/app/slip.tsx`

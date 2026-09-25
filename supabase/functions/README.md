@@ -6,7 +6,7 @@
 | `gcal` | 2 | Google Calendar import (read-only, หลายบัญชี) — `src/features/google-calendar/types.ts`; ดู § gcal ด้านล่าง |
 | `ai-capture` | 1 | `src/features/ai/types.ts` → `CaptureResponse` — structured output ตาม `_shared/capture-contract.ts`, prompt ใน `ai-capture/prompt.ts` |
 | `ai-summary` | 2 | `src/features/ai/summary.ts` → `SummaryResponse` — structured output ตาม `_shared/summary-contract.ts`, prompt ใน `ai-summary/prompt.ts` |
-| `ai-ask` | 3 | SPEC §6.4 |
+| `ai-ask` | 3 | `src/features/ai/types.ts` → `AskResponse` — structured output ตาม `_shared/ask-contract.ts`, prompt ใน `ai-ask/prompt.ts`; retrieval ฝั่งแอป `src/features/ai/ask/` ดู § ai-ask ด้านล่าง |
 | `ai-plan` | 3 | SPEC §6.4 |
 | `account` | 4 | PDPA: ลบบัญชี (`{ action: 'delete' }` + JWT ผู้ใช้) → ลบ auth user, ตาราง sync / `ai_usage` / `gcal_accounts` cascade ตาม; ดู § account ด้านล่าง |
 | `slip-ocr` | 3 | `src/features/slip/types.ts` → `SlipResult` — structured output ตาม `_shared/slip-contract.ts`, prompt ใน `slip-ocr/prompt.ts`; ดู § slip-ocr ด้านล่าง |
@@ -37,6 +37,35 @@
 - **Morning briefing** (`src/features/notifications/briefing.ts`): local notification ล่วงหน้า 7 เช้า (เนื้อหาจากข้อมูลในเครื่อง: นัด/งาน/บิลของวันนั้น + นัดแรก หรือจำนวนงานเลยกำหนด) rebuild ทุกครั้งที่ข้อมูลหรือเวลาที่ตั้งเปลี่ยน; แตะแล้วเปิด `/review`; เปิด/ปิดและตั้งเวลาใน Settings (`profile.briefing`)
 - ทดสอบ: `npm test` (`src/features/review/__tests__/`, `src/features/notifications/__tests__/briefing.test.ts`)
 
+## ai-ask — Q&A ข้ามข้อมูล (P3-01)
+
+ถามเป็นภาษาธรรมชาติ ("เดือนที่แล้วจ่ายค่าสอบบัญชี ABC ไปเท่าไหร่", "งานของคุณสมชายมีอะไรค้างบ้าง") แอปค้นข้อมูลก่อนแล้วส่งเฉพาะที่เกี่ยวข้อง — ไม่ส่งทั้ง DB (SPEC §6.4)
+
+**Retrieval pipeline** (`src/features/ai/ask/`)
+
+1. `planRetrieval()` (`model.ts`, pure) — แยกคำถามเป็น **keywords** (ตัด question word / particle / คำเงินทั่วไป ทั้งไทย-อังกฤษ; ภาษาไทยตัดที่ stop word เพราะ index เป็น trigram substring เศษคำยังหาเจอ), **time window** (วันนี้ / เมื่อวาน / สัปดาห์นี้ / เดือนที่แล้ว / 30 วันที่ผ่านมา / ชื่อเดือน + พ.ศ. / this week / last month …) และ **focus** (money / bills / tasks / events / notes / contacts)
+2. `retrieve()` (`retrieve.ts`) — ยิงพร้อมกัน: FTS ทีละ keyword (OR, ให้คะแนนตามจำนวน keyword ที่เจอ) · query ตามช่วงวันที่ (tasks / events / transactions) · query ตาม focus (งานค้าง, นัด 7 วัน, เงินเดือนนี้, บิล) · snapshot เล็กๆ (งานเลยกำหนด + วันนี้) เมื่อคำถามไม่ระบุอะไร · record ที่ผูก links กับ contact ที่เจอ (top 3)
+3. `render*()` — แปลงแต่ละแถวเป็น 1 บรรทัดสั้นๆ (ชื่อหมวด/กระเป๋าแทน id, สถานะ overdue คำนวณให้แล้ว), `rankRecords()` จัดอันดับ + cap ต่อ type + งบรวม ≤60 record / ≤8k chars แล้วแจก ref สั้น (`T1`, `E2`, `N3`, `X4`, `C5`, `B6`)
+4. `moneyFacts()` / `taskFacts()` / `budgetFacts()` — ตัวเลขรวมคำนวณในเครื่องจากข้อมูลเต็มช่วง (ไม่ใช่แค่ record ที่ส่ง) → Claude ต้อง quote ตัวเลขนี้ ห้ามบวกเอง
+5. `askRemote()` (`remote.ts`) → POST `{ question, locale, today, weekday, currency, name, facts[], records[], coverage[] }`
+
+**Prompt** (`ai-ask/prompt.ts`) — SYSTEM คงที่ + `cache_control`; user turn = `<today> <locale> <currency> <coverage> <facts> <records> <question>` กติกา: ตอบจาก facts/records เท่านั้น ไม่เจอให้บอกว่าไม่เจอ (พร้อมบอกว่าค้นช่วงไหน), ตอบสั้น ตอบก่อนแล้วค่อยรายละเอียด, เงินคั่นหลักพัน ไม่แปลงสกุล, ตอบภาษาตาม locale เว้นแต่คำถามชัดว่าอีกภาษา
+
+**Structured output** (`_shared/ask-contract.ts`) — `{ answer, sources: [{ ref }], suggestedActions: [{ label, type: task|event|note, title, date, startTime }] ≤3, followUps ≤3 }`; `normalizeAskResponse()` ตัด ref ที่ไม่ได้ส่งไป (กันโมเดลอ้าง record ที่ไม่มี), event ไม่มีวันที่ → task; ฝั่งแอป `askRemote()` map ref กลับเป็น `{ type, id, title }` เพื่อเปิดหน้า record ได้ และ `actionToCaptureItem()` แปลง suggested action เป็น `CaptureItem` เข้าสู่ flow preview → ยืนยัน → บันทึก เดิม (ไม่มีอะไรถูกบันทึกอัตโนมัติ)
+
+**Model**: `claude-opus-5`, adaptive thinking, effort `medium` (ต้องอ่านหลายบรรทัด เทียบวันที่), `max_tokens` 4096, `fallbacks: 'default'`; refusal / JSON พัง → `{ answer: '', status: 'refusal' | 'invalid' }` แอปแสดงข้อความของตัวเอง; log `ai_usage` ทุกครั้ง
+
+ใช้จากแอป: `const ask = useAskQuestion(); const { answer, sources, suggestedActions, followUps } = await ask('พรุ่งนี้มีนัดอะไรบ้าง');` (UI = P3-02)
+
+ทดสอบ: `npm test` (`src/features/ai/__tests__/ask-model.test.ts`, `ask-contract.test.ts`)
+
+```bash
+npx supabase functions deploy ai-ask
+curl -X POST "$SUPABASE_URL/functions/v1/ai-ask" \
+  -H "Authorization: Bearer $SUPABASE_ANON_KEY" -H "apikey: $SUPABASE_ANON_KEY" -H "content-type: application/json" \
+  -d '{"question":"เดือนนี้ใช้เงินไปเท่าไหร่","locale":"th","today":"2026-09-25","weekday":"Friday","currency":"THB","facts":["this month (2026-09-01 to 2026-09-30), THB: expense 4,200, income 50,000, net +45,800 (3 transactions, transfers excluded)"],"records":[{"ref":"X1","type":"transaction","text":"Expense 3,000 THB | 2026-09-10 | VAT | category Tax"}],"coverage":["Transactions this month (2026-09-01 to 2026-09-30)"]}'
+```
+
 ## Setup (ครั้งแรก)
 
 ```bash
@@ -44,7 +73,7 @@ npx supabase login
 npx supabase link --project-ref <ref>
 npx supabase db push                       # สร้างตาราง ai_usage
 npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-npx supabase functions deploy ai-capture ai-summary assistant slip-ocr account
+npx supabase functions deploy ai-capture ai-summary ai-ask assistant slip-ocr account
 ```
 
 ทดสอบเรียกตรง:
