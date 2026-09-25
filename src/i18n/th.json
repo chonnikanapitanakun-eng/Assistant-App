@@ -81,6 +81,15 @@
     "type_expense": "รายจ่าย",
     "type_income": "รายรับ",
     "type_transfer": "โอน",
+    "export": "ส่งออก CSV",
+    "export_empty": "ไม่มีรายการให้ส่งออก",
+    "csv_date": "วันที่",
+    "csv_type": "ประเภท",
+    "csv_amount": "จำนวน",
+    "csv_currency": "สกุลเงิน",
+    "csv_category": "หมวดหมู่",
+    "csv_account": "บัญชี",
+    "csv_note": "บันทึกช่วยจำ",
     "budget_total": "งบรายเดือน · {{currency}}",
     "no_budgets": "ยังไม่ได้ตั้งงบ เลือกหมวดด้านล่างเพื่อตั้งงบ",
     "no_budget_yet": "ยังไม่ตั้งงบ",
@@ -209,7 +218,8 @@
     "coming_soon": "กำลังออกแบบหน้านี้",
     "coming_soon_body": "หน้านี้กำลังจะมา ลองใช้หน้าหลักก่อนได้เลย",
     "back": "กลับ",
-    "save_failed": "บันทึกไม่สำเร็จ ลองอีกครั้ง"
+    "save_failed": "บันทึกไม่สำเร็จ ลองอีกครั้ง",
+    "export_failed": "ส่งออกไม่สำเร็จ ลองอีกครั้ง"
   },
   "nav": {
     "home": "หน้าหลัก",

@@ -54,7 +54,7 @@
 - [ ] `ai-plan` จัดวันให้ + approve
 - [ ] `ai-breakdown`
 - [ ] Slip OCR
-- [ ] Export Excel / CSV
+- [x] Export Excel / CSV
 - [ ] Home / lock screen widgets
 - [ ] Context-aware reminder
 

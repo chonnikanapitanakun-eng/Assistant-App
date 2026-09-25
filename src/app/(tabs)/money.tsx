@@ -5,18 +5,20 @@ import { ScrollView, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Card, Chip, Icon, IconButton, PressableScale, Screen, SectionHeader, Text } from '@/components/ui';
+import { Card, Chip, FieldError, Icon, IconButton, PressableScale, Screen, SectionHeader, Text } from '@/components/ui';
 import type { Category, Transaction, Wallet } from '@/db';
 import { categoryIcon, walletIcon } from '@/features/money/category-icon';
 import { BillRow } from '@/features/money/components/bill-row';
 import { BudgetBar } from '@/features/money/components/budget-bar';
 import { SpendingChart } from '@/features/money/components/spending-chart';
 import { TransactionRow } from '@/features/money/components/transaction-row';
+import { exportCsv, transactionsToCsv } from '@/features/money/export';
 import { billState, currenciesInUse, groupByDate, monthTotals, netWorth, nextDueDate, spendingByCategory, toPrimary, walletBalance } from '@/features/money/model';
 import { useBills, useCategories, useTransactions, useWallets } from '@/features/money/queries';
 import { useFxRates, usePrimaryCurrency } from '@/features/profile/store';
 import { formatMoney } from '@/lib/currency';
 import { daysFromToday, toMonthKey } from '@/lib/date';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useBreakpoint, useTheme } from '@/theme';
 
 type Section = 'overview' | 'transactions' | 'budget' | 'bills' | 'accounts' | 'networth';
@@ -222,14 +224,39 @@ function Transactions({ month, currency, txs, catById, walletById }: Props) {
   const rows = txs.filter((x) => x.date.startsWith(month) && x.currency === currency && (kind === 'all' || x.type === kind));
   const groups = groupByDate(rows);
   const locale = i18n.language === 'th' ? 'th-TH' : 'en-GB';
+  const { failed, run } = useAsyncAction();
+
+  const handleExport = () =>
+    run(async () => {
+      if (!rows.length) return;
+      const categoryName = (c: Category) => (i18n.language === 'th' ? c.nameTh : c.nameEn);
+      const csv = transactionsToCsv(rows, catById, walletById, categoryName, {
+        date: t('money.csv_date'),
+        type: t('money.csv_type'),
+        amount: t('money.csv_amount'),
+        currency: t('money.csv_currency'),
+        category: t('money.csv_category'),
+        account: t('money.csv_account'),
+        note: t('money.csv_note'),
+        income: t('money.type_income'),
+        expense: t('money.type_expense'),
+        transfer: t('money.type_transfer'),
+        uncategorised: t('money.uncategorised'),
+      });
+      await exportCsv(csv, `transactions-${month}-${currency}.csv`);
+    });
 
   return (
     <>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
-        {(['all', 'expense', 'income', 'transfer'] as const).map((k) => (
-          <Chip key={k} label={t(`money.filter_${k}`)} selected={kind === k} onPress={() => setKind(k)} />
-        ))}
-      </ScrollView>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, flexGrow: 1 }}>
+          {(['all', 'expense', 'income', 'transfer'] as const).map((k) => (
+            <Chip key={k} label={t(`money.filter_${k}`)} selected={kind === k} onPress={() => setKind(k)} />
+          ))}
+        </ScrollView>
+        <IconButton icon="download" label={rows.length ? t('money.export') : t('money.export_empty')} onPress={handleExport} />
+      </View>
+      <FieldError message={failed ? t('common.export_failed') : null} />
       {groups.length === 0 ? (
         <Empty pose="thinking" title={t('money.no_transactions')} body={t('money.no_transactions_body')} />
       ) : (

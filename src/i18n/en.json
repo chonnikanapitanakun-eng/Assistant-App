@@ -81,6 +81,15 @@
     "type_expense": "Expense",
     "type_income": "Income",
     "type_transfer": "Transfer",
+    "export": "Export CSV",
+    "export_empty": "No transactions to export",
+    "csv_date": "Date",
+    "csv_type": "Type",
+    "csv_amount": "Amount",
+    "csv_currency": "Currency",
+    "csv_category": "Category",
+    "csv_account": "Account",
+    "csv_note": "Note",
     "budget_total": "Monthly budget · {{currency}}",
     "no_budgets": "No budgets yet — pick a category below to set one.",
     "no_budget_yet": "No budget yet",
@@ -209,7 +218,8 @@
     "coming_soon": "Designing this next",
     "coming_soon_body": "This screen is on the way. Home is ready to explore.",
     "back": "Back",
-    "save_failed": "Couldn’t save. Please try again."
+    "save_failed": "Couldn’t save. Please try again.",
+    "export_failed": "Couldn’t export. Please try again."
   },
   "nav": {
     "home": "Home",
