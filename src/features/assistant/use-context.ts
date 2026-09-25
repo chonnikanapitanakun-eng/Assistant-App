@@ -32,7 +32,7 @@ export function useAssistantContext(): () => AssistantContext {
       now: new Date(),
       name,
       currency,
-      tasks: tasks.map((x) => ({ id: x.id, title: x.title, date: x.date, startTime: x.startTime, endTime: x.endTime, isDone: x.isDone, priority: x.priority })),
+      tasks: tasks.map((x) => ({ id: x.id, title: x.title, date: x.date, startTime: x.startTime, endTime: x.endTime, isDone: x.isDone, priority: x.priority, durationMin: x.durationMin, energy: x.energy })),
       events: events.map(eventToItem).map((e) => ({ id: e.id, title: e.title, date: e.date, start: e.start, end: e.end, allDay: e.allDay, location: e.location })),
       bills: bills.map((b) => {
         const due = nextDueDate(b);

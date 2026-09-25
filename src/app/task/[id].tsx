@@ -8,6 +8,7 @@ import { Button, Chip, Field, FieldError, Icon, IconButton, PressableScale, Shee
 import type { Task } from '@/db';
 import { isValidDate, isValidTime, priorityLevel, priorityTint, priorityValue, type PriorityLevel } from '@/features/tasks/model';
 import { RelatedSection } from '@/features/links/components/related-section';
+import { BreakdownSuggestions } from '@/features/tasks/components/breakdown-suggestions';
 import { createTask, deleteTask, updateTask, useAreas, useTask, type ChecklistItem, type TaskFormValues } from '@/features/tasks/queries';
 import { addDays, toDateKey } from '@/lib/date';
 import { newId } from '@/lib/ids';
@@ -276,7 +277,21 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
             />
             <IconButton icon="plus" label={t('tasks.add_item')} color="primary" filled onPress={addItem} />
           </View>
+          <BreakdownSuggestions title={title} notes={notes} existing={checklist} onAdd={(items) => setChecklist((prev) => [...prev, ...items])} />
         </Field>
+
+        {existing?.routineId ? (
+          <PressableScale
+            accessibilityRole="button"
+            accessibilityLabel={t('routines.from_routine')}
+            onPress={() => router.push({ pathname: '/routine/[id]', params: { id: existing.routineId! } })}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 44, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surfaceMuted }}
+          >
+            <Icon name="repeat" size={16} />
+            <Text variant="label" style={{ flex: 1 }}>{t('routines.from_routine')}</Text>
+            <Icon name="chevron-right" size={16} color="textTertiary" />
+          </PressableScale>
+        ) : null}
 
         {existing ? <RelatedSection self={{ type: 'task', id: existing.id }} /> : null}
 

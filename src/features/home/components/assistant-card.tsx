@@ -26,7 +26,10 @@ export function AssistantCard() {
   // Same planner as "Plan my day" in the chat, so Home and chat never disagree.
   const suggestion = useMemo(() => {
     const card = respond('plan my day', getContext(), t).cards.find((c) => c.type === 'proposal');
-    return card?.type === 'proposal' && card.proposal.kind === 'reschedule_task' ? card.proposal : null;
+    if (card?.type !== 'proposal' || card.proposal.kind !== 'apply_plan') return null;
+    const [first] = card.proposal.slots;
+    const p: Proposal = { kind: 'reschedule_task', taskId: first.taskId, title: first.title, date: card.proposal.date, startTime: first.startTime, endTime: first.endTime };
+    return p;
   }, [getContext, t]);
 
   const accept = async (p: Proposal) => {
@@ -42,6 +45,7 @@ export function AssistantCard() {
   const ask = (q: string) => router.push({ pathname: '/assistant', params: { q } });
   const chips = (
     <>
+      <Chip label={t('home.ai_review')} icon="sunrise" onPress={() => router.push('/review')} />
       <Chip label={t('home.ai_plan_day')} icon="sun" onPress={() => ask(t('home.ai_plan_day'))} />
       <Chip label={t('home.ai_summarise')} icon="list" onPress={() => ask(t('home.ai_summarise'))} />
       <Chip label={t('home.ai_overdue')} icon="alert-circle" onPress={() => ask(t('home.ai_overdue'))} />

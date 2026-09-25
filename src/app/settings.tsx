@@ -7,12 +7,15 @@ import { create } from 'zustand';
 
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Card, Chip, Icon, IconButton, PressableScale, Screen, Text, Toggle, type IconName } from '@/components/ui';
-import { authEnabled, signInWithGoogle, signOut, useSession } from '@/features/auth';
+import { authEnabled, signInWithApple, signInWithGoogle, signOut, useSession, type SignInResult } from '@/features/auth';
+import { LEAD_OPTIONS } from '@/features/context-reminders';
 import { completeGoogleConnect, connectGoogle, disconnectGoogle, gcalEnabled, syncGoogleCalendars, useCalendarAccounts, type AuthReturn, type ConnectResult } from '@/features/google-calendar';
 import { useNotificationPermission } from '@/features/notifications';
 import { accountDeleteEnabled, deleteAccount, eraseLocalData, exportAllData, PRIVACY_CONTACT_EMAIL } from '@/features/privacy';
+import { DEFAULT_BRIEFING } from '@/features/profile/store';
 import { setLanguage } from '@/features/profile/language';
 import { ALL_INTERESTS, useProfile, type Interest } from '@/features/profile/store';
+import { authenticateWithBiometrics, biometricLabelKey, useBiometricSupport, useSecurity } from '@/features/security';
 import { runSync, useSyncStatus } from '@/features/sync';
 import type { CalendarAccount } from '@/db';
 import { useAsyncAction } from '@/lib/use-async-action';
@@ -48,6 +51,8 @@ export default function SettingsScreen() {
       </View>
 
       <AccountSection />
+
+      {Platform.OS !== 'web' ? <SecuritySection /> : null}
 
       <Section title={t('settings.profile')}>
         <Row icon="user" label={t('settings.name')}>
@@ -98,7 +103,12 @@ export default function SettingsScreen() {
 
       <FxRatesSection />
 
-      {Platform.OS !== 'web' ? <NotificationsSection /> : null}
+      {Platform.OS !== 'web' ? (
+        <>
+          <NotificationsSection />
+          <BriefingSection />
+        </>
+      ) : null}
 
       <Section title={t('settings.help')}>
         <PressableScale accessibilityRole="button" accessibilityLabel={t('settings.replay')} onPress={() => router.push({ pathname: '/onboarding', params: { replay: '1' } })}>
@@ -141,12 +151,12 @@ function AccountSection() {
     );
   }
 
-  const doSignIn = async () => {
+  const doSignIn = async (signIn: () => Promise<SignInResult>) => {
     setSigningIn(true);
     setNotice(null);
     try {
-      const r = await signInWithGoogle();
-      if (r && 'error' in r) setNotice({ text: t('sync.error_failed'), error: true });
+      const r = await signIn();
+      if (r && 'error' in r) setNotice({ text: t(r.error === 'apple_unavailable' ? 'sync.error_apple_unavailable' : 'sync.error_failed'), error: true });
     } catch (e) {
       console.error('Sign-in failed:', e);
       setNotice({ text: t('sync.error_failed'), error: true });
@@ -157,8 +167,9 @@ function AccountSection() {
   if (!session) {
     return (
       <Section title={t('sync.title')} hint={t('sync.hint')}>
-        <View style={{ paddingVertical: spacing.sm }}>
-          <Button variant="secondary" icon="log-in" label={signingIn ? t('gcal.syncing') : t('sync.sign_in')} disabled={signingIn} onPress={() => void doSignIn()} />
+        <View style={{ gap: spacing.sm, paddingVertical: spacing.sm }}>
+          <Button variant="secondary" icon="log-in" label={signingIn ? t('gcal.syncing') : t('sync.sign_in_apple')} disabled={signingIn} onPress={() => void doSignIn(signInWithApple)} />
+          <Button variant="secondary" icon="log-in" label={signingIn ? t('gcal.syncing') : t('sync.sign_in')} disabled={signingIn} onPress={() => void doSignIn(signInWithGoogle)} />
         </View>
         {notice ? (
           <Text variant="caption" color={notice.error ? 'danger' : 'success'} accessibilityLiveRegion="polite" style={{ paddingBottom: spacing.sm }}>
@@ -328,9 +339,58 @@ function FxRatesSection() {
   );
 }
 
+/** App lock: PIN required to open Veyra, with optional Face ID / Touch ID as a shortcut (P2-09). */
+function SecuritySection() {
+  const { t } = useTranslation();
+  const pinSet = useSecurity((s) => s.pinHash !== null);
+  const biometricEnabled = useSecurity((s) => s.biometricEnabled);
+  const setBiometricEnabled = useSecurity((s) => s.setBiometricEnabled);
+  const disable = useSecurity((s) => s.disable);
+  const { available, kind } = useBiometricSupport();
+  const { armed, confirm } = useConfirm();
+
+  const toggleBiometric = async (on: boolean) => {
+    if (!on) return setBiometricEnabled(false);
+    const ok = await authenticateWithBiometrics(t('security.enable_prompt'));
+    if (ok) setBiometricEnabled(true);
+  };
+
+  return (
+    <Section title={t('security.title')} hint={t('security.hint')}>
+      <Row icon="lock" label={t('security.app_lock')} sub={pinSet ? t('security.app_lock_on') : t('security.app_lock_off')}>
+        {pinSet ? (
+          <Button size="sm" variant="ghost" label={armed ? t('security.confirm_turn_off') : t('security.turn_off')} onPress={() => confirm(disable)} />
+        ) : (
+          <Toggle value={false} onValueChange={() => router.push({ pathname: '/security-pin', params: { mode: 'create' } })} label={t('security.app_lock')} />
+        )}
+      </Row>
+      {pinSet ? (
+        <>
+          <Divider />
+          <PressableScale accessibilityRole="button" accessibilityLabel={t('security.change_pin')} onPress={() => router.push({ pathname: '/security-pin', params: { mode: 'change' } })}>
+            <Row icon="key" label={t('security.change_pin')}>
+              <Icon name="chevron-right" size={18} color="textTertiary" />
+            </Row>
+          </PressableScale>
+          {available ? (
+            <>
+              <Divider />
+              <Row icon="smile" label={t(biometricLabelKey(kind))} sub={t('security.biometric_hint')}>
+                <Toggle value={biometricEnabled} onValueChange={(v) => void toggleBiometric(v)} label={t(biometricLabelKey(kind))} />
+              </Row>
+            </>
+          ) : null}
+        </>
+      ) : null}
+    </Section>
+  );
+}
+
 function NotificationsSection() {
   const { t } = useTranslation();
   const { state, request } = useNotificationPermission();
+  const lead = useProfile((p) => p.contextReminderMin);
+  const setLead = useProfile((p) => p.update);
   const label = state === 'granted' ? t('settings.notify_on') : state === 'denied' ? t('settings.notify_denied') : t('settings.notify_off');
   return (
     <Section title={t('onboarding.notify_title')}>
@@ -341,6 +401,12 @@ function NotificationsSection() {
           <Button size="sm" variant="secondary" label={state === 'denied' ? t('notifications.open_settings') : t('notifications.enable')} onPress={() => (state === 'denied' ? void Linking.openSettings() : void request())} />
         )}
       </Row>
+      <Divider />
+      <Stacked icon="clipboard" label={t('settings.context_reminder')} hint={t('settings.context_reminder_hint')}>
+        {LEAD_OPTIONS.map((m) => (
+          <Chip key={m} label={m ? t('settings.context_min', { count: m }) : t('settings.context_off')} selected={lead === m} onPress={() => setLead({ contextReminderMin: m })} />
+        ))}
+      </Stacked>
     </Section>
   );
 }
@@ -406,6 +472,48 @@ function PrivacySection() {
         <Text variant="caption" color={notice.error ? 'danger' : 'success'} accessibilityLiveRegion="polite" style={{ paddingBottom: spacing.sm }}>
           {notice.text}
         </Text>
+      ) : null}
+    </Section>
+  );
+}
+
+const BRIEFING_TIMES = [
+  { hour: 6, minute: 30 },
+  { hour: 7, minute: 0 },
+  { hour: 7, minute: 30 },
+  { hour: 8, minute: 0 },
+  { hour: 8, minute: 30 },
+];
+const hhmm = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+/** Morning briefing: on/off and the time. Turning it on asks for permission if the app never has. */
+function BriefingSection() {
+  const { t } = useTranslation();
+  const briefing = useProfile((p) => p.briefing) ?? DEFAULT_BRIEFING;
+  const update = useProfile((p) => p.update);
+  const { state, request } = useNotificationPermission();
+  const set = (patch: Partial<typeof briefing>) => update({ briefing: { ...briefing, ...patch } });
+  const toggle = async (on: boolean) => {
+    set({ enabled: on });
+    if (!on) return;
+    if (state === 'denied') void Linking.openSettings();
+    else if (state === 'undetermined') await request();
+  };
+  const blocked = briefing.enabled && state === 'denied';
+  return (
+    <Section title={t('settings.briefing')} hint={t('settings.briefing_hint')}>
+      <Row icon="sunrise" label={t('settings.briefing')} sub={blocked ? t('settings.notify_denied') : t('settings.briefing_body')}>
+        <Toggle value={briefing.enabled} onValueChange={(v) => void toggle(v)} label={t('settings.briefing')} />
+      </Row>
+      {briefing.enabled ? (
+        <>
+          <Divider />
+          <Stacked icon="clock" label={t('settings.briefing_time')}>
+            {BRIEFING_TIMES.map((x) => (
+              <Chip key={hhmm(x.hour, x.minute)} label={hhmm(x.hour, x.minute)} selected={briefing.hour === x.hour && briefing.minute === x.minute} onPress={() => set(x)} />
+            ))}
+          </Stacked>
+        </>
       ) : null}
     </Section>
   );

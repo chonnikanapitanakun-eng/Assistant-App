@@ -8,6 +8,7 @@ import m0003 from './0003_tense_ultragirl.sql';
 import m0004 from './0004_quick_fallen_one.sql';
 import m0005 from './0005_chubby_toxin.sql';
 import m0006 from './0006_lyrical_jack_murdock.sql';
+import m0007 from './0007_outgoing_valeria_richards.sql';
 
   export default {
     journal,
@@ -18,7 +19,8 @@ m0002,
 m0003,
 m0004,
 m0005,
-m0006
+m0006,
+m0007
     }
   }
   

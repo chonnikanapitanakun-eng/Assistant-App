@@ -42,6 +42,7 @@ export function Sidebar({ state, navigation }: BottomTabBarProps) {
         );
       })}
 
+      <SidebarItem icon="repeat" label={t('more.routines')} focused={false} onPress={() => router.push('/routines')} />
       <SidebarItem icon="target" label={t('more.focus')} focused={false} onPress={() => router.push('/focus')} />
       <SidebarItem icon="smile" label={t('more.review')} focused={false} onPress={() => router.push('/review')} />
       <SidebarItem icon="search" label={t('more.search')} focused={false} onPress={() => router.push('/search')} />

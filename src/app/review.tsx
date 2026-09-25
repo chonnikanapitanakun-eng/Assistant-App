@@ -1,4 +1,4 @@
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TextInput, View } from 'react-native';
@@ -12,6 +12,7 @@ import { usePrimaryCurrency } from '@/features/profile/store';
 import { useTransactions } from '@/features/money/queries';
 import { EnergyPicker } from '@/features/review/components/energy-picker';
 import { MOOD_EMOJI, MoodPicker } from '@/features/review/components/mood-picker';
+import { SummaryPanel } from '@/features/review/components/summary-panel';
 import { WeekTrend } from '@/features/review/components/week-trend';
 import { average, checkinStreak, daySpend, isScaleValue, lastSevenDaysCheckins, type ScaleValue } from '@/features/review/model';
 import { saveCheckin, useCheckinForDate, useCheckins } from '@/features/review/queries';
@@ -27,7 +28,9 @@ type Tab = 'today' | 'week';
 export default function ReviewScreen() {
   const { t } = useTranslation();
   const { spacing } = useTheme();
-  const [tab, setTab] = useState<Tab>('today');
+  // The morning briefing (and anyone else) can open a tab directly: /review?scope=week.
+  const { scope } = useLocalSearchParams<{ scope?: string }>();
+  const [tab, setTab] = useState<Tab>(scope === 'week' ? 'week' : 'today');
   const back = () => (router.canGoBack() ? router.back() : router.replace('/'));
 
   return (
@@ -86,6 +89,8 @@ function TodayTab() {
 
   return (
     <>
+      <SummaryPanel scope="day" />
+
       <Card style={{ gap: spacing.lg }}>
         <View style={{ gap: spacing.xs }}>
           <Text variant="heading">{t('review.checkin_title')}</Text>
@@ -149,6 +154,8 @@ function WeekTab() {
 
   return (
     <>
+      <SummaryPanel scope="week" />
+
       <Card style={{ gap: spacing.md }}>
         <Text variant="heading">{t('review.week_title')}</Text>
         <WeekTrend days={days} />

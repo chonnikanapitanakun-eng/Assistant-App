@@ -65,6 +65,7 @@ export function TaskRow({ task, areaName, showDate, overdue }: Props) {
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: spacing.md, rowGap: 2 }}>
             {when ? <Meta icon="clock" label={when} tone={overdue && !task.isDone ? tints.priorityHigh.fg : undefined} /> : null}
+            {task.routineId ? <Meta icon="repeat" label="" /> : null}
             {areaName ? <Meta icon="folder" label={areaName} /> : null}
             {checklist.length ? <Meta icon="check-square" label={`${checked}/${checklist.length}`} /> : null}
             {task.energy ? <Meta icon={task.energy === 'high' ? 'zap' : 'battery'} label={t(`task.energy_${task.energy}`)} /> : null}
@@ -77,7 +78,7 @@ export function TaskRow({ task, areaName, showDate, overdue }: Props) {
   );
 }
 
-function Meta({ icon, label, tone }: { icon: 'clock' | 'folder' | 'check-square' | 'zap' | 'battery' | 'bell'; label: string; tone?: string }) {
+function Meta({ icon, label, tone }: { icon: 'clock' | 'folder' | 'check-square' | 'zap' | 'battery' | 'bell' | 'repeat'; label: string; tone?: string }) {
   const { colors } = useTheme();
   const c = tone ?? colors.textSecondary;
   return (

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { buildExport } from '../model';
 
-const profile = { name: 'Proud', language: 'th' as const, currency: 'THB' as const, interests: ['tasks' as const], onboarded: true, fxRates: { GBP: 44 } };
+const profile = { name: 'Proud', language: 'th' as const, currency: 'THB' as const, interests: ['tasks' as const], onboarded: true, fxRates: { GBP: 44 }, briefing: { enabled: true, hour: 7, minute: 30 }, contextReminderMin: 30 };
 
 describe('buildExport', () => {
   it('keeps the user’s rows and drops device-only bookkeeping', () => {

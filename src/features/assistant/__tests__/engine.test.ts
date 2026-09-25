@@ -63,13 +63,19 @@ describe('freeSlots', () => {
 });
 
 describe('respond', () => {
-  it('plans the day and proposes slots for top untimed tasks', () => {
+  it('plans the day as one approvable card: overdue and high-priority tasks first, into the free gaps', () => {
     const r = respond('plan my day', ctx(), t);
     expect(r.text).toBe('assistant.r.plan_slots');
-    const proposals = r.cards.filter((c) => c.type === 'proposal');
-    expect(proposals).toHaveLength(2);
-    expect(proposals[0]).toMatchObject({ proposal: { kind: 'reschedule_task', taskId: 'late', startTime: '11:15', endTime: '12:15' } });
-    expect(proposals[1]).toMatchObject({ proposal: { kind: 'reschedule_task', taskId: 'vat', startTime: '15:00' } });
+    expect(r.cards.map((c) => c.type)).toEqual(['list', 'proposal']);
+    const card = r.cards[1];
+    expect(card).toMatchObject({ type: 'proposal', state: 'pending', proposal: { kind: 'apply_plan', date: '2026-09-24' } });
+    const plan = card.type === 'proposal' && card.proposal.kind === 'apply_plan' ? card.proposal : null;
+    expect(plan?.slots.map((s) => [s.taskId, s.startTime, s.endTime])).toEqual([
+      ['late', '11:15', '12:00'], // overdue, priority 1 — first gap after the 10:30 call
+      ['vat', '12:00', '12:45'],
+      ['cima', '15:00', '15:45'], // 12:45–13:00 is too short; next gap after the focus block
+    ]);
+    expect(plan?.slots[0]).toMatchObject({ title: 'Send engagement letter', overdue: true });
   });
   it('offers to move overdue tasks to today', () => {
     const r = respond('overdue', ctx(), t);

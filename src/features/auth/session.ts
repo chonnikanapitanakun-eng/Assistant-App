@@ -12,7 +12,8 @@ const useAuthStore = create<AuthState>(() => ({ session: null, ready: !supabaseE
 if (supabase) {
   void supabase.auth.getSession().then(({ data }) => useAuthStore.setState({ session: data.session, ready: true }));
   supabase.auth.onAuthStateChange((event, session) => {
-    const fresh = event === 'SIGNED_IN' ? session?.provider_refresh_token : undefined;
+    // Only Google's token links a calendar — an Apple sign-in (OAuth on web/Android) can carry one too.
+    const fresh = event === 'SIGNED_IN' && session?.user.app_metadata?.provider === 'google' ? session.provider_refresh_token : undefined;
     useAuthStore.setState(fresh ? { session, providerRefreshToken: fresh } : { session });
   });
 }
