@@ -12,6 +12,7 @@ import { saveCaptureItems } from '@/features/ai/save';
 import type { CaptureItem } from '@/features/ai/types';
 import { useCaptureContext } from '@/features/ai/use-capture-context';
 import { DetectedItem } from '@/features/capture/detected-item';
+import { useDraft } from '@/lib/use-draft';
 import { useTheme } from '@/theme';
 
 const examples = [
@@ -38,7 +39,7 @@ export default function CaptureScreen() {
   const { colors, spacing, radius, typography, fontFamily, motion } = useTheme();
   const params = useLocalSearchParams<{ text?: string }>();
 
-  const [text, setText] = useState(params.text ?? '');
+  const [text, setText] = useDraft('capture:text', params.text ?? '');
   const [focused, setFocused] = useState(false);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [moneyType, setMoneyType] = useState<Record<string, 'income' | 'expense'>>({});
@@ -108,6 +109,7 @@ export default function CaptureScreen() {
     setSaving(true);
     try {
       const count = await saveCaptureItems(selected.map((d) => d.item));
+      setText(''); // saved — don't restore it if the page reloads on the success screen
       setPhase({ kind: 'saved', count });
     } catch (e) {
       console.error('Quick capture save failed:', e);

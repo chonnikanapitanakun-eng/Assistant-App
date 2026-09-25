@@ -11,6 +11,7 @@ import { walletBalance } from '@/features/money/model';
 import { createWallet, deleteWallet, updateWallet, useTransactions, useWallet } from '@/features/money/queries';
 import { currencySymbol, formatMoney, parseAmount, supportedCurrencies } from '@/lib/currency';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useDraft } from '@/lib/use-draft';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme } from '@/theme';
 
@@ -33,10 +34,11 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
   const { armed, confirm } = useConfirm();
   const { busy, failed, run } = useAsyncAction();
 
-  const [name, setName] = useState(existing?.name ?? '');
-  const [type, setType] = useState<Wallet['type']>(existing?.type ?? 'bank');
-  const [currency, setCurrency] = useState(existing?.currency ?? 'THB');
-  const [opening, setOpening] = useState(existing ? String(existing.balance) : '0');
+  const draft = `wallet:${existing?.id ?? 'new'}`;
+  const [name, setName] = useDraft(`${draft}:name`, existing?.name ?? '');
+  const [type, setType] = useDraft<Wallet['type']>(`${draft}:type`, existing?.type ?? 'bank');
+  const [currency, setCurrency] = useDraft(`${draft}:currency`, existing?.currency ?? 'THB');
+  const [opening, setOpening] = useDraft(`${draft}:opening`, existing ? String(existing.balance) : '0');
   const [showErrors, setShowErrors] = useState(false);
 
   const hasHistory = !!existing && txs.some((x) => x.walletId === existing.id || x.toWalletId === existing.id);

@@ -20,6 +20,7 @@ import { MarkdownView } from '@/features/notes/components/markdown-view';
 import { useProfile } from '@/features/profile/store';
 import { background } from '@/lib/background';
 import { useConfirm } from '@/lib/use-confirm';
+import { useDraft } from '@/lib/use-draft';
 import { useTheme } from '@/theme';
 
 /** Veyra AI chat. Answers on-device (or with Claude when configured); any change is a card you confirm. */
@@ -32,7 +33,7 @@ export default function AssistantScreen() {
   const messages = useMessages();
   const getContext = useAssistantContext();
   const { armed, confirm } = useConfirm();
-  const [draft, setDraft] = useState('');
+  const [draft, setDraft] = useDraft('assistant:draft', '');
   const [thinking, setThinking] = useState(false);
   const scroll = useRef<ScrollView>(null);
   const sentQ = useRef(false);

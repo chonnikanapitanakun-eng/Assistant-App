@@ -13,6 +13,7 @@ import { isValidDate } from '@/features/tasks/model';
 import { currencySymbol, parseAmount } from '@/lib/currency';
 import { addDays, toDateKey } from '@/lib/date';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useDraft } from '@/lib/use-draft';
 import { useConfirm } from '@/lib/use-confirm';
 import { useTheme, type TintName } from '@/theme';
 
@@ -42,13 +43,14 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
   const { busy, failed, run } = useAsyncAction();
   const th = i18n.language === 'th';
 
-  const [kind, setKind] = useState<Kind>(existing?.type ?? 'expense');
-  const [amount, setAmount] = useState(existing ? String(existing.amount) : '');
-  const [walletId, setWalletId] = useState<string | null>(existing?.walletId ?? null);
-  const [toWalletId, setToWalletId] = useState<string | null>(existing?.toWalletId ?? null);
-  const [categoryId, setCategoryId] = useState<string | null>(existing?.categoryId ?? null);
-  const [date, setDate] = useState(existing?.date ?? toDateKey());
-  const [note, setNote] = useState(existing?.note ?? '');
+  const draft = `tx:${existing?.id ?? 'new'}`;
+  const [kind, setKind] = useDraft<Kind>(`${draft}:kind`, existing?.type ?? 'expense');
+  const [amount, setAmount] = useDraft(`${draft}:amount`, existing ? String(existing.amount) : '');
+  const [walletId, setWalletId] = useDraft<string | null>(`${draft}:walletId`, existing?.walletId ?? null);
+  const [toWalletId, setToWalletId] = useDraft<string | null>(`${draft}:toWalletId`, existing?.toWalletId ?? null);
+  const [categoryId, setCategoryId] = useDraft<string | null>(`${draft}:categoryId`, existing?.categoryId ?? null);
+  const [date, setDate] = useDraft(`${draft}:date`, existing?.date ?? toDateKey());
+  const [note, setNote] = useDraft(`${draft}:note`, existing?.note ?? '');
   const [showErrors, setShowErrors] = useState(false);
 
   // Wallets load asynchronously; fall back to the first one until the user picks.

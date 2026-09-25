@@ -12,6 +12,7 @@ import { RelatedSection } from '@/features/links/components/related-section';
 import { isValidDate, isValidTime } from '@/features/tasks/model';
 import { addDays, toDateKey } from '@/lib/date';
 import { useAsyncAction } from '@/lib/use-async-action';
+import { useDraft } from '@/lib/use-draft';
 import { useTheme } from '@/theme';
 
 export default function EventScreen() {
@@ -39,13 +40,14 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
   const item = existing ? eventToItem(existing) : null;
   const defaultStart = initialStart && isValidTime(initialStart) ? initialStart : nextHour();
 
-  const [title, setTitle] = useState(existing?.title ?? '');
-  const [date, setDate] = useState(item?.date ?? initialDate ?? toDateKey());
-  const [allDay, setAllDay] = useState(existing?.isAllDay ?? false);
-  const [startTime, setStartTime] = useState(item?.start ?? defaultStart);
-  const [endTime, setEndTime] = useState(item?.end ?? fromMinutes(Math.min(toMinutes(defaultStart) + 60, 23 * 60 + 59)));
-  const [location, setLocation] = useState(existing?.location ?? '');
-  const [person, setPerson] = useState(contactName ?? '');
+  const draft = `event:${existing?.id ?? 'new'}`;
+  const [title, setTitle] = useDraft(`${draft}:title`, existing?.title ?? '');
+  const [date, setDate] = useDraft(`${draft}:date`, item?.date ?? initialDate ?? toDateKey());
+  const [allDay, setAllDay] = useDraft(`${draft}:allDay`, existing?.isAllDay ?? false);
+  const [startTime, setStartTime] = useDraft(`${draft}:startTime`, item?.start ?? defaultStart);
+  const [endTime, setEndTime] = useDraft(`${draft}:endTime`, item?.end ?? fromMinutes(Math.min(toMinutes(defaultStart) + 60, 23 * 60 + 59)));
+  const [location, setLocation] = useDraft(`${draft}:location`, existing?.location ?? '');
+  const [person, setPerson] = useDraft(`${draft}:person`, contactName ?? '');
   const [showErrors, setShowErrors] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { busy, failed, run } = useAsyncAction();
