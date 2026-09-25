@@ -188,9 +188,17 @@
     "try_again": "Try again",
     "thinking": "Thinking…",
     "by_claude": "Sorted by Veyra AI",
-    "media_voice": "Voice capture arrives with the next app build.",
     "media_photo": "Photo capture (receipts, whiteboards) arrives with the next app build.",
-    "media_document": "Document capture arrives with the next app build."
+    "media_document": "Document capture arrives with the next app build.",
+    "voice_stop": "Stop listening",
+    "voice_lang": "Voice language: {{lang}}. Tap to switch",
+    "voice_listening": "Listening… speak now, tap ■ to stop.",
+    "voice_error_permission": "Veyra needs microphone and speech permission. Turn them on in Settings.",
+    "voice_error_no_speech": "Didn't catch that — tap the mic and try again.",
+    "voice_error_language": "This device can't recognise the selected language. Try switching TH/EN.",
+    "voice_error_network": "Speech recognition needs an internet connection.",
+    "voice_error_unavailable": "Voice isn't available here. It needs the latest app build (not Expo Go) or Chrome/Safari on the web.",
+    "voice_error_generic": "Voice capture stopped. Please try again."
   },
   "common": {
     "save": "Save",

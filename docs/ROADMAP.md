@@ -33,7 +33,7 @@
 - [x] Links table + UI "เกี่ยวข้องกับ" (docs/LINKS.md)
 - [x] Universal search (FTS5 trigram, grouped by type)
 - [x] Quick Capture: text → Supabase Edge Function `ai-capture` → preview → save (Claude structured output + `ai_usage` log; local parser เป็น fallback)
-- [ ] Voice capture (expo-speech-recognition)
+- [x] Voice capture ไทย/อังกฤษ (expo-speech-recognition, ต้องใช้ development build — Expo Go ไม่มี native module; เว็บใช้ Web Speech API)
 
 ## Phase 2 — เทียบ Tiimo
 

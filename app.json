@@ -45,6 +45,13 @@
         {
           "color": "#6366F1"
         }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Veyra uses the microphone so you can capture tasks, events and expenses by voice.",
+          "speechRecognitionPermission": "Veyra turns your speech (Thai or English) into text for Quick Capture."
+        }
       ]
     ],
     "experiments": {

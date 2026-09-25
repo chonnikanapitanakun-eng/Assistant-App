@@ -12,6 +12,8 @@ import { saveCaptureItems } from '@/features/ai/save';
 import type { CaptureItem } from '@/features/ai/types';
 import { useCaptureContext } from '@/features/ai/use-capture-context';
 import { DetectedItem } from '@/features/capture/detected-item';
+import { defaultSpeechLang, type SpeechLang } from '@/features/capture/speech';
+import { useVoiceCapture } from '@/features/capture/use-voice-capture';
 import { useTheme } from '@/theme';
 
 const examples = [
@@ -22,7 +24,6 @@ const examples = [
 ];
 
 const media: { icon: IconName; key: string }[] = [
-  { icon: 'mic', key: 'voice' },
   { icon: 'camera', key: 'photo' },
   { icon: 'paperclip', key: 'document' },
 ];
@@ -34,9 +35,9 @@ type Phase = { kind: 'edit' } | { kind: 'saved'; count: number } | { kind: 'erro
  * Type anything; Veyra detects events, tasks, money, notes and contacts. No category picker.
  */
 export default function CaptureScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { colors, spacing, radius, typography, fontFamily, motion } = useTheme();
-  const params = useLocalSearchParams<{ text?: string }>();
+  const params = useLocalSearchParams<{ text?: string; voice?: string }>();
 
   const [text, setText] = useState(params.text ?? '');
   const [focused, setFocused] = useState(false);
@@ -48,6 +49,21 @@ export default function CaptureScreen() {
   const [thinking, setThinking] = useState(false);
   const captureContext = useCaptureContext();
   const abortRef = useRef<AbortController | null>(null);
+  const [voiceLang, setVoiceLang] = useState<SpeechLang>(() => defaultSpeechLang(i18n.language));
+  const voice = useVoiceCapture(setText);
+
+  const toggleVoice = () => {
+    if (voice.listening) voice.stop();
+    else void voice.start(voiceLang, text);
+  };
+
+  // Opened from the home mic button → start listening straight away.
+  const autoVoice = useRef(params.voice === '1');
+  useEffect(() => {
+    if (!autoVoice.current) return;
+    autoVoice.current = false;
+    void voice.start(voiceLang, params.text ?? '');
+  }, [voice, voiceLang, params.text]);
 
   // Claude refines the instant local parse once typing pauses. Any failure keeps the local result.
   useEffect(() => {
@@ -154,6 +170,23 @@ export default function CaptureScreen() {
               style={{ minHeight: 96, padding: spacing.lg, color: colors.text, fontSize: typography.body.fontSize + 1, lineHeight: typography.body.lineHeight, fontFamily: fontFamily.regular, textAlignVertical: 'top' }}
             />
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xs, paddingBottom: spacing.xs }}>
+              <IconButton
+                icon={voice.listening ? 'square' : 'mic'}
+                label={voice.listening ? t('capture.voice_stop') : t('home.capture_voice')}
+                color={voice.listening ? 'primary' : 'textSecondary'}
+                filled={voice.listening}
+                onPress={toggleVoice}
+              />
+              <PressableScale
+                accessibilityRole="button"
+                accessibilityLabel={t('capture.voice_lang', { lang: voiceLang === 'th' ? 'ไทย' : 'English' })}
+                disabled={voice.listening}
+                onPress={() => setVoiceLang((l) => (l === 'th' ? 'en' : 'th'))}
+                hitSlop={8}
+                style={{ minHeight: 28, justifyContent: 'center', paddingHorizontal: spacing.sm, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.border, opacity: voice.listening ? 0.5 : 1 }}
+              >
+                <Text variant="caption" color="textSecondary">{voiceLang === 'th' ? 'TH' : 'EN'}</Text>
+              </PressableScale>
               {media.map((m) => (
                 <IconButton key={m.key} icon={m.icon} label={t(`home.capture_${m.key}`)} onPress={() => setMediaHint(t(`capture.media_${m.key}`))} />
               ))}
@@ -164,6 +197,18 @@ export default function CaptureScreen() {
               ) : null}
             </View>
           </View>
+
+          {voice.listening ? (
+            <Animated.View entering={FadeIn.duration(motion.fast)} accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.aiWash, borderRadius: radius.md, padding: spacing.md }}>
+              <Gradient variant="ai" style={{ width: 8, height: 8, borderRadius: 4 }} />
+              <Text variant="caption" color="textSecondary" style={{ flex: 1 }}>{t('capture.voice_listening')}</Text>
+            </Animated.View>
+          ) : voice.error ? (
+            <Animated.View entering={FadeIn.duration(motion.fast)} accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.aiWash, borderRadius: radius.md, padding: spacing.md }}>
+              <Text variant="caption" color="textSecondary" style={{ flex: 1 }}>{t(`capture.voice_error_${voice.error}`)}</Text>
+              <IconButton icon="x" label={t('common.close')} onPress={voice.clearError} />
+            </Animated.View>
+          ) : null}
 
           {mediaHint ? (
             <Animated.View entering={FadeIn.duration(motion.fast)} accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.aiWash, borderRadius: radius.md, padding: spacing.md }}>
