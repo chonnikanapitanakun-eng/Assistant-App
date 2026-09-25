@@ -5,6 +5,7 @@ Expo (React Native) · TypeScript · SQLite (Drizzle) · Supabase (Phase 2)
 
 - Spec: [docs/SPEC.md](docs/SPEC.md)
 - Roadmap: [docs/ROADMAP.md](docs/ROADMAP.md)
+- Auth + cloud sync: [docs/SYNC.md](docs/SYNC.md)
 
 ## Run
 
@@ -30,10 +31,10 @@ npm run db:generate     # หลังแก้ src/db/schema.ts
 src/app/          Expo Router screens  ((tabs)/, capture.tsx, assistant.tsx)
 src/components/   ui/ (design-system primitives), brand/ (logo, mascot), navigation/ (tab bar, sidebar)
 src/db/           Drizzle schema, migrations, FTS, seed
-src/features/     tasks / notes / money / contacts / areas / search / ai
+src/features/     tasks / notes / money / contacts / areas / search / ai / auth / sync
 src/i18n/         th.json, en.json
 src/lib/          date, currency, ids
 src/theme/        Veyra design tokens (colour, type, spacing, radius, shadow, motion), useTheme, useBreakpoint
-supabase/         Edge Functions (AI)
-docs/             SPEC, ROADMAP
+supabase/         migrations (ai_usage, gcal, sync_rows), Edge Functions (AI, gcal)
+docs/             SPEC, ROADMAP, SYNC
 ```

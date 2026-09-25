@@ -11,7 +11,8 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "supportsTablet": true,
-      "bundleIdentifier": "com.proud.assistant"
+      "bundleIdentifier": "com.proud.assistant",
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.proud.assistant",
@@ -46,7 +47,8 @@
           "color": "#6366F1"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-apple-authentication"
     ],
     "experiments": {
       "typedRoutes": true,

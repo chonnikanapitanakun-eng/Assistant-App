@@ -7,10 +7,12 @@ import { create } from 'zustand';
 
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Card, Chip, Icon, IconButton, PressableScale, Screen, Text, Toggle, type IconName } from '@/components/ui';
+import { AuthError, authEnabled, signIn, signOut, useAuth, type Provider } from '@/features/auth';
 import { completeGoogleConnect, connectGoogle, disconnectGoogle, gcalEnabled, syncGoogleCalendars, useCalendarAccounts, type AuthReturn, type ConnectResult } from '@/features/google-calendar';
 import { useNotificationPermission } from '@/features/notifications';
 import { setLanguage } from '@/features/profile/language';
 import { ALL_INTERESTS, useProfile, type Interest } from '@/features/profile/store';
+import { syncNow, useSyncStatus } from '@/features/sync';
 import type { CalendarAccount } from '@/db';
 import { useConfirm } from '@/lib/use-confirm';
 import { currencySymbol, parseAmount, supportedCurrencies, type Currency } from '@/lib/currency';
@@ -88,6 +90,8 @@ export default function SettingsScreen() {
         })}
       </Section>
 
+      <AccountSection />
+
       <GoogleCalendarSection />
 
       <FxRatesSection />
@@ -112,6 +116,105 @@ export default function SettingsScreen() {
 }
 
 type Notice = { text: string; error?: boolean } | null;
+
+/** Sign-in state and the last sync result, outside the component: on web the OAuth redirect remounts Settings. */
+const useAccountUi = create<{ busy: boolean; notice: Notice }>(() => ({ busy: false, notice: null }));
+let accountNoticeTimer: ReturnType<typeof setTimeout> | undefined;
+
+/** Supabase Auth (Apple / Google) + cloud sync (P2-08). Data stays local-first; this only backs it up and shares it between devices. */
+function AccountSection() {
+  const { t, i18n } = useTranslation();
+  const { colors, spacing } = useTheme();
+  const { status, user } = useAuth();
+  const sync = useSyncStatus();
+  const { busy, notice } = useAccountUi();
+  const { armed, confirm } = useConfirm();
+  const params = useLocalSearchParams<{ code?: string; error?: string; error_description?: string }>();
+
+  // Web: back from the provider as /settings?code=… (supabase-js has already used it) or ?error=….
+  const { code, error: oauthError, error_description: oauthErrorText } = params;
+  useEffect(() => {
+    if (!code && !oauthError) return;
+    router.replace('/settings');
+    if (oauthError) showAccountNotice({ text: /denied|cancel/i.test(oauthErrorText ?? oauthError) ? t('account.error_cancelled') : t('account.error_failed'), error: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per redirect
+  }, [code, oauthError]);
+
+  if (!authEnabled) {
+    return (
+      <Section title={t('account.title')}>
+        <Row icon="cloud" label={t('account.title')} sub={t('account.unavailable')}>
+          {null}
+        </Row>
+      </Section>
+    );
+  }
+
+  const act = async (work: () => Promise<void>, failText: (e: unknown) => string) => {
+    clearTimeout(accountNoticeTimer);
+    useAccountUi.setState({ busy: true, notice: null });
+    let next: Notice = null;
+    try {
+      await work();
+    } catch (e) {
+      console.error('Account action failed:', e);
+      next = { text: failText(e), error: true };
+    }
+    useAccountUi.setState({ busy: false });
+    if (next) showAccountNotice(next);
+  };
+  const signInError = (e: unknown) => t(`account.error_${e instanceof AuthError ? e.code : 'failed'}`);
+  const start = (provider: Provider) => void act(() => signIn(provider), signInError);
+
+  if (status !== 'signed_in' || !user) {
+    return (
+      <Section title={t('account.title')} hint={t('account.hint')}>
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm }}>
+          <Button size="sm" variant="secondary" label={busy ? t('account.signing_in') : t('account.sign_in_apple')} disabled={busy || status === 'loading'} onPress={() => start('apple')} />
+          <Button size="sm" variant="secondary" label={busy ? t('account.signing_in') : t('account.sign_in_google')} disabled={busy || status === 'loading'} onPress={() => start('google')} />
+        </View>
+        {notice ? (
+          <Text variant="caption" color={notice.error ? 'danger' : 'success'} accessibilityLiveRegion="polite" style={{ paddingBottom: spacing.sm }}>
+            {notice.text}
+          </Text>
+        ) : null}
+      </Section>
+    );
+  }
+
+  const locale = i18n.language === 'th' ? 'th-TH' : 'en-GB';
+  const syncLabel = sync.busy
+    ? t('account.syncing')
+    : sync.error
+      ? t('account.sync_error')
+      : sync.lastSyncedAt
+        ? t('account.synced_at', { time: new Date(sync.lastSyncedAt).toLocaleString(locale, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) })
+        : t('account.not_synced');
+  return (
+    <Section title={t('account.title')} hint={t('account.sign_out_hint')}>
+      <Row icon="user" label={user.email ?? t('account.signed_in')}>
+        {null}
+      </Row>
+      <Divider />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm }}>
+        <Button size="sm" variant="secondary" icon="refresh-cw" label={sync.busy ? t('account.syncing') : t('account.sync_now')} disabled={sync.busy || busy} onPress={() => void act(() => syncNow({ force: true }), () => t('account.sync_error'))} />
+        <Button size="sm" variant="ghost" icon="log-out" label={armed ? t('account.sign_out_confirm') : t('account.sign_out')} disabled={busy} onPress={() => confirm(() => void act(signOut, () => t('account.error_failed')))} />
+        <Text variant="caption" tone={sync.error ? colors.danger : colors.textSecondary} style={{ flexBasis: '100%' }}>{syncLabel}</Text>
+      </View>
+      {notice ? (
+        <Text variant="caption" color={notice.error ? 'danger' : 'success'} accessibilityLiveRegion="polite" style={{ paddingBottom: spacing.sm }}>
+          {notice.text}
+        </Text>
+      ) : null}
+    </Section>
+  );
+}
+
+function showAccountNotice(notice: Notice) {
+  clearTimeout(accountNoticeTimer);
+  useAccountUi.setState({ notice });
+  accountNoticeTimer = setTimeout(() => useAccountUi.setState({ notice: null }), 8000);
+}
 
 /** Busy flag + last result, outside the component so they survive Settings remounting after the OAuth redirect. */
 const useGcalUi = create<{ busy: boolean; notice: Notice }>(() => ({ busy: false, notice: null }));

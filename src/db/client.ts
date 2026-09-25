@@ -90,6 +90,11 @@ export function onDatabaseWrite(listener: () => void): () => void {
   return () => writeListeners.delete(listener);
 }
 
+/** For code that writes through `withSqlite` directly (cloud sync): tell live queries data changed. */
+export function notifyDatabaseWrite(): void {
+  notifyWrite();
+}
+
 const run: AsyncRemoteCallback = (sql, params, method) =>
   withSqlite(async (sqlite) => {
     const result = await execute(sqlite, sql, params, method);

@@ -558,6 +558,27 @@
     "fx_rate_label": "1 {{currency}} =",
     "fx_rate_placeholder": "e.g. 44.50"
   },
+  "account": {
+    "title": "Account & sync",
+    "hint": "Sign in to back up your data and keep every device in step. Everything still works offline; changes sync when you're back online. On a new device, sign in before adding sample data so nothing is duplicated.",
+    "unavailable": "Needs Veyra's cloud connection (Supabase), which isn't set up in this build.",
+    "sign_in_apple": "Continue with Apple",
+    "sign_in_google": "Continue with Google",
+    "signing_in": "Signing in…",
+    "signed_in": "Signed in",
+    "sync_now": "Sync now",
+    "syncing": "Syncing…",
+    "synced_at": "Synced {{time}}",
+    "not_synced": "Not synced yet",
+    "sync_error": "Last sync failed — try Sync now",
+    "sign_out": "Sign out",
+    "sign_out_confirm": "Tap to confirm",
+    "sign_out_hint": "Signs out on this device. Your data stays here.",
+    "error_cancelled": "Sign-in cancelled.",
+    "error_apple_unavailable": "Sign in with Apple isn't available on this device.",
+    "error_not_configured": "Sign-in isn't set up on the server yet.",
+    "error_failed": "Couldn't sign in. Check your connection and try again."
+  },
   "links": {
     "title": "Related",
     "add": "Link",

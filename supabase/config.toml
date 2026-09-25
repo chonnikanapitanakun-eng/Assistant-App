@@ -13,7 +13,9 @@ major_version = 17
 
 [auth]
 enabled = true
-# Phase 2 adds Apple / Google sign-in; until then the anon key is enough for Edge Functions.
+# P2-08: Apple / Google sign-in + cloud sync (docs/SYNC.md). Providers, redirect URLs and the
+# `sync_rows` table are set up on the hosted project; the Edge Functions below still accept the
+# anon key so Quick Capture / Veyra AI / Google Calendar work signed out.
 
 [edge_runtime]
 enabled = true

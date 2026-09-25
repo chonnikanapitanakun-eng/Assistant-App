@@ -233,11 +233,11 @@ fts_index       (SQLite FTS5 virtual table) type, id, title, body, tags
 - ส่งเฉพาะข้อมูลที่เกี่ยวข้อง (retrieval ก่อน) ไม่ส่งทั้ง DB
 - Log token usage ต่อ user เพื่อคิด premium tier
 
-### 6.5 Sync (Phase 2)
+### 6.5 Sync (Phase 2) — ทำแล้ว ดู docs/SYNC.md
 
 - Local SQLite เป็น source of truth บนเครื่อง
-- Push: แถวที่ `updated_at > synced_at` ส่งขึ้น Supabase
-- Pull: ดึงแถวที่ `updated_at > last_pull`
+- Push: แถวที่ `updated_at > synced_at` ส่งขึ้น Supabase (ตารางเดียว `sync_rows` เก็บทุก table เป็น jsonb)
+- Pull: ดึงแถวที่ `server_seq > cursor` (ลำดับฝั่ง server แทน `last_pull` เพื่อไม่พึ่งนาฬิกาเครื่อง)
 - Conflict: last-write-wins ตาม `updated_at` (พอสำหรับ single user หลายเครื่อง)
 - Soft delete ผ่าน `deleted_at`
 
