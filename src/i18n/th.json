@@ -204,7 +204,17 @@
     "thinking": "กำลังคิด…",
     "by_claude": "จัดโดย Veyra AI",
     "media_voice": "บันทึกด้วยเสียงจะมาใน build ถัดไป",
-    "media_document": "แนบเอกสารจะมาใน build ถัดไป"
+    "media_photo": "ถ่ายรูป (ใบเสร็จ, ไวท์บอร์ด) จะมาใน build ถัดไป",
+    "media_document": "แนบเอกสารจะมาใน build ถัดไป",
+    "voice_stop": "หยุดฟัง",
+    "voice_lang": "ภาษาเสียง: {{lang}} แตะเพื่อสลับ",
+    "voice_listening": "กำลังฟัง… พูดได้เลย แตะ ■ เพื่อหยุด",
+    "voice_error_permission": "Veyra ต้องได้สิทธิ์ไมโครโฟนและการรู้จำเสียง เปิดได้ใน Settings",
+    "voice_error_no_speech": "ไม่ได้ยินเลย แตะไมค์แล้วลองพูดใหม่",
+    "voice_error_language": "เครื่องนี้ยังไม่รองรับภาษาที่เลือก ลองสลับ TH/EN",
+    "voice_error_network": "การแปลงเสียงต้องใช้อินเทอร์เน็ต",
+    "voice_error_unavailable": "ยังใช้เสียงที่นี่ไม่ได้ ต้องใช้แอป build ล่าสุด (ไม่ใช่ Expo Go) หรือ Chrome/Safari บนเว็บ",
+    "voice_error_generic": "การบันทึกเสียงหยุดไป ลองใหม่อีกครั้งนะ"
   },
   "common": {
     "save": "บันทึก",
