@@ -42,6 +42,7 @@ export function AssistantCard() {
   const ask = (q: string) => router.push({ pathname: '/assistant', params: { q } });
   const chips = (
     <>
+      <Chip label={t('home.ai_review')} icon="sunrise" onPress={() => router.push('/review')} />
       <Chip label={t('home.ai_plan_day')} icon="sun" onPress={() => ask(t('home.ai_plan_day'))} />
       <Chip label={t('home.ai_summarise')} icon="list" onPress={() => ask(t('home.ai_summarise'))} />
       <Chip label={t('home.ai_overdue')} icon="alert-circle" onPress={() => ask(t('home.ai_overdue'))} />

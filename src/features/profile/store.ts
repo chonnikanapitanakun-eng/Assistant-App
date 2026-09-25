@@ -8,6 +8,10 @@ import { readJSON, writeJSON } from './storage';
 export type Interest = 'tasks' | 'calendar' | 'money' | 'notes' | 'focus';
 export const ALL_INTERESTS: Interest[] = ['tasks', 'calendar', 'money', 'notes', 'focus'];
 
+/** Morning briefing notification (local, one per morning for the next 7 days). */
+export type Briefing = { enabled: boolean; hour: number; minute: number };
+export const DEFAULT_BRIEFING: Briefing = { enabled: true, hour: 7, minute: 30 };
+
 export type Profile = {
   name: string;
   language: 'en' | 'th';
@@ -16,6 +20,7 @@ export type Profile = {
   onboarded: boolean;
   /** How many units of `currency` (the primary) equal 1 unit of each other currency. Set by hand in Settings. */
   fxRates: Partial<Record<Currency, number>>;
+  briefing: Briefing;
 };
 
 export const PROFILE_KEY = 'veyra.profile';
@@ -23,11 +28,13 @@ export const PROFILE_KEY = 'veyra.profile';
 const deviceLanguage = (): 'en' | 'th' => (getLocales()[0]?.languageCode === 'th' ? 'th' : 'en');
 
 export function defaultProfile(): Profile {
-  return { name: '', language: deviceLanguage(), currency: 'THB', interests: [...ALL_INTERESTS], onboarded: false, fxRates: {} };
+  return { name: '', language: deviceLanguage(), currency: 'THB', interests: [...ALL_INTERESTS], onboarded: false, fxRates: {}, briefing: { ...DEFAULT_BRIEFING } };
 }
 
 export function loadProfile(): Profile {
-  return { ...defaultProfile(), ...(readJSON<Partial<Profile>>(PROFILE_KEY) ?? {}) };
+  const stored = readJSON<Partial<Profile>>(PROFILE_KEY) ?? {};
+  const base = defaultProfile();
+  return { ...base, ...stored, briefing: { ...base.briefing, ...(stored.briefing ?? {}) } };
 }
 
 type Store = Profile & { update: (patch: Partial<Profile>) => void };

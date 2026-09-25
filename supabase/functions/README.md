@@ -5,7 +5,7 @@
 | `assistant` | 1 | Veyra AI chat — `src/features/assistant/types.ts` (`Proposal`); Claude only *proposes*, the app confirms |
 | `gcal` | 2 | Google Calendar import (read-only, หลายบัญชี) — `src/features/google-calendar/types.ts`; ดู § gcal ด้านล่าง |
 | `ai-capture` | 1 | `src/features/ai/types.ts` → `CaptureResponse` — structured output ตาม `_shared/capture-contract.ts`, prompt ใน `ai-capture/prompt.ts` |
-| `ai-summary` | 2 | SPEC §6.4 |
+| `ai-summary` | 2 | `src/features/ai/summary.ts` → `SummaryResponse` — structured output ตาม `_shared/summary-contract.ts`, prompt ใน `ai-summary/prompt.ts` |
 | `ai-ask` | 3 | SPEC §6.4 |
 | `ai-plan` | 3 | SPEC §6.4 |
 | `account` | 4 | PDPA: ลบบัญชี (`{ action: 'delete' }` + JWT ผู้ใช้) → ลบ auth user, ตาราง sync / `ai_usage` / `gcal_accounts` cascade ตาม; ดู § account ด้านล่าง |
@@ -26,6 +26,17 @@
 - **App side** (`src/features/ai/remote.ts`, `use-capture-context.ts`, `src/app/capture.tsx`): แสดงผล parser ในเครื่องทันที แล้วเรียก Claude หลังหยุดพิมพ์ 0.7 วิ; error / offline / `items: []` → ใช้ผลในเครื่องต่อ
 - ทดสอบ contract: `npm test` (`src/features/ai/__tests__/capture-contract.test.ts`)
 
+## ai-summary — prompt design
+
+- **Input**: app ทำ retrieval ก่อน (`src/features/review/model.ts` → `buildSummaryRequest`) ส่งเฉพาะแถวในช่วง: งานของวัน/สัปดาห์ + งานเลยกำหนด + งานที่เสร็จในช่วง, นัดในช่วง, บิลที่ถึงกำหนด/ใกล้ถึง, ยอดรับ-จ่ายในช่วง + หมวดที่เกินงบเดือน, check-in (mood/energy) — ไม่ส่งทั้ง DB
+- **System prompt** (`ai-summary/prompt.ts`) คงที่ + `cache_control`; ส่วนที่เปลี่ยน (scope, range, วันนี้, locale, ชื่อ, แถวข้อมูลแบบบรรทัดละรายการ) อยู่ใน user turn
+- **Structured output**: `{ headline, summary, highlights[], needs_attention[] }` (`_shared/summary-contract.ts`); `normalizeSummaryResponse()` ตัดช่องว่าง จำกัด 5 รายการ/ลิสต์ และ headline ≤ 90 ตัวอักษร; response กลับเป็น `{ summary: SummaryResponse | null, status }` — `null` = app ใช้สรุปแบบ rule-based (`localSummary`)
+- **กติกาในการ prompt**: ตอบภาษาตาม locale, ใช้เฉพาะแถวที่ให้ ห้ามแต่งเพิ่ม, needs_attention เรียง เลยกำหนด → บิล → งานสำคัญ → เกินงบ, ไม่ซ้ำกันสองลิสต์, headline สั้นพอสำหรับ notification
+- **Model**: `claude-opus-5`, adaptive thinking, effort `low`, `max_tokens` 2048, server-side fallback เปิดไว้
+- **App side** (`src/features/review/use-summary.ts`, `src/app/review.tsx`): แสดง `localSummary` ทันที แล้วเรียก Claude ผ่าน react-query; cache ผลต่อ (scope, วันเริ่มช่วง) ใน kv-store — ใช้ซ้ำถ้าข้อมูลไม่เปลี่ยน หรือยังไม่เกิน 30 นาที; ปุ่ม refresh บังคับเรียกใหม่
+- **Morning briefing** (`src/features/notifications/briefing.ts`): local notification ล่วงหน้า 7 เช้า (เนื้อหาจากข้อมูลในเครื่อง: นัด/งาน/บิลของวันนั้น + นัดแรก หรือจำนวนงานเลยกำหนด) rebuild ทุกครั้งที่ข้อมูลหรือเวลาที่ตั้งเปลี่ยน; แตะแล้วเปิด `/review`; เปิด/ปิดและตั้งเวลาใน Settings (`profile.briefing`)
+- ทดสอบ: `npm test` (`src/features/review/__tests__/`, `src/features/notifications/__tests__/briefing.test.ts`)
+
 ## Setup (ครั้งแรก)
 
 ```bash
@@ -33,7 +44,7 @@ npx supabase login
 npx supabase link --project-ref <ref>
 npx supabase db push                       # สร้างตาราง ai_usage
 npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-npx supabase functions deploy ai-capture assistant slip-ocr account
+npx supabase functions deploy ai-capture ai-summary assistant slip-ocr account
 ```
 
 ทดสอบเรียกตรง:

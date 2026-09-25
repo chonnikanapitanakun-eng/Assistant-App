@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, isNull, lte } from 'drizzle-orm';
 
 import { checkins, db, useRows, type Checkin } from '@/db';
 import { newId, now } from '@/lib/ids';
@@ -26,4 +26,9 @@ export async function saveCheckin(date: string, patch: CheckinPatch): Promise<vo
     .insert(checkins)
     .values({ id: newId(), date, mood: null, energy: null, reflection: null, createdAt: t, updatedAt: t, ...patch })
     .onConflictDoUpdate({ target: checkins.date, set: { ...patch, updatedAt: t } });
+}
+
+/** Mood / energy check-ins with `date` in [from, to] (dateKeys, both inclusive). */
+export function useCheckinsBetween(from: string, to: string) {
+  return useRows(db.select().from(checkins).where(and(isNull(checkins.deletedAt), gte(checkins.date, from), lte(checkins.date, to))).orderBy(asc(checkins.date))).data;
 }

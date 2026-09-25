@@ -11,6 +11,7 @@ import { authEnabled, signInWithGoogle, signOut, useSession } from '@/features/a
 import { completeGoogleConnect, connectGoogle, disconnectGoogle, gcalEnabled, syncGoogleCalendars, useCalendarAccounts, type AuthReturn, type ConnectResult } from '@/features/google-calendar';
 import { useNotificationPermission } from '@/features/notifications';
 import { accountDeleteEnabled, deleteAccount, eraseLocalData, exportAllData, PRIVACY_CONTACT_EMAIL } from '@/features/privacy';
+import { DEFAULT_BRIEFING } from '@/features/profile/store';
 import { setLanguage } from '@/features/profile/language';
 import { ALL_INTERESTS, useProfile, type Interest } from '@/features/profile/store';
 import { runSync, useSyncStatus } from '@/features/sync';
@@ -98,7 +99,12 @@ export default function SettingsScreen() {
 
       <FxRatesSection />
 
-      {Platform.OS !== 'web' ? <NotificationsSection /> : null}
+      {Platform.OS !== 'web' ? (
+        <>
+          <NotificationsSection />
+          <BriefingSection />
+        </>
+      ) : null}
 
       <Section title={t('settings.help')}>
         <PressableScale accessibilityRole="button" accessibilityLabel={t('settings.replay')} onPress={() => router.push({ pathname: '/onboarding', params: { replay: '1' } })}>
@@ -406,6 +412,48 @@ function PrivacySection() {
         <Text variant="caption" color={notice.error ? 'danger' : 'success'} accessibilityLiveRegion="polite" style={{ paddingBottom: spacing.sm }}>
           {notice.text}
         </Text>
+      ) : null}
+    </Section>
+  );
+}
+
+const BRIEFING_TIMES = [
+  { hour: 6, minute: 30 },
+  { hour: 7, minute: 0 },
+  { hour: 7, minute: 30 },
+  { hour: 8, minute: 0 },
+  { hour: 8, minute: 30 },
+];
+const hhmm = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+/** Morning briefing: on/off and the time. Turning it on asks for permission if the app never has. */
+function BriefingSection() {
+  const { t } = useTranslation();
+  const briefing = useProfile((p) => p.briefing) ?? DEFAULT_BRIEFING;
+  const update = useProfile((p) => p.update);
+  const { state, request } = useNotificationPermission();
+  const set = (patch: Partial<typeof briefing>) => update({ briefing: { ...briefing, ...patch } });
+  const toggle = async (on: boolean) => {
+    set({ enabled: on });
+    if (!on) return;
+    if (state === 'denied') void Linking.openSettings();
+    else if (state === 'undetermined') await request();
+  };
+  const blocked = briefing.enabled && state === 'denied';
+  return (
+    <Section title={t('settings.briefing')} hint={t('settings.briefing_hint')}>
+      <Row icon="sunrise" label={t('settings.briefing')} sub={blocked ? t('settings.notify_denied') : t('settings.briefing_body')}>
+        <Toggle value={briefing.enabled} onValueChange={(v) => void toggle(v)} label={t('settings.briefing')} />
+      </Row>
+      {briefing.enabled ? (
+        <>
+          <Divider />
+          <Stacked icon="clock" label={t('settings.briefing_time')}>
+            {BRIEFING_TIMES.map((x) => (
+              <Chip key={hhmm(x.hour, x.minute)} label={hhmm(x.hour, x.minute)} selected={briefing.hour === x.hour && briefing.minute === x.minute} onPress={() => set(x)} />
+            ))}
+          </Stacked>
+        </>
       ) : null}
     </Section>
   );
