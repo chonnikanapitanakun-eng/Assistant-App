@@ -1,6 +1,7 @@
 import type { BatchItem } from 'drizzle-orm/batch';
 import { drizzle, type AsyncBatchRemoteCallback, type AsyncRemoteCallback } from 'drizzle-orm/sqlite-proxy';
 import { openDatabaseAsync, type SQLiteBindValue, type SQLiteDatabase } from 'expo-sqlite';
+import { Platform } from 'react-native';
 
 import * as schema from './schema';
 
@@ -22,6 +23,12 @@ export const DB_NAME = 'proud-assistant.db';
  *   statements, so other queries can land inside the transaction (and be rolled back with it).
  *   Do reads first, then batch the writes.
  */
+
+// Best-effort: ask the browser not to evict this origin's storage under pressure (Safari on
+// iOS is the aggressive one). Advisory only — the app works the same whether or not it's granted.
+if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.storage?.persist) {
+  navigator.storage.persist().catch(() => undefined);
+}
 
 let opening: Promise<SQLiteDatabase> | null = null;
 const getSqlite = () => (opening ??= openDatabaseAsync(DB_NAME));
