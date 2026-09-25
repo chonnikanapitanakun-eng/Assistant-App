@@ -32,3 +32,7 @@ verify_jwt = true
 # signed state / device key itself.
 [functions.gcal]
 verify_jwt = false
+
+# Account deletion (PDPA). Only the signed-in user's own JWT is accepted (checked again inside).
+[functions.account]
+verify_jwt = true

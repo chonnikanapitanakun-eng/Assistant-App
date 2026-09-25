@@ -1,7 +1,7 @@
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 
 import { calendarAccounts, calendarEvents, commit, db, type Write } from '@/db';
-import { readJSON, writeJSON } from '@/features/profile/storage';
+import { readJSON, removeKey, writeJSON } from '@/features/profile/storage';
 import { newId, now } from '@/lib/ids';
 
 import { pickColor, planSync, syncWindow, type EventValues } from './model';
@@ -17,6 +17,11 @@ let inFlight: Promise<void> | null = null;
  * Pull every linked Google account's events into the local calendar (read-only rows).
  * Runs at most every 15 minutes unless `force` (Sync now / right after linking). Never overlaps.
  */
+/** Forget the last-sync mark (device erase; the linked accounts' rows go with the local tables). */
+export function clearCalendarSyncState() {
+  removeKey(LAST_SYNC);
+}
+
 export function syncGoogleCalendars({ force = false } = {}): Promise<void> {
   if (!gcalEnabled) return Promise.resolve();
   if (!force && now() - (readJSON<number>(LAST_SYNC) ?? 0) < MIN_GAP_MS) return Promise.resolve();

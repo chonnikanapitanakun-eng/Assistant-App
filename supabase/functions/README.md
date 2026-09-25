@@ -8,6 +8,7 @@
 | `ai-summary` | 2 | SPEC §6.4 |
 | `ai-ask` | 3 | SPEC §6.4 |
 | `ai-plan` | 3 | SPEC §6.4 |
+| `account` | 4 | PDPA: ลบบัญชี (`{ action: 'delete' }` + JWT ผู้ใช้) → ลบ auth user, ตาราง sync / `ai_usage` / `gcal_accounts` cascade ตาม; ดู § account ด้านล่าง |
 | `slip-ocr` | 3 | `src/features/slip/types.ts` → `SlipResult` — structured output ตาม `_shared/slip-contract.ts`, prompt ใน `slip-ocr/prompt.ts`; ดู § slip-ocr ด้านล่าง |
 
 กติกา
@@ -32,7 +33,7 @@ npx supabase login
 npx supabase link --project-ref <ref>
 npx supabase db push                       # สร้างตาราง ai_usage
 npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-npx supabase functions deploy ai-capture assistant slip-ocr
+npx supabase functions deploy ai-capture assistant slip-ocr account
 ```
 
 ทดสอบเรียกตรง:
@@ -120,3 +121,14 @@ npx supabase db push        # สร้างตาราง areas/tasks/notes/.
 
 - `ai-capture` / `assistant` เปลี่ยนเป็น `verify_jwt = true` แล้ว (`supabase/config.toml`) — คนที่ยังไม่ login ก็ยังเรียกได้ปกติ (anon key เองก็เป็น JWT ที่ผ่านการตรวจสอบ), login แล้ว `ai_usage.user_id` จะเป็นของจริง
 - ลบแอป / ล้าง site data แล้วเข้าสู่ระบบใหม่ (บัญชี Google เดิม) = ข้อมูลกลับมาครบจาก Postgres
+
+## account — PDPA (P4-07): export / ลบบัญชี
+
+- **Export** ไม่ต้องผ่านฟังก์ชัน: เครื่องมีข้อมูลครบกว่า cloud (calendar events / accounts ไม่ซิงก์) แอปจึงอ่านจาก SQLite ทุกตารางแล้วสร้าง JSON เอง (`src/features/privacy/export.ts` — web ดาวน์โหลด, มือถือเปิด share sheet) ตัดคอลัมน์ที่เป็น bookkeeping ของเครื่อง (`syncedAt`, `userId`, `reminderNotificationId`)
+- **ลบข้อมูลในเครื่อง** (`erase.ts`): sign out → ลบทุกแถวทุกตาราง + kv-store (profile, device key, sync cursors) + ยกเลิก notification → seed ค่าเริ่มต้นใหม่ → กลับไป onboarding; cloud ไม่ถูกแตะ
+- **ลบบัญชี** (`account.ts` → ฟังก์ชันนี้): `POST { action: 'delete' }` พร้อม JWT ของผู้ใช้ → เพิกถอน Google refresh token ทุกบัญชีที่ผูก (best effort — ต้องมี `GCAL_TOKEN_KEY` ตัวเดียวกับ `gcal` ถึงถอดรหัสได้) แล้ว `auth.admin.deleteUser` → ทุกตาราง sync, `ai_usage`, `gcal_accounts` หายตาม FK `on delete cascade` → แอปลบข้อมูลในเครื่องต่อ (sign out แบบ local เพราะ session ฝั่ง server ไม่มีแล้ว)
+- **นโยบายความเป็นส่วนตัว**: `src/app/privacy.tsx` ข้อความสองภาษาใน `src/i18n/*.json` (`privacy.sections`) — บนเว็บ URL `…/privacy` ใช้เป็นลิงก์นโยบายสำหรับ App Store / Play Store ได้; อีเมลติดต่อและวันที่อัปเดตอยู่ใน `src/features/privacy/policy.ts`
+
+```bash
+npx supabase functions deploy account
+```
