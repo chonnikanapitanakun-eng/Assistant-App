@@ -4,6 +4,7 @@ import Animated, { FadeInDown, FadeOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { create } from 'zustand';
 
+import { haptic } from '@/lib/haptics';
 import { useTheme } from '@/theme';
 
 import { PressableScale } from './pressable-scale';
@@ -15,7 +16,8 @@ const useToastStore = create<{ toast: Toast | null }>(() => ({ toast: null }));
 let seq = 0;
 
 /** Brief message above the tab bar, optionally with one action (e.g. Undo). Replaces any visible toast. */
-export function showToast(message: string, action?: Toast['action']) {
+export function showToast(message: string, action?: Toast['action'], feel?: 'success' | 'warning') {
+  if (feel) haptic[feel]();
   useToastStore.setState({ toast: { id: ++seq, message, action } });
 }
 

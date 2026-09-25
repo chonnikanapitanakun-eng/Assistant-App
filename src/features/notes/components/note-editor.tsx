@@ -142,6 +142,7 @@ function NoteForm({ note, startInEdit, onBack, onDeleted }: Props & { note: Note
               accessibilityRole="button"
               accessibilityLabel={t('notes.remove_tag', { tag })}
               onPress={() => (touch(), setTags(tags.filter((x) => x !== tag)))}
+              hitSlop={6}
               style={{ flexDirection: 'row', alignItems: 'center', gap: 4, minHeight: 32, paddingHorizontal: spacing.md, borderRadius: radius.pill, backgroundColor: colors.primarySoft }}
             >
               <Text variant="caption" weight="semibold" color="primary">#{tag}</Text>
@@ -156,7 +157,7 @@ function NoteForm({ note, startInEdit, onBack, onDeleted }: Props & { note: Note
             placeholder={t('notes.add_tag')}
             placeholderTextColor={colors.textTertiary}
             accessibilityLabel={t('notes.add_tag')}
-            style={{ minWidth: 90, minHeight: 32, color: colors.text, fontSize: typography.caption.fontSize, fontFamily: fontFamily.regular, paddingHorizontal: spacing.sm }}
+            style={{ minWidth: 90, minHeight: 44, color: colors.text, fontSize: typography.caption.fontSize, fontFamily: fontFamily.regular, paddingHorizontal: spacing.sm }}
           />
         </View>
 

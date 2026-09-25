@@ -84,6 +84,12 @@ export async function deleteTask(task: Task) {
   background(cancelTaskReminder(task.reminderNotificationId), 'Cancel task reminder');
 }
 
+/** Undo a delete. The old reminder was cancelled, so schedule it again. */
+export async function restoreTask(task: Task) {
+  await db.update(tasks).set({ deletedAt: null, updatedAt: now() }).where(eq(tasks.id, task.id));
+  background(syncTaskReminder({ id: task.id, title: task.title, reminderAt: task.isDone ? null : task.reminderAt, reminderNotificationId: null }), 'Task reminder');
+}
+
 /** Read by id (for actions outside React). */
 export function getTask(id: string): Promise<Task | undefined> {
   return db.select().from(tasks).where(and(eq(tasks.id, id), isNull(tasks.deletedAt))).get();

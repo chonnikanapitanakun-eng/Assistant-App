@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Button, Chip, Field, FieldError, Sheet, Text, useInputStyle } from '@/components/ui';
+import { Button, Chip, Field, FieldError, Sheet, showToast, Text, useInputStyle } from '@/components/ui';
 import type { Wallet } from '@/db';
 import { walletIcon } from '@/features/money/category-icon';
 import { walletBalance } from '@/features/money/model';
@@ -62,6 +62,7 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
     void run(async () => {
       if (existing) await updateWallet(existing.id, values);
       else await createWallet(values);
+      showToast(t('common.saved'), undefined, 'success');
       onClose();
     });
   };
@@ -84,7 +85,7 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
               label={armed ? t('tasks.delete_confirm') : t('money.hide_account')}
               accessibilityHint={t('money.hide_account_hint')}
               disabled={busy}
-              onPress={() => confirm(() => void run(async () => { await deleteWallet(existing.id); onClose(); }))}
+              onPress={() => confirm(() => void run(async () => { await deleteWallet(existing.id); showToast(t('common.deleted'), undefined, 'warning'); onClose(); }))}
             />
           ) : null}
         </View>

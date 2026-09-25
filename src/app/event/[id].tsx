@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Button, Chip, Field, FieldError, Sheet, Text, Toggle, useInputStyle } from '@/components/ui';
+import { Button, Chip, Field, FieldError, Sheet, showToast, Text, Toggle, useInputStyle } from '@/components/ui';
 import type { CalendarEvent } from '@/db';
 import { DateField, TimeRangeField } from '@/features/calendar/components/date-field';
 import { eventToItem, fromMinutes, toMinutes } from '@/features/calendar/model';
@@ -83,6 +83,7 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
     void run(async () => {
       if (existing) await updateEvent(existing.id, values);
       else await createEvent(values);
+      showToast(t('common.saved'), undefined, 'success');
       onClose();
     });
   };
@@ -92,6 +93,7 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
     confirm(() =>
       void run(async () => {
         await deleteEvent(existing.id);
+        showToast(t('common.deleted'), undefined, 'warning');
         onClose();
       }),
     );

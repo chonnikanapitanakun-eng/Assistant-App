@@ -4,12 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Button, Chip, Field, FieldError, Icon, IconButton, PressableScale, Sheet, Text, Toggle, useInputStyle, type IconName } from '@/components/ui';
+import { Button, Chip, Field, FieldError, Icon, IconButton, type IconName, PressableScale, Sheet, showToast, Text, Toggle, useInputStyle } from '@/components/ui';
 import type { Task } from '@/db';
 import { DateField, TimeRangeField } from '@/features/calendar/components/date-field';
 import { isValidDate, isValidTime, priorityLevel, priorityTint, priorityValue, type PriorityLevel } from '@/features/tasks/model';
 import { RelatedSection } from '@/features/links/components/related-section';
-import { createTask, deleteTask, updateTask, useAreas, useTask, type ChecklistItem, type TaskFormValues } from '@/features/tasks/queries';
+import { createTask, deleteTask, restoreTask, updateTask, useAreas, useTask, type ChecklistItem, type TaskFormValues } from '@/features/tasks/queries';
 import { addDays, toDateKey } from '@/lib/date';
 import { newId } from '@/lib/ids';
 import { useAsyncAction } from '@/lib/use-async-action';
@@ -97,6 +97,7 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
     void run(async () => {
       if (existing) await updateTask(existing, values);
       else await createTask(values);
+      showToast(t('common.saved'), undefined, 'success');
       onClose();
     });
   };
@@ -106,6 +107,7 @@ function TaskForm({ existing, initialDate, onClose }: { existing?: Task; initial
     confirm(() =>
       void run(async () => {
         await deleteTask(existing);
+        showToast(t('tasks.deleted_toast', { title: existing.title }), { label: t('common.undo'), onPress: () => void restoreTask(existing) }, 'warning');
         onClose();
       }),
     );

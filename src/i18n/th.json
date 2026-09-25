@@ -164,7 +164,8 @@
     "missing_fx_rate": "ตั้งอัตราแลกเปลี่ยนของ {{currencies}} ในตั้งค่าเพื่อให้นับรวมด้วย",
     "networth_convert": "≈ {{amount}}",
     "invalid_number": "ใส่ตัวเลขไม่เกิน ±1,000 ล้าน",
-    "remove_budget_confirm": "กดอีกครั้งเพื่อลบงบ"
+    "remove_budget_confirm": "กดอีกครั้งเพื่อลบงบ",
+    "deleted_toast": "ลบรายการแล้ว: {{title}}"
   },
   "capture": {
     "title": "จดเร็ว",
@@ -212,7 +213,9 @@
     "back": "กลับ",
     "save_failed": "บันทึกไม่สำเร็จ ลองอีกครั้ง",
     "undo": "เลิกทำ",
-    "unsaved": "ยังไม่ได้บันทึก — แตะปิดอีกครั้งเพื่อทิ้งการแก้ไข"
+    "unsaved": "ยังไม่ได้บันทึก — แตะปิดอีกครั้งเพื่อทิ้งการแก้ไข",
+    "saved": "บันทึกแล้ว",
+    "deleted": "ลบแล้ว"
   },
   "nav": {
     "home": "หน้าหลัก",
@@ -419,7 +422,10 @@
     "add_item": "เพิ่มรายการ",
     "delete_confirm": "กดอีกครั้งเพื่อลบ",
     "not_found_body": "อาจถูกลบจากอุปกรณ์อื่นแล้ว",
-    "completed_toast": "เสร็จแล้ว: {{title}}"
+    "completed_toast": "เสร็จแล้ว: {{title}}",
+    "deleted_toast": "ลบงานแล้ว: {{title}}",
+    "moved_tomorrow": "ย้ายไปพรุ่งนี้: {{title}}",
+    "reopen": "ยังไม่เสร็จ"
   },
   "calendar": {
     "previous": "ก่อนหน้า",

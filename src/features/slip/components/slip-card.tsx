@@ -77,7 +77,7 @@ export function SlipCard({ draft: d, wallets, categories, showErrors, onChange }
                   accessibilityState={{ checked: on }}
                   accessibilityLabel={t(`money.type_${k.key}`)}
                   onPress={() => onChange({ type: k.key, categoryId: null })}
-                  style={{ flex: 1, minHeight: 40, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, borderWidth: 1.5, borderColor: on ? tint.fg : colors.border, backgroundColor: on ? tint.bg : 'transparent' }}
+                  style={{ flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: radius.md, borderWidth: 1.5, borderColor: on ? tint.fg : colors.border, backgroundColor: on ? tint.bg : 'transparent' }}
                 >
                   <Text variant="caption" weight="semibold" tone={on ? tint.fg : colors.textSecondary}>{t(`money.type_${k.key}`)}</Text>
                 </PressableScale>

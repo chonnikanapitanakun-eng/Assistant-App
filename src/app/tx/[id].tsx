@@ -4,12 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Button, Chip, Field, FieldError, PressableScale, Sheet, Text, useInputStyle } from '@/components/ui';
+import { Button, Chip, Field, FieldError, PressableScale, Sheet, showToast, Text, useInputStyle } from '@/components/ui';
 import type { Transaction } from '@/db';
 import { DateField } from '@/features/calendar/components/date-field';
 import { RelatedSection } from '@/features/links/components/related-section';
 import { categoryIcon } from '@/features/money/category-icon';
-import { createTransaction, deleteTransaction, updateTransaction, useCategories, useTransaction, useWallets } from '@/features/money/queries';
+import { createTransaction, deleteTransaction, restoreTransaction, updateTransaction, useCategories, useTransaction, useWallets } from '@/features/money/queries';
 import { isValidDate } from '@/features/tasks/model';
 import { currencySymbol, parseAmount } from '@/lib/currency';
 import { addDays, toDateKey } from '@/lib/date';
@@ -88,6 +88,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
     void run(async () => {
       if (existing) await updateTransaction(existing.id, values);
       else await createTransaction(values);
+      showToast(t('common.saved'), undefined, 'success');
       onClose();
     });
   };
@@ -110,7 +111,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
               icon="trash-2"
               label={armed ? t('tasks.delete_confirm') : t('common.delete')}
               disabled={busy}
-              onPress={() => confirm(() => void run(async () => { await deleteTransaction(existing.id); onClose(); }))}
+              onPress={() => confirm(() => void run(async () => { await deleteTransaction(existing.id); showToast(t('common.deleted'), { label: t('common.undo'), onPress: () => void restoreTransaction(existing.id) }, 'warning'); onClose(); }))}
             />
           ) : null}
         </View>

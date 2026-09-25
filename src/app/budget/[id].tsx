@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
-import { Button, Field, FieldError, Sheet, Text, useInputStyle } from '@/components/ui';
+import { Button, Field, FieldError, Sheet, showToast, Text, useInputStyle } from '@/components/ui';
 import type { Category } from '@/db';
 import { BudgetBar } from '@/features/money/components/budget-bar';
 import { spendingByCategory } from '@/features/money/model';
@@ -52,6 +52,7 @@ function BudgetForm({ category, onClose }: { category: Category; onClose: () => 
     }
     void run(async () => {
       await setBudget(category.id, parsed);
+      showToast(t('common.saved'), undefined, 'success');
       onClose();
     });
   };

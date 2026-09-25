@@ -14,3 +14,4 @@ export { Tag } from './tag';
 export { Text } from './text';
 export { Toggle } from './toggle';
 export { showToast, Toaster } from './toast';
+export { SwipeRow, type SwipeAction } from './swipe-row';

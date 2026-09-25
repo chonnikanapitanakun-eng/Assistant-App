@@ -164,7 +164,8 @@
     "missing_fx_rate": "Set an exchange rate for {{currencies}} in Settings to include it.",
     "networth_convert": "≈ {{amount}}",
     "invalid_number": "Enter a number up to ±1,000,000,000",
-    "remove_budget_confirm": "Tap again to remove the budget"
+    "remove_budget_confirm": "Tap again to remove the budget",
+    "deleted_toast": "Deleted: {{title}}"
   },
   "capture": {
     "title": "Quick capture",
@@ -212,7 +213,9 @@
     "back": "Back",
     "save_failed": "Couldn’t save. Please try again.",
     "undo": "Undo",
-    "unsaved": "Unsaved changes — tap close again to discard"
+    "unsaved": "Unsaved changes — tap close again to discard",
+    "saved": "Saved",
+    "deleted": "Deleted"
   },
   "nav": {
     "home": "Home",
@@ -419,7 +422,10 @@
     "add_item": "Add checklist item",
     "delete_confirm": "Tap again to delete",
     "not_found_body": "It may have been deleted on another device.",
-    "completed_toast": "Done: {{title}}"
+    "completed_toast": "Done: {{title}}",
+    "deleted_toast": "Task deleted: {{title}}",
+    "moved_tomorrow": "Moved to tomorrow: {{title}}",
+    "reopen": "Reopen"
   },
   "calendar": {
     "previous": "Previous",

@@ -47,13 +47,7 @@ export function QuickCapture() {
         accessibilityLabel={t('home.capture_placeholder')}
         style={{ flex: 1, minWidth: 0, minHeight: 44, color: colors.text, fontSize: typography.body.fontSize, fontFamily: fontFamily.regular }}
       />
-      {text ? null : (
-        <>
-          <IconButton icon="mic" label={t('home.capture_voice')} onPress={submit} />
-          <IconButton icon="camera" label={t('home.capture_photo')} onPress={submit} />
-          <IconButton icon="paperclip" label={t('home.capture_document')} onPress={submit} />
-        </>
-      )}
+      {text ? null : <IconButton icon="camera" label={t('home.capture_photo')} onPress={() => router.push('/slip')} />}
       {text ? (
         <PressableScale accessibilityRole="button" accessibilityLabel={t('home.capture_send')} onPress={submit}>
           <Gradient variant="ai" style={{ width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' }}>
