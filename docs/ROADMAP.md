@@ -65,7 +65,7 @@
 - [ ] LINE Messaging API → capture
 - [x] ปฏิทินไทย พ.ศ. / วันหยุด / วันพระ
 - [ ] Google Calendar 2 ทาง
-- [ ] `ai-prep-meeting`
+- [x] `ai-prep-meeting` — `supabase/functions/ai-prep-meeting`, `src/features/ai/prep-meeting.ts`, ปุ่ม "เตรียมนัดนี้" ในหน้า event
 - [ ] Premium tier (RevenueCat)
 - [x] PDPA: privacy policy, export / delete account — `src/app/privacy.tsx`, `src/features/privacy`, `supabase/functions/account`
 - [ ] App Store / Play Store release

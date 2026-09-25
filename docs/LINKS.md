@@ -85,4 +85,5 @@ Helper ใน `features/contacts/links.ts` (`linkedContactWrites`, `resolveConta
 
 - หน้า contact/[id] และ area/[id] → เพิ่มเคสใน `routeFor()` ที่เดียว ส่วน `useRelated` ใช้ได้ทันที (ทิศ `in`)
 - Universal search → ใช้ `resolveRefs` แสดง "เกี่ยวข้องกับ" ใต้ผลค้นหา
-- `ai-ask` / `ai-prep-meeting` → `getRelated(event)` เป็น retrieval ก่อนส่งให้ Claude
+- `ai-prep-meeting` (P4-05) ทำแล้ว — `features/ai/prep-meeting.ts` อ่าน link ทั้งสองทิศของ event แล้วดึง row จริง (contact, note, task, transaction) + นัดก่อนหน้ากับคนเดียวกัน ส่งให้ Claude เฉพาะเท่านี้
+- `ai-ask` → ใช้ pattern เดียวกัน (`getRelated` / `resolveRefs`) เป็น retrieval ก่อนส่งให้ Claude
