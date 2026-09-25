@@ -1,35 +1,42 @@
-import { and, asc, eq, gte, isNotNull, isNull, lt, or } from 'drizzle-orm';
+import { and, asc, eq, gt, isNotNull, isNull, lt, or } from 'drizzle-orm';
+import { useMemo } from 'react';
 
 import { calendarEvents, commit, contacts, db, links, useDbQuery, useRows, type CalendarEvent } from '@/db';
 import { linkedContactWrites } from '@/features/contacts/links';
 import { cancelEventReminder, syncEventReminder } from '@/features/notifications';
 import { getTask, rescheduleTask } from '@/features/tasks/queries';
 import { background } from '@/lib/background';
-import { toDateKey } from '@/lib/date';
+import { combineDateTime, toDateKey, utcDayStart } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
 import { occurrencesBetween, type RepeatRule } from '@/lib/recurrence';
 
-import { fromDateKey, type CalItem } from './model';
+import { allDayKey, eventInRange, eventRange, fromDateKey, hhmm, type CalItem } from './model';
 
 const DAY = 86_400_000;
 
-/** Live events starting within [from, to) — dateKeys, `to` exclusive. Repeating events appear once per occurrence. */
+/**
+ * Live events in the dateKey range [from, to): timed events starting in it, and all-day events
+ * on (or spanning into) those days. All-day rows are stored as UTC midnight, up to ±14h off local
+ * time, so SQL fetches a day-padded overlap window and `eventInRange` does the exact match.
+ * Repeating events appear once per occurrence.
+ */
 export function useEventsBetween(from: string, to: string): CalendarEvent[] {
-  const a = fromDateKey(from).getTime();
-  const b = fromDateKey(to).getTime();
-  const rows = useRows(
+  const a = fromDateKey(from).getTime() - DAY;
+  const b = fromDateKey(to).getTime() + DAY;
+  const { data } = useRows(
     db
       .select()
       .from(calendarEvents)
-      .where(and(isNull(calendarEvents.deletedAt), lt(calendarEvents.start, b), or(gte(calendarEvents.start, a), isNotNull(calendarEvents.repeat))))
+      .where(and(isNull(calendarEvents.deletedAt), lt(calendarEvents.start, b), or(gt(calendarEvents.end, a), isNotNull(calendarEvents.repeat))))
       .orderBy(asc(calendarEvents.start)),
-  ).data;
-  return expandOccurrences(rows, from, to);
+  );
+  return useMemo(() => expandOccurrences(data, from, to).filter((e) => eventInRange(e, from, to)), [data, from, to]);
 }
 
 /**
  * Each occurrence is the series row moved to that day (same id, so opening it edits the series).
- * Keeps the time of day in local time, so a daylight-saving change doesn't shift it.
+ * Timed events keep their local time of day (so a daylight-saving change doesn't shift them);
+ * all-day ones stay on UTC midnight like every stored all-day row.
  */
 export function expandOccurrences(rows: CalendarEvent[], from: string, to: string): CalendarEvent[] {
   const out: CalendarEvent[] = [];
@@ -38,12 +45,12 @@ export function expandOccurrences(rows: CalendarEvent[], from: string, to: strin
       out.push(e);
       continue;
     }
-    const first = new Date(e.start);
     const length = e.end - e.start;
-    for (const date of occurrencesBetween(toDateKey(first), e.repeat, from, to)) {
-      const day = fromDateKey(date);
-      const start = new Date(day.getFullYear(), day.getMonth(), day.getDate(), first.getHours(), first.getMinutes()).getTime();
-      out.push({ ...e, start, end: start + length });
+    const first = e.isAllDay ? allDayKey(e.start) : toDateKey(new Date(e.start));
+    const time = hhmm(new Date(e.start));
+    for (const date of occurrencesBetween(first, e.repeat, from, to)) {
+      const start = e.isAllDay ? utcDayStart(date) : combineDateTime(date, time);
+      if (start !== undefined) out.push({ ...e, start, end: start + length });
     }
   }
   return out.sort((x, y) => x.start - y.start);
@@ -76,19 +83,11 @@ export type EventFormValues = {
   remindBefore: number | null;
 };
 
-function toRange(v: EventFormValues): { start: number; end: number } {
-  const day = fromDateKey(v.date).getTime();
-  if (v.allDay) return { start: day, end: day + DAY };
-  const [sh, sm] = v.startTime.split(':').map(Number);
-  const [eh, em] = v.endTime.split(':').map(Number);
-  return { start: day + (sh * 60 + sm) * 60_000, end: day + (eh * 60 + em) * 60_000 };
-}
-
 export async function createEvent(v: EventFormValues): Promise<string> {
   const id = newId();
   const t = now();
   await commit([
-    db.insert(calendarEvents).values({ id, externalId: id, source: 'veyra', title: v.title, location: v.location, isAllDay: v.allDay, repeat: v.repeat, remindBefore: v.remindBefore, ...toRange(v), createdAt: t, updatedAt: t }),
+    db.insert(calendarEvents).values({ id, externalId: id, source: 'veyra', title: v.title, location: v.location, isAllDay: v.allDay, repeat: v.repeat, remindBefore: v.remindBefore, ...eventRange(v), createdAt: t, updatedAt: t }),
     ...(await linkedContactWrites('event', id, v.contactName)),
   ]);
   scheduleReminder(id);
@@ -97,7 +96,7 @@ export async function createEvent(v: EventFormValues): Promise<string> {
 
 export async function updateEvent(id: string, v: EventFormValues) {
   await commit([
-    db.update(calendarEvents).set({ title: v.title, location: v.location, isAllDay: v.allDay, repeat: v.repeat, remindBefore: v.remindBefore, ...toRange(v), updatedAt: now() }).where(eq(calendarEvents.id, id)),
+    db.update(calendarEvents).set({ title: v.title, location: v.location, isAllDay: v.allDay, repeat: v.repeat, remindBefore: v.remindBefore, ...eventRange(v), updatedAt: now() }).where(eq(calendarEvents.id, id)),
     ...(await linkedContactWrites('event', id, v.contactName)),
   ]);
   scheduleReminder(id);
@@ -125,8 +124,9 @@ export async function moveItem(item: CalItem, start: string, end: string) {
     if (task) await rescheduleTask(task, item.date, start, end);
     return;
   }
-  const day = fromDateKey(item.date).getTime();
-  const at = (hhmm: string) => day + (Number(hhmm.slice(0, 2)) * 60 + Number(hhmm.slice(3))) * 60_000;
-  await db.update(calendarEvents).set({ start: at(start), end: at(end), updatedAt: now() }).where(eq(calendarEvents.id, item.id));
+  const s = combineDateTime(item.date, start);
+  const e = combineDateTime(item.date, end);
+  if (s === undefined || e === undefined) return;
+  await db.update(calendarEvents).set({ start: s, end: e, updatedAt: now() }).where(eq(calendarEvents.id, item.id));
   scheduleReminder(item.id);
 }

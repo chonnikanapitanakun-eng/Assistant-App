@@ -22,7 +22,7 @@ describe('planEventReminder', () => {
     expect(planEventReminder(ev(at(2026, 9, 26, 9), { remindBefore: null }), NOW)).toBeNull();
   });
   it('reminds all-day events at 09:00 minus the lead time', () => {
-    expect(planEventReminder(ev(at(2026, 9, 27), { isAllDay: true, remindBefore: 1440 }), NOW)?.at).toBe(at(2026, 9, 26, 9));
+    expect(planEventReminder(ev(Date.UTC(2026, 8, 27), { isAllDay: true, remindBefore: 1440 }), NOW)?.at).toBe(at(2026, 9, 26, 9));
   });
   it('uses a repeating trigger once a series is running', () => {
     const weekly = planEventReminder(ev(at(2026, 9, 1, 9), { repeat: 'weekly' }), NOW);

@@ -7,6 +7,7 @@
  */
 import type { IconName } from '@/components/ui';
 import type { Area, CalendarEvent, Contact, Link, LinkableType, Note, Task, Transaction } from '@/db';
+import { allDayKey, fromDateKey } from '@/features/calendar/model';
 import { formatMoney } from '@/lib/currency';
 import type { TintName } from '@/theme';
 
@@ -98,13 +99,20 @@ export type LinkableRow =
 
 const locale = (lang: string) => (lang.startsWith('th') ? 'th-TH' : 'en-GB');
 
+/** Leading heading / quote / list markers, then an optional checkbox. Never eats letters of the text itself. */
+const MARKDOWN_PREFIX = /^\s*(?:(?:#+|>|[-*])\s*)*(?:\[[ xX]\](?:\s+|$))?/;
+
+/** SQL LIKE pattern matching `q` as a literal substring. Use with `ESCAPE '\'`. */
+export const likeContains = (q: string): string => `%${q.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+
 /** Title + subtitle for a linked record. Title may be '' (UI substitutes the type label). */
 export function describe(item: LinkableRow, lang: string): { title: string; subtitle: string | null } {
   switch (item.type) {
     case 'task':
       return { title: item.row.title, subtitle: item.row.date ?? null };
     case 'event': {
-      const d = new Date(item.row.start);
+      // All-day events are stored at UTC midnight: read their day with allDayKey, not the local clock.
+      const d = item.row.isAllDay ? fromDateKey(allDayKey(item.row.start)) : new Date(item.row.start);
       const opts: Intl.DateTimeFormatOptions = item.row.isAllDay ? { day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' };
       return { title: item.row.title, subtitle: d.toLocaleString(locale(lang), opts) };
     }
@@ -113,10 +121,10 @@ export function describe(item: LinkableRow, lang: string): { title: string; subt
       return { title: item.row.note ?? '', subtitle: `${sign}${formatMoney(item.row.amount, item.row.currency, 'en-GB')} · ${item.row.date}` };
     }
     case 'note': {
-      // First line with real words, minus markdown prefixes (#, -, >, [ ]).
+      // First line with real words, minus markdown prefixes (#, >, -, *, [ ] / [x]).
       const firstLine = item.row.body
         .split('\n')
-        .map((l) => l.replace(/^[#>\-*\s[\]x]+/, '').trim())
+        .map((l) => l.replace(MARKDOWN_PREFIX, '').trim())
         .find(Boolean) ?? '';
       const tags = item.row.tags?.length ? item.row.tags.map((t) => `#${t}`).join(' ') : null;
       return { title: item.row.title || firstLine.slice(0, 60), subtitle: tags };

@@ -1,6 +1,6 @@
 import { count, eq } from 'drizzle-orm';
 
-import { addDays, toDateKey } from '@/lib/date';
+import { addDays, toDateKey, utcDayStart } from '@/lib/date';
 import { newId, now } from '@/lib/ids';
 
 import { commit, type Db, type Write } from './client';
@@ -132,7 +132,11 @@ function sampleEvents(today: Date) {
     const [h, m] = hhmm.split(':').map(Number);
     return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m).getTime();
   };
-  const allDay = (dayOffset: number) => ({ start: at(dayOffset, '00:00'), end: at(dayOffset + 1, '00:00'), isAllDay: true });
+  // All-day events are stored at UTC midnight so their date survives a timezone change (see `allDayKey`).
+  const allDay = (dayOffset: number) => {
+    const key = toDateKey(addDays(today, dayOffset));
+    return { start: utcDayStart(key)!, end: utcDayStart(key, 1)!, isAllDay: true };
+  };
   return [
     { title: 'Team meeting', start: at(0, '09:00'), end: at(0, '10:00'), location: 'Google Meet' },
     { title: 'Client call — John', start: at(0, '10:30'), end: at(0, '11:15'), location: 'Zoom', with: 'John' },

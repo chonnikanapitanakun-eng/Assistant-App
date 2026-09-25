@@ -1,6 +1,6 @@
 import { getRandomBytes } from 'expo-crypto';
 
-import { readJSON, writeJSON } from '@/features/profile/storage';
+import { readJSON, removeKey, writeJSON } from '@/features/profile/storage';
 
 const KEY = 'gcal:deviceKey';
 
@@ -15,4 +15,9 @@ export function deviceKey(): string {
   const key = Array.from(getRandomBytes(32), (b) => b.toString(16).padStart(2, '0')).join('');
   writeJSON(KEY, key);
   return key;
+}
+
+/** Drop the device key (device erase): the server's accounts for the old key become unreachable from here. */
+export function forgetDeviceKey() {
+  removeKey(KEY);
 }

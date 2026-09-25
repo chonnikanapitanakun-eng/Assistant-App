@@ -4,6 +4,7 @@ import { Platform } from 'react-native';
 
 import { calendarEvents, db, type CalendarEvent } from '@/db';
 import i18n from '@/i18n';
+import { allDayKey } from '@/features/calendar/model';
 import { combineDateTime, toDateKey } from '@/lib/date';
 import { nextOccurrence, type RepeatRule } from '@/lib/recurrence';
 
@@ -30,7 +31,8 @@ type Plan = { at: number; trigger: Notifications.NotificationTriggerInput };
  */
 export function planEventReminder(e: ReminderEvent, now = Date.now()): Plan | null {
   if (e.remindBefore === null || e.remindBefore === undefined) return null;
-  const first = toDateKey(new Date(e.start));
+  // All-day rows are stored at UTC midnight (see calendar/model eventRange).
+  const first = e.isAllDay ? allDayKey(e.start) : toDateKey(new Date(e.start));
   const once = (at: number): Plan | null => (at > now ? { at, trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: at, channelId: REMINDER_CHANNEL_ID } } : null);
   if (!e.repeat) return once(reminderTime(e, first));
 
@@ -53,7 +55,7 @@ export function planEventReminder(e: ReminderEvent, now = Date.now()): Plan | nu
       return { at, trigger: { type: T.YEARLY, day: d.getDate(), month: d.getMonth(), ...hm } };
     case 'monthly': {
       // Days 29–31 and reminders that cross into the previous month don't repeat cleanly.
-      const day = new Date(e.start).getDate();
+      const day = Number(first.slice(8));
       const clean = day <= 28 && d.getDate() === day;
       return clean ? { at, trigger: { type: T.MONTHLY, day: d.getDate(), ...hm } } : once(at);
     }

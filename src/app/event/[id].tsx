@@ -10,6 +10,7 @@ import { DateField, TimeRangeField } from '@/features/calendar/components/date-f
 import { ReminderChips, RepeatChips } from '@/features/calendar/components/repeat-remind';
 import { eventToItem, fromMinutes, toMinutes } from '@/features/calendar/model';
 import { createEvent, deleteEvent, updateEvent, useEvent, type EventFormValues } from '@/features/calendar/queries';
+import { PrepMeetingSection } from '@/features/ai/components/prep-meeting-section';
 import { useCalendarAccounts } from '@/features/google-calendar';
 import { RelatedSection } from '@/features/links/components/related-section';
 import { isValidDate, isValidTime } from '@/features/tasks/model';
@@ -183,6 +184,7 @@ function EventForm({ existing, contactName, initialDate, initialStart, onClose }
         </Field>
 
         {existing ? <RelatedSection self={{ type: 'event', id: existing.id }} types={['task', 'note', 'transaction']} /> : null}
+        {existing ? <PrepMeetingSection event={existing} /> : null}
       </ScrollView>
     </Sheet>
   );

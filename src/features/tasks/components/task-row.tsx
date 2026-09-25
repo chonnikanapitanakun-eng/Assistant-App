@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { Icon, PressableScale, showToast, SwipeRow, Tag, Text, type SwipeAction } from '@/components/ui';
 import type { Task } from '@/db';
+import { fromDateKey } from '@/features/calendar/model';
 import { background } from '@/lib/background';
 import { addDays, daysFromToday, toDateKey } from '@/lib/date';
 import { haptic } from '@/lib/haptics';
@@ -90,6 +91,7 @@ export function TaskRow({ task, areaName, showDate, overdue }: Props) {
           </Text>
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: spacing.md, rowGap: 2 }}>
             {when ? <Meta icon="clock" label={when} tone={overdue && !task.isDone ? tints.priorityHigh.fg : undefined} /> : null}
+            {task.routineId ? <Meta icon="repeat" label="" /> : null}
             {areaName ? <Meta icon="folder" label={areaName} /> : null}
             {checklist.length ? <Meta icon="check-square" label={`${checked}/${checklist.length}`} /> : null}
             {task.energy ? <Meta icon={task.energy === 'high' ? 'zap' : 'battery'} label={t(`task.energy_${task.energy}`)} /> : null}
@@ -122,5 +124,5 @@ export function relativeDay(date: string, t: T, lang: string): string {
   if (diff === 0) return t('capture.today');
   if (diff === 1) return t('capture.tomorrow');
   if (diff === -1) return t('tasks.yesterday');
-  return new Date(`${date}T00:00:00`).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return fromDateKey(date).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }

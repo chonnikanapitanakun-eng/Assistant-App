@@ -12,9 +12,14 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { isDatabaseLocked, queryClient, useDatabase } from '@/db';
 import { Text, Toaster } from '@/components/ui';
+import { ContextReminderAutoRun, ContextReminderTaps } from '@/features/context-reminders';
+import { useFocusTimerDriver } from '@/features/focus/store';
 import { GoogleCalendarAutoSync } from '@/features/google-calendar';
 import { configureAndroidChannel, configureNotificationHandler, resyncEventReminders } from '@/features/notifications';
+import { useRoutineTasks } from '@/features/routines/queries';
+import { LockGate } from '@/features/security';
 import { SyncAutoRun } from '@/features/sync';
+import { WidgetAutoRefresh } from '@/features/widgets';
 import { background } from '@/lib/background';
 import { useTheme } from '@/theme';
 
@@ -25,10 +30,12 @@ void configureAndroidChannel();
 export default function RootLayout() {
   const { t } = useTranslation();
   const { ready, error } = useDatabase();
+  useRoutineTasks(ready);
   const { colors, isDark } = useTheme();
   const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
   // Fall back to system font rather than blocking the app if Inter fails to load.
   const fontsReady = fontsLoaded || !!fontError;
+  useFocusTimerDriver();
 
   useEffect(() => {
     if ((ready || error) && fontsReady) void SplashScreen.hideAsync();
@@ -64,6 +71,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false }} />
             <Stack.Screen name="settings" />
+            <Stack.Screen name="privacy" />
             <Stack.Screen name="search" />
             <Stack.Screen name="capture" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="assistant" options={{ presentation: 'modal' }} />
@@ -74,13 +82,21 @@ export default function RootLayout() {
             <Stack.Screen name="bill/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="wallet/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="budget/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
+            <Stack.Screen name="routine/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
+            <Stack.Screen name="routines" />
             <Stack.Screen name="note/[id]" />
             <Stack.Screen name="more" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="focus" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+            <Stack.Screen name="review" />
+            <Stack.Screen name="security-pin" />
           </Stack>
           <Toaster />
           <GoogleCalendarAutoSync />
           <SyncAutoRun />
+          <LockGate />
+          <WidgetAutoRefresh />
+          <ContextReminderAutoRun />
+          <ContextReminderTaps />
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </ThemeProvider>
       </QueryClientProvider>

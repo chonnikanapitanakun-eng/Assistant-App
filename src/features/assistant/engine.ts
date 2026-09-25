@@ -1,8 +1,10 @@
 import { parseCaptureLocally } from '@/features/ai/capture';
-import { fromMinutes, toMinutes } from '@/features/calendar/model';
+import { toMinutes } from '@/features/calendar/model';
 import { formatMoney } from '@/lib/currency';
 import { addDays, toDateKey } from '@/lib/date';
 
+import { freeGaps } from '../../../supabase/functions/_shared/plan-contract';
+import { planDayLocally, WORK_END, WORK_START } from './plan';
 import type { AssistantContext, Card, ListRow, Proposal, Reply, T } from './types';
 
 /**
@@ -49,12 +51,12 @@ let counter = 0;
 const pid = () => `p${Date.now().toString(36)}${(counter++).toString(36)}`;
 const proposal = (p: Proposal): Card => ({ type: 'proposal', id: pid(), proposal: p, state: 'pending' });
 
-export function respond(text: string, ctx: AssistantContext, t: T): Reply {
+export function respond(text: string, ctx: AssistantContext, t: T, locale = 'en'): Reply {
   const { intent, target } = detectIntent(text, ctx);
   const reply = (r: Omit<Reply, 'source'>): Reply => ({ ...r, source: 'local' });
   switch (intent) {
     case 'plan_day':
-      return reply(planDay(ctx, t));
+      return planDayLocally(ctx, t, locale);
     case 'overdue':
       return reply(overdue(ctx, t));
     case 'expenses':
@@ -92,61 +94,9 @@ export const defaultSuggestions = (t: T) => [t('assistant.s.plan'), t('assistant
 
 // ── Intents ────────────────────────────────────────────────────────────
 
-const WORK_START = 9 * 60;
-const WORK_END = 18 * 60;
-
-/** Free gaps (minutes) between busy intervals inside the working window, starting no earlier than `from`. */
+/** Free gaps (minutes) between busy intervals inside the 09:00–18:00 window, starting no earlier than `from` (rounded up to the half hour). */
 export function freeSlots(busy: { start: number; end: number }[], from: number, minLength = 45): { start: number; end: number }[] {
-  const sorted = [...busy].sort((a, b) => a.start - b.start);
-  const out: { start: number; end: number }[] = [];
-  let cursor = Math.max(WORK_START, Math.ceil(from / 30) * 30);
-  for (const b of sorted) {
-    if (b.end <= cursor) continue;
-    if (b.start - cursor >= minLength && cursor < WORK_END) out.push({ start: cursor, end: Math.min(b.start, WORK_END) });
-    cursor = Math.max(cursor, b.end);
-  }
-  if (WORK_END - cursor >= minLength) out.push({ start: cursor, end: WORK_END });
-  return out.filter((s) => s.end - s.start >= minLength);
-}
-
-function planDay(ctx: AssistantContext, t: T): Omit<Reply, 'source'> {
-  const today = toDateKey(ctx.now);
-  const nowMin = ctx.now.getHours() * 60 + ctx.now.getMinutes();
-  const events = ctx.events.filter((e) => e.date === today && !e.allDay && e.start && e.end);
-  const openToday = ctx.tasks.filter((x) => !x.isDone && x.date && x.date <= today);
-  const timedTasks = openToday.filter((x) => x.date === today && x.startTime);
-  const untimed = openToday.filter((x) => !x.startTime || x.date! < today).sort((a, b) => a.priority - b.priority);
-
-  const busy = [
-    ...events.map((e) => ({ start: toMinutes(e.start!), end: toMinutes(e.end!) })),
-    ...timedTasks.map((x) => ({ start: toMinutes(x.startTime!), end: x.endTime ? toMinutes(x.endTime) : toMinutes(x.startTime!) + 30 })),
-  ];
-  const slots = freeSlots(busy, nowMin);
-
-  const rows: ListRow[] = [
-    ...events.map((e) => ({ id: e.id, kind: 'event' as const, title: e.title, meta: `${e.start}–${e.end}${e.location ? ` · ${e.location}` : ''}`, tone: toMinutes(e.end!) <= nowMin ? ('muted' as const) : undefined, sort: toMinutes(e.start!) })),
-    ...timedTasks.map((x) => ({ id: x.id, kind: 'task' as const, title: x.title, meta: x.startTime!, sort: toMinutes(x.startTime!) })),
-  ]
-    .sort((a, b) => a.sort - b.sort)
-    .map(({ sort: _s, ...r }) => r);
-
-  // Offer to slot the most important unscheduled tasks into the first free gaps.
-  const cards: Card[] = rows.length ? [{ type: 'list', title: t('assistant.c.today'), rows }] : [];
-  const placed: string[] = [];
-  untimed.slice(0, 2).forEach((task, i) => {
-    const slot = slots[i];
-    if (!slot) return;
-    const len = Math.min(60, slot.end - slot.start);
-    cards.push(proposal({ kind: 'reschedule_task', taskId: task.id, title: task.title, date: today, startTime: fromMinutes(slot.start), endTime: fromMinutes(slot.start + len) }));
-    placed.push(task.title);
-  });
-
-  const key = !events.length && !openToday.length ? 'assistant.r.plan_clear' : placed.length ? 'assistant.r.plan_slots' : slots.length ? 'assistant.r.plan_free' : 'assistant.r.plan_full';
-  return {
-    text: t(key, { name: ctx.name, events: events.length, tasks: openToday.length, count: placed.length, free: slots.length }),
-    cards,
-    suggestions: [t('assistant.s.overdue'), t('assistant.s.bills'), t('assistant.s.focus')],
-  };
+  return freeGaps(busy, Math.max(toMinutes(WORK_START), Math.ceil(from / 30) * 30), toMinutes(WORK_END), minLength);
 }
 
 function overdue(ctx: AssistantContext, t: T): Omit<Reply, 'source'> {

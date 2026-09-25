@@ -1,8 +1,7 @@
 import { asc, isNull } from 'drizzle-orm';
-import { useLiveQuery } from 'drizzle-orm/expo-sqlite';
 import { useMemo } from 'react';
 
-import { contacts, db } from '@/db';
+import { contacts, db, useRows } from '@/db';
 import { useCategories, useWallets } from '@/features/money/queries';
 import { useProfile } from '@/features/profile/store';
 import { useAreas } from '@/features/tasks/queries';
@@ -16,7 +15,7 @@ import type { CaptureContext } from './remote';
 export function useCaptureContext(): () => CaptureContext {
   const language = useProfile((p) => p.language);
   const currency = useProfile((p) => p.currency);
-  const { data: contactRows } = useLiveQuery(db.select({ name: contacts.name }).from(contacts).where(isNull(contacts.deletedAt)).orderBy(asc(contacts.name)));
+  const { data: contactRows } = useRows(db.select({ name: contacts.name }).from(contacts).where(isNull(contacts.deletedAt)).orderBy(asc(contacts.name)));
   const areas = useAreas();
   const wallets = useWallets();
   const categories = useCategories();
@@ -27,7 +26,7 @@ export function useCaptureContext(): () => CaptureContext {
       locale: language,
       today: new Date(),
       defaultCurrency: currency,
-      contacts: (contactRows ?? []).map((c) => c.name),
+      contacts: contactRows.map((c) => c.name),
       areas: areas.map(name),
       wallets: wallets.map((w) => `${w.name} (${w.currency})`),
       categories: {

@@ -57,6 +57,9 @@ const isTime = (v: unknown): v is string => typeof v === 'string' && /^([01]\d|2
 const text = (v: unknown): string => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim() : '');
 const opt = (v: unknown): string | undefined => text(v) || undefined;
 
+/** `end` (HH:mm) only when there is a `start` and `end` comes after it; otherwise the end time is dropped. */
+export const endAfter = (start: string | undefined, end: string | undefined): string | undefined => (start && end && end > start ? end : undefined);
+
 /**
  * Turn Claude's raw output into the app contract: drop unusable items, strip nulls,
  * de-duplicate contacts and make sure every contactName has a contact item.
@@ -89,13 +92,13 @@ export function normalizeCaptureResponse(raw: unknown, opts: { defaultCurrency?:
     switch (it.type) {
       case 'task':
         if (!title) break;
-        items.push({ type: 'task', title, date, startTime, endTime: startTime ? endTime : undefined, contactName });
+        items.push({ type: 'task', title, date, startTime, endTime: endAfter(startTime, endTime), contactName });
         break;
       case 'event':
         if (!title) break;
         // An event needs a day; without one it is really a task.
         if (!date) items.push({ type: 'task', title, startTime, contactName });
-        else items.push({ type: 'event', title, date, startTime, endTime: startTime ? endTime : undefined, contactName });
+        else items.push({ type: 'event', title, date, startTime, endTime: endAfter(startTime, endTime), contactName });
         break;
       case 'expense':
       case 'income': {

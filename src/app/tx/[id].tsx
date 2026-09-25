@@ -9,7 +9,7 @@ import type { Transaction } from '@/db';
 import { DateField } from '@/features/calendar/components/date-field';
 import { RelatedSection } from '@/features/links/components/related-section';
 import { categoryIcon } from '@/features/money/category-icon';
-import { createTransaction, deleteTransaction, restoreTransaction, updateTransaction, useCategories, useTransaction, useWallets } from '@/features/money/queries';
+import { createTransaction, deleteTransaction, restoreTransaction, updateTransaction, useAllWallets, useCategories, useTransaction } from '@/features/money/queries';
 import { isValidDate } from '@/features/tasks/model';
 import { currencySymbol, parseAmount } from '@/lib/currency';
 import { addDays, toDateKey } from '@/lib/date';
@@ -39,7 +39,9 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
   const { t, i18n } = useTranslation();
   const { colors, tints, spacing, radius, typography, fontFamily } = useTheme();
   const input = useInputStyle();
-  const wallets = useWallets();
+  // Live accounts, plus any hidden one this transaction already uses: editing an old transaction
+  // must not silently move it (and its currency) to another account.
+  const wallets = useAllWallets().filter((w) => !w.deletedAt || w.id === existing?.walletId || w.id === existing?.toWalletId);
   const categories = useCategories();
   const { armed, confirm } = useConfirm();
   const { busy, failed, run } = useAsyncAction();
@@ -56,8 +58,9 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
   const [showErrors, setShowErrors] = useState(false);
   const dirty = useDirty({ kind, amount, walletId, toWalletId, categoryId, date, note });
 
-  // Wallets load asynchronously; fall back to the first one until the user picks.
-  const from = wallets.find((w) => w.id === walletId) ?? wallets[0];
+  // Wallets load asynchronously; a new transaction falls back to the first live one until the user
+  // picks. An existing one never falls back: it keeps its own account (even a hidden one).
+  const from = wallets.find((w) => w.id === walletId) ?? (existing ? undefined : wallets.find((w) => !w.deletedAt));
   const toOptions = wallets.filter((w) => w.id !== from?.id && w.currency === from?.currency);
   const to = toOptions.find((w) => w.id === toWalletId);
   const cats = categories.filter((c) => c.type === (kind === 'income' ? 'income' : 'expense'));
@@ -160,7 +163,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
         <Field label={kind === 'transfer' ? t('money.from_account') : t('money.account')} icon="credit-card">
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
             {wallets.map((w) => (
-              <Chip key={w.id} label={`${w.name} · ${w.currency}`} selected={from?.id === w.id} onPress={() => setWalletId(w.id)} />
+              <Chip key={w.id} icon={w.deletedAt ? 'eye-off' : undefined} label={`${w.name} · ${w.currency}`} selected={from?.id === w.id} onPress={() => setWalletId(w.id)} />
             ))}
           </View>
           <FieldError message={showErrors ? errors.wallet : null} />
@@ -171,7 +174,7 @@ function TransactionForm({ existing, onClose }: { existing?: Transaction; onClos
             {toOptions.length ? (
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
                 {toOptions.map((w) => (
-                  <Chip key={w.id} label={w.name} selected={to?.id === w.id} onPress={() => setToWalletId(w.id)} />
+                  <Chip key={w.id} icon={w.deletedAt ? 'eye-off' : undefined} label={w.name} selected={to?.id === w.id} onPress={() => setToWalletId(w.id)} />
                 ))}
               </View>
             ) : (

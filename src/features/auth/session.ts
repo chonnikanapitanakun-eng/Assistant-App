@@ -12,7 +12,8 @@ const useAuthStore = create<AuthState>(() => ({ session: null, ready: !supabaseE
 if (supabase) {
   void supabase.auth.getSession().then(({ data }) => useAuthStore.setState({ session: data.session, ready: true }));
   supabase.auth.onAuthStateChange((event, session) => {
-    const fresh = event === 'SIGNED_IN' ? session?.provider_refresh_token : undefined;
+    // Only Google's token links a calendar — an Apple sign-in (OAuth on web/Android) can carry one too.
+    const fresh = event === 'SIGNED_IN' && session?.user.app_metadata?.provider === 'google' ? session.provider_refresh_token : undefined;
     useAuthStore.setState(fresh ? { session, providerRefreshToken: fresh } : { session });
   });
 }
@@ -27,6 +28,13 @@ export const getSession = () => useAuthStore.getState().session;
 export const useProviderRefreshToken = () => useAuthStore((s) => s.providerRefreshToken);
 export const clearProviderRefreshToken = () => useAuthStore.setState({ providerRefreshToken: null });
 
-export async function signOut() {
-  if (supabase) await supabase.auth.signOut();
+/**
+ * `local`: forget the session on this device only, without telling the server — for when the
+ * server side is already gone (account deletion) or unreachable.
+ */
+export async function signOut({ local = false } = {}) {
+  if (supabase) await supabase.auth.signOut(local ? { scope: 'local' } : undefined);
+  // SIGNED_OUT normally lands through onAuthStateChange; setting it here too keeps callers that
+  // continue synchronously (erase, delete account) from seeing a stale session.
+  useAuthStore.setState({ session: null, providerRefreshToken: null });
 }

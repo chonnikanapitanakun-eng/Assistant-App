@@ -11,7 +11,8 @@
     "ios": {
       "icon": "./assets/images/icon.png",
       "supportsTablet": true,
-      "bundleIdentifier": "com.proud.assistant"
+      "bundleIdentifier": "com.proud.assistant",
+      "usesAppleSignIn": true
     },
     "android": {
       "package": "com.proud.assistant",
@@ -47,20 +48,71 @@
         }
       ],
       "expo-web-browser",
+      "expo-apple-authentication",
       [
         "expo-image-picker",
         {
           "photosPermission": "Veyra reads the bank slips you choose to record your transactions.",
-          "cameraPermission": "Veyra uses the camera to photograph bank slips.",
-          "microphonePermission": false
+          "cameraPermission": "Veyra uses the camera to photograph bank slips."
         }
       ],
       [
         "expo-camera",
         {
           "cameraPermission": "Veyra uses the camera to photograph bank slips.",
-          "microphonePermission": false,
           "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Allow Veyra to use Face ID to unlock the app."
+        }
+      ],
+      [
+        "expo-widgets",
+        {
+          "widgets": [
+            {
+              "name": "VeyraToday",
+              "displayName": "Veyra Today",
+              "description": "Next up, today's progress, bills due and Quick Capture.",
+              "ios": {
+                "supportedFamilies": [
+                  "systemSmall",
+                  "systemMedium",
+                  "accessoryRectangular",
+                  "accessoryCircular",
+                  "accessoryInline"
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      [
+        "react-native-android-widget",
+        {
+          "widgets": [
+            {
+              "name": "VeyraToday",
+              "label": "Veyra Today",
+              "description": "Next up, today's progress, bills due and Quick Capture.",
+              "minWidth": "180dp",
+              "minHeight": "110dp",
+              "targetCellWidth": 4,
+              "targetCellHeight": 2,
+              "resizeMode": "horizontal|vertical",
+              "updatePeriodMillis": 1800000
+            }
+          ]
+        }
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Veyra ใช้ไมโครโฟนเพื่อให้คุณพูดบันทึกงาน นัด และรายจ่ายได้ (ไทย/อังกฤษ) / Veyra uses the microphone so you can capture tasks, events and expenses by voice (Thai or English).",
+          "speechRecognitionPermission": "Veyra แปลงเสียงพูดภาษาไทยหรืออังกฤษเป็นข้อความสำหรับ Quick Capture / Veyra turns your speech (Thai or English) into text for Quick Capture."
         }
       ]
     ],

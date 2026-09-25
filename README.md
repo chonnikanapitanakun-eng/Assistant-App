@@ -10,8 +10,9 @@ Expo (React Native) · TypeScript · SQLite (Drizzle) · Supabase (Phase 2)
 
 ```bash
 npm install
-npx expo start          # dev server (Expo Go ไม่พอ ต้องใช้ development build เพราะมี expo-sqlite)
-npx expo run:android    # หรือ run:ios บน macOS
+npm run android         # = npx expo run:android — build + ติดตั้ง development build (Expo Go ไม่พอ: มี native module เช่น expo-speech-recognition, widgets)
+npm run ios             # = npx expo run:ios บน macOS
+npx expo start          # dev server สำหรับ development build ที่ติดตั้งไว้แล้ว
 npx expo start --web    # เว็บ: ข้อมูลเก็บใน browser (OPFS) — ไม่มี FTS5 จึงค้นหาแบบ LIKE แทน (ไม่เรียงตามความตรง) และไม่มี notification
 ```
 
@@ -30,7 +31,7 @@ npm run db:generate     # หลังแก้ src/db/schema.ts
 src/app/          Expo Router screens  ((tabs)/, capture.tsx, assistant.tsx)
 src/components/   ui/ (design-system primitives), brand/ (logo, mascot), navigation/ (tab bar, sidebar)
 src/db/           Drizzle schema, migrations, FTS, seed
-src/features/     tasks / notes / money / contacts / areas / search / ai
+src/features/     tasks / notes / money / contacts / areas / search / ai / privacy (PDPA: export, erase, delete account)
 src/i18n/         th.json, en.json
 src/lib/          date, currency, ids
 src/theme/        Veyra design tokens (colour, type, spacing, radius, shadow, motion), useTheme, useBreakpoint

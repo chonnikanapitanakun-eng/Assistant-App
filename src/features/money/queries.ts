@@ -12,6 +12,11 @@ export function useWallets(): Wallet[] {
   return useRows(db.select().from(wallets).where(isNull(wallets.deletedAt)).orderBy(asc(wallets.sortOrder))).data;
 }
 
+/** Every wallet including hidden (deleted) ones — for editing old transactions that point at one. */
+export function useAllWallets(): Wallet[] {
+  return useRows(db.select().from(wallets).orderBy(asc(wallets.sortOrder))).data;
+}
+
 /** All live transactions, newest first. Money screens filter by month/currency in memory. */
 export function useTransactions(): Transaction[] {
   return useRows(db.select().from(transactions).where(isNull(transactions.deletedAt)).orderBy(desc(transactions.date), desc(transactions.createdAt))).data;
@@ -89,8 +94,11 @@ export function getPayeeHistory() {
     .all();
 }
 
+/** Keeps the transaction's own currency unless it is moved to a different source wallet. */
 export async function updateTransaction(id: string, v: TransactionFormValues) {
-  await db.update(transactions).set({ ...v, currency: await currencyOf(v.walletId), updatedAt: now() }).where(eq(transactions.id, id));
+  const current = await db.select({ walletId: transactions.walletId, currency: transactions.currency }).from(transactions).where(eq(transactions.id, id)).get();
+  const currency = current && current.walletId === v.walletId ? current.currency : await currencyOf(v.walletId);
+  await db.update(transactions).set({ ...v, currency, updatedAt: now() }).where(eq(transactions.id, id));
 }
 
 export async function deleteTransaction(id: string) {
@@ -129,8 +137,12 @@ export async function createBill(v: BillFormValues): Promise<string> {
   return id;
 }
 
+/**
+ * Editing a bill ends the undo window of its last "Mark paid" (the payment itself stays):
+ * the row's "Paid today / Undo" is keyed on `lastPaymentId` + `updatedAt`, and this bumps `updatedAt`.
+ */
 export async function updateBill(existing: RecurringBill, v: BillFormValues) {
-  await db.update(recurringBills).set({ ...v, updatedAt: now() }).where(eq(recurringBills.id, existing.id));
+  await db.update(recurringBills).set({ ...v, lastPaymentId: null, previousPaidThrough: null, updatedAt: now() }).where(eq(recurringBills.id, existing.id));
   syncReminder(existing.id, v.name, nextDueDate({ ...v, paidThrough: existing.paidThrough }), v.remindDaysBefore, existing.reminderNotificationId);
 }
 
@@ -140,12 +152,32 @@ export async function deleteBill(bill: RecurringBill) {
   background(cancelBillReminder(bill.reminderNotificationId), 'Cancel bill reminder');
 }
 
+const paying = new Map<string, Promise<boolean>>();
+
 /**
  * Pay the bill's current cycle: record the expense from its wallet (or the first
  * wallet in the same currency), then advance `paidThrough`. Returns false when
  * there is no wallet to pay from.
+ *
+ * Idempotent for the cycle `bill` (as the caller saw it) is on: calls for the same bill are
+ * serialized, and the row is re-read first, so a repeat (double tap, stale row) whose cycle is
+ * already covered by `paidThrough` records nothing.
  */
-export async function markBillPaid(bill: RecurringBill): Promise<boolean> {
+export function markBillPaid(bill: RecurringBill): Promise<boolean> {
+  const previous = paying.get(bill.id) ?? Promise.resolve(true);
+  const next = previous.catch(() => true).then(() => payBill(bill));
+  paying.set(bill.id, next);
+  void next.finally(() => {
+    if (paying.get(bill.id) === next) paying.delete(bill.id);
+  }).catch(() => undefined);
+  return next;
+}
+
+async function payBill(seen: RecurringBill): Promise<boolean> {
+  const bill = await getBill(seen.id);
+  if (!bill) return true; // deleted meanwhile: nothing to pay
+  const cycle = nextDueDate(seen);
+  if (bill.paidThrough && bill.paidThrough >= cycle) return true; // that cycle is already paid
   const walletList = await db.select().from(wallets).where(isNull(wallets.deletedAt)).orderBy(asc(wallets.sortOrder)).all();
   const wallet = walletList.find((w) => w.id === bill.walletId) ?? walletList.find((w) => w.currency === bill.currency);
   if (!wallet) return false;

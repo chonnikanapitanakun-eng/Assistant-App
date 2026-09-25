@@ -14,8 +14,8 @@ import { useConfirm } from '@/lib/use-confirm';
 import { useTheme } from '@/theme';
 
 import { applyFormat, toggleCheck, type Format } from '../markdown';
-import { extractItems, normalizeTag, summarize } from '../model';
-import { deleteNote, updateNote, useNote } from '../queries';
+import { extractItems, itemSignature, normalizeTag, summarize } from '../model';
+import { deleteNote, updateNote, useExtractedSignatures, useNote } from '../queries';
 
 import { MarkdownView } from './markdown-view';
 
@@ -170,7 +170,7 @@ function NoteForm({ note, startInEdit, onBack, onDeleted }: Props & { note: Note
           <Animated.View entering={FadeIn.duration(200)}>
             <Gradient variant="ai" style={{ borderRadius: radius.lg, padding: 1.5, boxShadow: shadow.sm }}>
               <View style={{ backgroundColor: colors.surface, borderRadius: radius.lg - 1.5, padding: spacing.lg, gap: spacing.md }}>
-                {panel === 'summary' ? <SummaryPanel summary={summary} /> : <ExtractPanel items={extracted} noteId={note.id} key={body} />}
+                {panel === 'summary' ? <SummaryPanel summary={summary} /> : <ExtractPanel items={extracted} noteId={note.id} />}
               </View>
             </Gradient>
           </Animated.View>
@@ -259,41 +259,54 @@ function SummaryPanel({ summary }: { summary: ReturnType<typeof summarize> }) {
   );
 }
 
+/**
+ * Items found in the note, minus the ones already saved from it. Not remounted when the body
+ * changes (e.g. ticking a checkbox): items are tracked by signature, and what was saved earlier
+ * comes from the note's `extracted` links, so the same item is never offered twice.
+ */
 function ExtractPanel({ items, noteId }: { items: ReturnType<typeof extractItems>; noteId: string }) {
   const { t } = useTranslation();
   const { spacing } = useTheme();
-  const [excluded, setExcluded] = useState<Set<number>>(new Set());
-  const [saved, setSaved] = useState<number | null>(null);
+  const alreadySaved = useExtractedSignatures(noteId);
+  const [savedHere, setSavedHere] = useState<Set<string>>(() => new Set());
+  const [excluded, setExcluded] = useState<Set<string>>(() => new Set());
+  const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [error, setError] = useState(false);
   const [saving, setSaving] = useState(false);
-  const chosen = items.filter((_, i) => !excluded.has(i));
 
-  if (saved !== null) {
+  // One entry per signature: the same line written twice is one item, saved once.
+  const entries = [...new Map(items.map((item) => [itemSignature(item), item] as const)).entries()].map(([sig, item]) => ({ item, sig }));
+  const isSaved = (sig: string) => savedHere.has(sig) || !!alreadySaved?.has(sig);
+  const pending = entries.filter((e) => !isSaved(e.sig));
+  const chosen = pending.filter((e) => !excluded.has(e.sig));
+  const savedCount = entries.length - pending.length;
+
+  if (!pending.length && savedCount) {
     return (
       <View accessibilityLiveRegion="polite" style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
         <Mascot pose="success" size={56} />
         <View style={{ flex: 1 }}>
           <Text variant="subheading">{t('capture.saved_title')}</Text>
-          <Text variant="caption" color="textSecondary">{t('notes.extract_saved', { count: saved })}</Text>
+          <Text variant="caption" color="textSecondary">{t('notes.extract_saved', { count: lastSaved ?? savedCount })}</Text>
         </View>
       </View>
     );
   }
   return (
     <>
-      <Text variant="overline" color="primary">{t('capture.found', { count: items.length }).toUpperCase()}</Text>
-      {items.length ? (
+      <Text variant="overline" color="primary">{t('capture.found', { count: pending.length }).toUpperCase()}</Text>
+      {pending.length ? (
         <>
-          {items.map((item, i) => (
+          {pending.map(({ item, sig }) => (
             <DetectedItem
-              key={i}
+              key={sig}
               item={item}
-              included={!excluded.has(i)}
+              included={!excluded.has(sig)}
               onToggle={() =>
                 setExcluded((prev) => {
                   const next = new Set(prev);
-                  if (next.has(i)) next.delete(i);
-                  else next.add(i);
+                  if (next.has(sig)) next.delete(sig);
+                  else next.add(sig);
                   return next;
                 })
               }
@@ -302,13 +315,19 @@ function ExtractPanel({ items, noteId }: { items: ReturnType<typeof extractItems
           <Button
             fullWidth
             icon="check"
-            disabled={!chosen.length || saving}
+            // Wait for the saved-items lookup so nothing already saved slips through.
+            disabled={!chosen.length || saving || !alreadySaved}
             label={chosen.length ? t('capture.save_count', { count: chosen.length }) : t('capture.save')}
             onPress={async () => {
               setSaving(true);
               setError(false);
               try {
-                setSaved(await saveCaptureItems(chosen, { sourceNoteId: noteId }));
+                const count = await saveCaptureItems(
+                  chosen.map((e) => e.item),
+                  { sourceNoteId: noteId },
+                );
+                setSavedHere((prev) => new Set([...prev, ...chosen.map((e) => e.sig)]));
+                setLastSaved(count);
               } catch (e) {
                 console.error('Saving note items failed:', e);
                 setError(true);

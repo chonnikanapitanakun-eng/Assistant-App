@@ -13,7 +13,7 @@ major_version = 17
 
 [auth]
 enabled = true
-# Google sign-in (features/auth) shipped in Phase 2. Enable the Google provider in the dashboard
+# Apple / Google sign-in (features/auth) shipped in Phase 2. Enable both providers in the dashboard
 # too (Authentication → Providers) — this file only carries settings the CLI can push.
 
 [edge_runtime]
@@ -28,7 +28,23 @@ verify_jwt = true
 [functions.assistant]
 verify_jwt = true
 
+[functions.ai-ask]
+verify_jwt = true
+
+[functions.ai-plan]
+verify_jwt = true
+
+[functions.ai-breakdown]
+verify_jwt = true
+
+[functions.ai-prep-meeting]
+verify_jwt = true
+
 # Google's OAuth redirect lands on /gcal/callback with no Supabase JWT; the function checks the
 # signed state / device key itself.
 [functions.gcal]
 verify_jwt = false
+
+# Account deletion (PDPA). Only the signed-in user's own JWT is accepted (checked again inside).
+[functions.account]
+verify_jwt = true
