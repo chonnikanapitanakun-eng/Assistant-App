@@ -76,6 +76,16 @@ export async function settleProposal(messageId: string, cardId: string, state: '
   }
 }
 
+/** Replace a pending proposal's content (e.g. rows removed from a day plan); ignored once it is running or settled. */
+export function editProposal(messageId: string, cardId: string, proposal: ProposalCard['proposal']) {
+  return serial(async () => {
+    const payload = await readPayload(messageId);
+    const card = payload?.cards.find((c) => c.type === 'proposal' && c.id === cardId);
+    if (!payload || running.has(runKey(messageId, cardId)) || card?.type !== 'proposal' || card.state !== 'pending') return;
+    await writeCard(messageId, payload, cardId, { proposal });
+  });
+}
+
 /** "Not now": only a pending card that isn't running can be dismissed. */
 export function dismissProposal(messageId: string, cardId: string) {
   return serial(async () => {

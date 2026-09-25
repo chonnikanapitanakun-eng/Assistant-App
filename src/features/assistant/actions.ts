@@ -25,6 +25,17 @@ export async function runProposal(p: Proposal): Promise<boolean> {
       await rescheduleTask(task, p.date, p.startTime, p.endTime);
       return true;
     }
+    case 'apply_plan': {
+      // Move every remaining row; one missing task doesn't cancel the rest.
+      let moved = 0;
+      for (const slot of p.slots) {
+        const task = await getTask(slot.taskId);
+        if (!task || task.isDone) continue;
+        await rescheduleTask(task, p.date, slot.startTime, slot.endTime);
+        moved++;
+      }
+      return moved > 0;
+    }
     case 'pay_bill': {
       const bill = await getBill(p.billId);
       return bill ? markBillPaid(bill) : false;

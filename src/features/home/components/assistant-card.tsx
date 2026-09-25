@@ -26,7 +26,10 @@ export function AssistantCard() {
   // Same planner as "Plan my day" in the chat, so Home and chat never disagree.
   const suggestion = useMemo(() => {
     const card = respond('plan my day', getContext(), t).cards.find((c) => c.type === 'proposal');
-    return card?.type === 'proposal' && card.proposal.kind === 'reschedule_task' ? card.proposal : null;
+    if (card?.type !== 'proposal' || card.proposal.kind !== 'apply_plan') return null;
+    const [first] = card.proposal.slots;
+    const p: Proposal = { kind: 'reschedule_task', taskId: first.taskId, title: first.title, date: card.proposal.date, startTime: first.startTime, endTime: first.endTime };
+    return p;
   }, [getContext, t]);
 
   const accept = async (p: Proposal) => {

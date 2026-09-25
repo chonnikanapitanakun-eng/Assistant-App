@@ -7,7 +7,7 @@
 | `ai-capture` | 1 | `src/features/ai/types.ts` → `CaptureResponse` — structured output ตาม `_shared/capture-contract.ts`, prompt ใน `ai-capture/prompt.ts` |
 | `ai-summary` | 2 | `src/features/ai/summary.ts` → `SummaryResponse` — structured output ตาม `_shared/summary-contract.ts`, prompt ใน `ai-summary/prompt.ts` |
 | `ai-ask` | 3 | `src/features/ai/types.ts` → `AskResponse` — structured output ตาม `_shared/ask-contract.ts`, prompt ใน `ai-ask/prompt.ts`; retrieval ฝั่งแอป `src/features/ai/ask/` ดู § ai-ask ด้านล่าง |
-| `ai-plan` | 3 | SPEC §6.4 |
+| `ai-plan` | 3 | `_shared/plan-contract.ts` → `PlanRequest` / `PlanResponse` — จัดงานค้างลงช่วงว่างของวัน, app แสดงเป็นการ์ดเดียวให้ approve ก่อนย้ายงาน; ดู § ai-plan ด้านล่าง |
 | `account` | 4 | PDPA: ลบบัญชี (`{ action: 'delete' }` + JWT ผู้ใช้) → ลบ auth user, ตาราง sync / `ai_usage` / `gcal_accounts` cascade ตาม; ดู § account ด้านล่าง |
 | `slip-ocr` | 3 | `src/features/slip/types.ts` → `SlipResult` — structured output ตาม `_shared/slip-contract.ts`, prompt ใน `slip-ocr/prompt.ts`; ดู § slip-ocr ด้านล่าง |
 
@@ -66,6 +66,15 @@ curl -X POST "$SUPABASE_URL/functions/v1/ai-ask" \
   -d '{"question":"เดือนนี้ใช้เงินไปเท่าไหร่","locale":"th","today":"2026-09-25","weekday":"Friday","currency":"THB","facts":["this month (2026-09-01 to 2026-09-30), THB: expense 4,200, income 50,000, net +45,800 (3 transactions, transfers excluded)"],"records":[{"ref":"X1","type":"transaction","text":"Expense 3,000 THB | 2026-09-10 | VAT | category Tax"}],"coverage":["Transactions this month (2026-09-01 to 2026-09-30)"]}'
 ```
 
+## ai-plan — จัดวันให้ + approve (P3-02)
+
+- **Input** (`_shared/plan-contract.ts` → `PlanRequest`): วันที่ + เวลาตอนนี้ (ถ้าเป็นวันนี้), ช่วงทำงาน (09:00–18:00), `busy[]` = นัด + งานที่มีเวลาแล้ว, `backlog[]` = งานค้าง (priority, `durationMin`, `energy`, overdue) — app สร้างจาก `AssistantContext` ใน `src/features/assistant/plan.ts` (`buildPlanRequest`)
+- **Output** (`PlanResponse`): `schedule[]` {taskId, startTime, endTime, reason}, `skipped[]` {taskId, reason}, `summary` — structured output ตาม `PLAN_SCHEMA` แล้วผ่าน `normalizePlanResponse()` ทั้งฝั่ง function และฝั่ง app: ตัด task id ที่ไม่รู้จัก, เวลาผิด/ก่อน now/นอกช่วงทำงาน, ช่วงที่ทับ busy หรือทับกันเอง
+- **Approve flow**: `planToProposal()` → proposal `apply_plan` การ์ดเดียว (`src/features/assistant/components/cards.tsx` → `PlanView`) — user เอาแถวที่ไม่เอาออกได้ทีละแถว แล้วกดยืนยัน → `runProposal()` เรียก `rescheduleTask` ทุกแถวที่เหลือ; "ไม่เอาตอนนี้" = ไม่เปลี่ยนอะไร
+- **Fallback**: ไม่มี Supabase / error / `schedule: []` → `planLocally()` (planner ในเครื่อง ไฟล์เดียวกัน: overdue + priority 1 ก่อน, งาน energy สูงเอาช่วงเช้า, ค่า default 45 นาที) — Home card ("Plan my day" บนหน้าแรก) ใช้ planner ตัวนี้เสมอ
+- **Model**: `claude-opus-5`, adaptive thinking, effort `medium`, `max_tokens` 4096, fallback เปิดไว้; ไม่เรียก Claude เมื่อ backlog ว่าง
+- ทดสอบ contract + planner: `npm test` (`src/features/ai/__tests__/plan-contract.test.ts`, `src/features/assistant/__tests__/engine.test.ts`)
+
 ## Setup (ครั้งแรก)
 
 ```bash
@@ -73,7 +82,7 @@ npx supabase login
 npx supabase link --project-ref <ref>
 npx supabase db push                       # สร้างตาราง ai_usage
 npx supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
-npx supabase functions deploy ai-capture ai-summary ai-ask assistant slip-ocr account
+npx supabase functions deploy ai-capture ai-summary ai-ask ai-plan assistant slip-ocr account
 ```
 
 ทดสอบเรียกตรง:
@@ -84,10 +93,18 @@ curl -X POST "$SUPABASE_URL/functions/v1/ai-capture" \
   -d '{"text":"Meeting with John tomorrow at 10 about VAT £5,000","locale":"en","today":"2026-09-24","weekday":"Thursday","defaultCurrency":"THB","contacts":["John Smith"],"categories":{"expense":["Tax"],"income":["Audit fee"]}}'
 ```
 
+ทดสอบ ai-plan:
+
+```bash
+curl -X POST "$SUPABASE_URL/functions/v1/ai-plan" \
+  -H "Authorization: Bearer $SUPABASE_ANON_KEY" -H "apikey: $SUPABASE_ANON_KEY" -H "content-type: application/json" \
+  -d '{"locale":"th","date":"2026-09-24","weekday":"Thursday","now":"10:05","busy":[{"kind":"event","title":"Client call","start":"10:30","end":"11:15"}],"backlog":[{"id":"t1","title":"Prepare VAT reconciliation","priority":1,"durationMin":90,"energy":"high","date":"2026-09-24","overdue":false},{"id":"t2","title":"Reply to client","priority":2,"durationMin":null,"energy":"low","date":"2026-09-23","overdue":true}]}'
+```
+
 เปิดใช้ Veyra AI (Claude)
 
 1. `supabase secrets set ANTHROPIC_API_KEY=...`
-2. `supabase functions deploy assistant`
+2. `supabase functions deploy assistant ai-plan`
 3. ใส่ `EXPO_PUBLIC_SUPABASE_URL` และ `EXPO_PUBLIC_SUPABASE_ANON_KEY` ใน `.env` แล้ว restart Expo — ถ้าไม่ตั้ง แอปตอบด้วย engine ในเครื่อง (`src/features/assistant/engine.ts`)
 
 ## slip-ocr — อ่านสลิปโอนเงิน (P3-04)
