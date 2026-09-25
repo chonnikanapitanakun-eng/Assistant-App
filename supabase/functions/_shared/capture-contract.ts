@@ -12,19 +12,21 @@ export type CaptureResponse = { items: CaptureItem[]; confidence: number };
 export const CURRENCIES = ['THB', 'GBP', 'USD', 'EUR'] as const;
 
 const str = { type: 'string' } as const;
-const date = { type: 'string', pattern: '^\\d{4}-\\d{2}-\\d{2}$', description: 'YYYY-MM-DD' } as const;
-const time = { type: 'string', pattern: '^([01]\\d|2[0-3]):[0-5]\\d$', description: 'HH:mm, 24-hour' } as const;
+const date = { type: 'string', description: 'YYYY-MM-DD' } as const;
+const time = { type: 'string', description: 'HH:mm, 24-hour' } as const;
 
 /**
  * JSON schema Claude must fill (structured output). One object per detected thing.
  * Optional fields are nullable rather than omitted so the schema stays strict (`required` lists every key).
+ * Structured output rejects minimum/maximum, maxItems and similar constraints with a 400, so limits
+ * (8 items, confidence 0–1, date/time format) are enforced in normalizeCaptureResponse instead.
  */
 export const CAPTURE_SCHEMA = {
   type: 'object',
   properties: {
     items: {
       type: 'array',
-      maxItems: 8,
+      description: 'At most 8 items',
       items: {
         type: 'object',
         properties: {
@@ -44,7 +46,7 @@ export const CAPTURE_SCHEMA = {
         additionalProperties: false,
       },
     },
-    confidence: { type: 'number', minimum: 0, maximum: 1, description: 'How sure you are the items match what the user meant' },
+    confidence: { type: 'number', description: '0 to 1: how sure you are the items match what the user meant' },
   },
   required: ['items', 'confidence'],
   additionalProperties: false,
