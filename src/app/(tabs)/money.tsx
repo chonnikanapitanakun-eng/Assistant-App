@@ -43,7 +43,9 @@ export default function MoneyScreen() {
   const walletById = useMemo(() => new Map(wallets.map((w) => [w.id, w])), [wallets]);
   const walletIds = new Set(wallets.map((w) => w.id));
   // Hidden (deleted) accounts drop out of totals; their history stays in the database.
-  const liveTxs = txs.filter((x) => walletIds.has(x.walletId));
+  // A transfer into a live account from a hidden one still counts (walletBalance only credits
+  // the live side), so balances here match the account's own screen.
+  const liveTxs = txs.filter((x) => walletIds.has(x.walletId) || (x.type === 'transfer' && !!x.toWalletId && walletIds.has(x.toWalletId)));
 
   const shiftMonth = (dir: 1 | -1) => {
     const [y, m] = month.split('-').map(Number);

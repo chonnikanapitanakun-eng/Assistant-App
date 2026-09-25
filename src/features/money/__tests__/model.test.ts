@@ -21,6 +21,13 @@ describe('balances and totals', () => {
     expect(walletBalance({ id: 'w1', balance: 1000, currency: 'THB' }, txs)).toBe(1000 + 45000 - 120 - 80 - 300 - 1000 - 999);
     expect(walletBalance({ id: 'w2', balance: 0, currency: 'THB' }, txs)).toBe(1000);
   });
+  it('credits only the destination leg of a transfer from a hidden wallet', () => {
+    // 'gone' is a hidden (deleted) account: its transfer still lands in w2, and never touches w1.
+    const fromHidden = [tx({ walletId: 'gone', type: 'transfer', amount: 500, toWalletId: 'w2' })];
+    expect(walletBalance({ id: 'w2', balance: 100, currency: 'THB' }, fromHidden)).toBe(600);
+    expect(walletBalance({ id: 'w1', balance: 100, currency: 'THB' }, fromHidden)).toBe(100);
+    expect(walletBalance({ id: 'gone', balance: 1000, currency: 'THB' }, fromHidden)).toBe(500);
+  });
   it('ignores transactions in a different currency than the wallet', () => {
     expect(walletBalance({ id: 'w1', balance: 0, currency: 'THB' }, [tx({ amount: 100, currency: 'EUR' })])).toBe(0);
   });
@@ -63,6 +70,14 @@ describe('bills', () => {
   it('handles yearly bills', () => {
     expect(nextDueDate(bill({ frequency: 'yearly', dueMonth: 3, dueDay: 15 }), today)).toBe('2026-03-15');
     expect(nextDueDate(bill({ frequency: 'yearly', dueMonth: 3, dueDay: 15, paidThrough: '2026-03-15' }), today)).toBe('2027-03-15');
+  });
+  it('keeps a still-upcoming yearly date after switching from monthly', () => {
+    // Paid monthly through September, then switched to yearly in December: due this December.
+    expect(nextDueDate(bill({ frequency: 'yearly', dueMonth: 12, dueDay: 24, paidThrough: '2026-09-24' }), today)).toBe('2026-12-24');
+    // Due month already covered by paidThrough this year → next year.
+    expect(nextDueDate(bill({ frequency: 'yearly', dueMonth: 6, dueDay: 1, paidThrough: '2026-09-24' }), today)).toBe('2027-06-01');
+    // Same month, later day than paidThrough → still this year.
+    expect(nextDueDate(bill({ frequency: 'yearly', dueMonth: 9, dueDay: 30, paidThrough: '2026-09-24' }), today)).toBe('2026-09-30');
   });
   it('classifies due dates', () => {
     expect(billState('2026-09-20', 3, today)).toEqual({ state: 'overdue', days: -4 });

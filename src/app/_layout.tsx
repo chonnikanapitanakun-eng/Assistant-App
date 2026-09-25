@@ -11,6 +11,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { queryClient, useDatabase } from '@/db';
 import { Text } from '@/components/ui';
+import { useFocusTimerDriver } from '@/features/focus/store';
 import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
 import { useTheme } from '@/theme';
 
@@ -24,6 +25,7 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
   // Fall back to system font rather than blocking the app if Inter fails to load.
   const fontsReady = fontsLoaded || !!fontError;
+  useFocusTimerDriver();
 
   useEffect(() => {
     if ((ready || error) && fontsReady) void SplashScreen.hideAsync();

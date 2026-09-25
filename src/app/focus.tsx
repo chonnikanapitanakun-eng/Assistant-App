@@ -84,7 +84,8 @@ function TimerView() {
   const running = timer.status === 'running';
   const active = timer.status === 'running' || timer.status === 'paused';
 
-  // Re-render every second while running; settle the timer when it runs out or the app returns.
+  // Re-render every second while running. Settling is driven app-wide by useFocusTimerDriver
+  // (root layout); ticking here too just keeps the ring in step with it.
   useEffect(() => {
     if (!running) return;
     const id = setInterval(() => {
