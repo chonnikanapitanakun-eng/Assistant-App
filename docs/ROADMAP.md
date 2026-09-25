@@ -55,7 +55,7 @@
 - [x] `ai-breakdown` — `supabase/functions/ai-breakdown`, `src/features/ai/breakdown.ts`, `src/features/tasks/components/breakdown-suggestions.tsx`
 - [x] Slip OCR — ขั้น 1: slip QR (ฟรี) + `slip-ocr` (Claude Haiku) + จับคู่บัญชี/หมวด — `supabase/functions/slip-ocr`, `src/features/slip`, `src/app/slip.tsx`
 - [ ] Slip OCR ขั้น 2: on-device OCR (ML Kit / Apple Vision, dev build) ก่อนเรียก Haiku
-- [ ] Export Excel / CSV
+- [x] Export Excel / CSV — CSV ต่อเดือน/สกุลเงิน จากแท็บ Money → รายการ (`src/features/money/csv.ts`, `export.ts`)
 - [ ] Home / lock screen widgets
 - [ ] Context-aware reminder
 
