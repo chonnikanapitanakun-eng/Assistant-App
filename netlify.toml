@@ -1,0 +1,10 @@
+[build]
+  command = "npx expo export --platform web"
+  publish = "dist"
+
+# expo-sqlite on web needs a cross-origin-isolated page (SharedArrayBuffer / OPFS worker).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cross-Origin-Embedder-Policy = "credentialless"
+    Cross-Origin-Opener-Policy = "same-origin"
