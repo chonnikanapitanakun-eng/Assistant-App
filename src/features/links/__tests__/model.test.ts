@@ -1,6 +1,6 @@
 import { describe as suite, expect, it } from 'vitest';
 
-import { describe, otherEnd, relationKey, routeFor, sortRelated, defaultRelation } from '../model';
+import { describe, likeContains, otherEnd, relationKey, routeFor, sortRelated, defaultRelation } from '../model';
 
 const self = { type: 'task', id: 't1' } as const;
 
@@ -42,6 +42,18 @@ suite('describe', () => {
     const row = { ...base, title: '', body: '# \n- [ ] Send letter\nmore', tags: ['work'], pinned: false, attachments: null, areaId: null };
     expect(describe({ type: 'note', row }, 'th')).toEqual({ title: 'Send letter', subtitle: '#work' });
   });
+  it('strips only markdown prefixes, never leading letters of the text', () => {
+    const note = (body: string) => ({ ...base, title: '', body, tags: null, pinned: false, attachments: null, areaId: null });
+    expect(describe({ type: 'note', row: note('xylophone lesson') }, 'en').title).toBe('xylophone lesson');
+    expect(describe({ type: 'note', row: note('- [x] xray results') }, 'en').title).toBe('xray results');
+    expect(describe({ type: 'note', row: note('  * [ ] Call mum') }, 'en').title).toBe('Call mum');
+    expect(describe({ type: 'note', row: note('## > Quote') }, 'en').title).toBe('Quote');
+    expect(describe({ type: 'note', row: note('[x]ray') }, 'en').title).toBe('[x]ray');
+  });
+  it('dates an all-day event by its stored UTC day, whatever the timezone', () => {
+    const row = { ...base, externalId: 'x', source: 'veyra', calendarName: null, title: 'Holiday', start: Date.UTC(2026, 8, 25), end: Date.UTC(2026, 8, 26), location: null, isAllDay: true };
+    expect(describe({ type: 'event', row }, 'en').subtitle).toBe(new Date(2026, 8, 25).toLocaleString('en-GB', { day: 'numeric', month: 'short' }));
+  });
   it('labels money with a signed amount and date', () => {
     const row = { ...base, walletId: 'w', amount: 1500, currency: 'THB', type: 'expense' as const, toWalletId: null, categoryId: null, areaId: null, date: '2026-09-24', note: 'Taxi', slipImage: null, source: 'manual' as const };
     expect(describe({ type: 'transaction', row }, 'en')).toEqual({ title: 'Taxi', subtitle: '−฿1,500 · 2026-09-24' });
@@ -62,5 +74,12 @@ suite('sortRelated', () => {
       { ref: { type: 'task', id: '4' }, title: 'a' },
     ] as const;
     expect(sortRelated([...items]).map((i) => i.ref.id)).toEqual(['2', '4', '3', '1']);
+  });
+});
+
+suite('likeContains', () => {
+  it('wraps the term in % and escapes LIKE wildcards and the escape character', () => {
+    expect(likeContains('taxi')).toBe('%taxi%');
+    expect(likeContains('50%_off\\')).toBe('%50\\%\\_off\\\\%');
   });
 });

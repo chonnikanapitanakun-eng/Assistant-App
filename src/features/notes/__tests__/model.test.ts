@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { allTags, extractItems, matchesQuery, normalizeTag, summarize } from '../model';
+import { allTags, extractItems, itemSignature, matchesQuery, normalizeTag, recordSignature, summarize } from '../model';
 
 const today = new Date(2026, 8, 24);
 
@@ -45,5 +45,28 @@ describe('search and tags', () => {
   });
   it('normalises tag input', () => {
     expect(normalizeTag('  #Client Work ')).toBe('client-work');
+  });
+});
+
+describe('itemSignature / recordSignature', () => {
+  it('matches an extracted item to the record it was saved as', () => {
+    expect(itemSignature({ type: 'task', title: 'Send  letter' })).toBe(recordSignature({ type: 'task', row: { title: 'send letter', date: null } }));
+    const start = new Date(2026, 8, 25, 14, 0).getTime();
+    expect(itemSignature({ type: 'event', title: 'Call John', date: '2026-09-25', startTime: '14:00' })).toBe(recordSignature({ type: 'event', row: { title: 'Call John', start, isAllDay: false } }));
+    expect(itemSignature({ type: 'event', title: 'Holiday', date: '2026-09-25' })).toBe(recordSignature({ type: 'event', row: { title: 'Holiday', start: Date.UTC(2026, 8, 25), isAllDay: true } }));
+    expect(itemSignature({ type: 'expense', amount: 120, currency: 'THB', note: 'Taxi' })).toBe(
+      recordSignature({ type: 'transaction', row: { type: 'expense', note: 'Taxi', amount: 120, currency: 'THB' } }),
+    );
+    expect(itemSignature({ type: 'contact', name: 'John' })).toBe(recordSignature({ type: 'contact', row: { name: 'john' } }));
+  });
+  it('tells different items apart and ignores transfers', () => {
+    expect(itemSignature({ type: 'task', title: 'A', date: '2026-09-25' })).not.toBe(itemSignature({ type: 'task', title: 'A', date: '2026-09-26' }));
+    expect(itemSignature({ type: 'task', title: 'A' })).not.toBe(itemSignature({ type: 'event', title: 'A', date: '' }));
+    expect(recordSignature({ type: 'transaction', row: { type: 'transfer', note: null, amount: 1, currency: 'THB' } })).toBeNull();
+  });
+  it('keeps signatures stable when an unrelated line changes', () => {
+    const before = extractItems('- [ ] Buy milk\n- [ ] Call John tomorrow', today).map(itemSignature);
+    const after = extractItems('- [ ] Buy milk\n- [ ] Call John tomorrow\n- [x] done thing', today).map(itemSignature);
+    expect(after).toEqual(before);
   });
 });

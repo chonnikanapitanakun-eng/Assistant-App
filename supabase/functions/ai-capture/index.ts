@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
   try {
     const response = await client.beta.messages.create({
       model: MODEL,
-      max_tokens: 2048, // a handful of small JSON items; well under the 16k default on purpose
+      max_tokens: 8192, // shared by adaptive thinking and the JSON items; 2048 could cut the JSON off mid-way
       thinking: { type: 'adaptive' },
       output_config: { effort: 'low', format: { type: 'json_schema', schema: CAPTURE_SCHEMA } }, // extraction: fast and cheap
       betas: ['server-side-fallback-2026-07-01'],
