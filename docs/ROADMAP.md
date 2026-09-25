@@ -23,12 +23,12 @@
 
 ## Phase 1 — MVP
 
-- [ ] Today screen
+- [x] Today screen
 - [x] Tasks: CRUD, checklist, reminder (expo-notifications)
 - [x] Timeline drag-drop (กดค้าง ลากย้ายเวลา snap 15 นาที)
 - [x] Plan: day / week / month
-- [ ] Notes: CRUD, markdown, tags, pin
-- [ ] Money: wallets, transactions, categories, สรุปเดือน
+- [x] Notes: CRUD, markdown, tags, pin
+- [x] Money: wallets, transactions, categories, สรุปเดือน
 - [ ] Contacts + Areas: CRUD, ผูกกับ record
 - [x] Links table + UI "เกี่ยวข้องกับ" (docs/LINKS.md)
 - [x] Universal search (FTS5 trigram, grouped by type)
