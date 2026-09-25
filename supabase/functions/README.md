@@ -4,7 +4,7 @@
 |---|---|---|
 | `assistant` | 1 | Veyra AI chat — `src/features/assistant/types.ts` (`Proposal`); Claude only *proposes*, the app confirms |
 | `gcal` | 2 | Google Calendar import (read-only, หลายบัญชี) — `src/features/google-calendar/types.ts`; ดู § gcal ด้านล่าง |
-| `gmail` | 4 | อีเมลค้างตอบ + AI สรุป/ร่างตอบ + บันทึก draft — `_shared/gmail-contract.ts`; ดู § gmail ด้านล่าง |
+| `gmail` | 4 | อีเมลค้างตอบ + AI สรุป/ร่างตอบ + บันทึก draft (ใช้เอง, OAuth client แยก) — `_shared/gmail-contract.ts`; ดู § gmail ด้านล่าง |
 | `ai-capture` | 1 | `src/features/ai/types.ts` → `CaptureResponse` — structured output ตาม `_shared/capture-contract.ts`, prompt ใน `ai-capture/prompt.ts` |
 | `ai-summary` | 2 | SPEC §6.4 |
 | `ai-ask` | 3 | SPEC §6.4 |
@@ -86,32 +86,47 @@ npx supabase functions deploy gcal
 
 **ข้อจำกัดโหมด Testing ของ Google**: ผู้ใช้ทดสอบไม่เกิน 100 คน และ refresh token หมดอายุทุก 7 วัน → บัญชีขึ้น "ต้องเชื่อมใหม่" ใน Settings กดปุ่มเดียวจบ (ต้องผ่าน Google verification ก่อนปล่อยคนอื่นใช้ — Phase 4)
 
-## gmail — อีเมลค้างตอบ (P4-01)
+## gmail — อีเมลค้างตอบ (P4-01) · ใช้เองเท่านั้น
 
-ใช้บัญชี Google ชุดเดียวกับ `gcal` (ตาราง `gcal_accounts` — refresh token เดียวต่อบัญชี) ไม่มีตารางใหม่ และ**ไม่เก็บเนื้อหาอีเมลใดๆ บน server** ทุก action อ่าน Gmail สดแล้วส่งผลกลับ
+Gmail ใช้ scope แบบ **restricted** ถ้าจะเปิดให้คนทั่วไปต้องผ่าน CASA (มีค่าใช้จ่าย) ตอนนี้จึงแยกออกจากแอปหลักทั้งหมด:
+
+- **OAuth client แยก** (Google Cloud project B, โหมด Testing) — secrets `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET` แอปหลัก (sign-in + `gcal`, project A) ขอแค่ `calendar.readonly` เลยยื่น verify ได้โดยไม่ต้องทำ CASA
+- **ตารางแยก** `gmail_accounts` / `gmail_pending` (`migrations/20260926000000_gmail_accounts.sql`) — flow ผูกบัญชีเหมือน `gcal` (state เซ็น HMAC → ticket ใช้ครั้งเดียว → claim ด้วย device key เดิม)
+- **แอปซ่อนเมนู Inbox** ถ้าไม่ได้ตั้ง `EXPO_PUBLIC_GMAIL=1` — build สาธารณะไม่ต้องตั้ง
+- **ไม่เก็บเนื้อหาอีเมลบน server** ทุก action อ่าน Gmail สด
 
 | action | ทำอะไร |
 |---|---|
-| `inbox` | ทุกบัญชีของเครื่อง → thread ใน inbox 14 วันล่าสุด (ไม่รวม Promotions/Social/Updates/Forums) ที่ข้อความล่าสุดมาจากคนอื่น ไม่ใช่ no-reply / newsletter (`awaitingReply()`) |
-| `insight` | อ่าน thread เต็ม → Claude สรุป + key points + ร่างคำตอบ + แนะนำวัน follow-up (structured output `INSIGHT_SCHEMA`) — log ลง `ai_usage` ชื่อ `gmail` |
-| `draft` | บันทึกคำตอบเป็น draft ใน thread เดิม (In-Reply-To / References ถูกต้อง) — **ไม่ส่งเมล** ผู้ใช้กดส่งเองใน Gmail |
+| `start` / `callback` / `finish` | ผูกบัญชี Gmail (หน้า consent ของ Gmail เอง แยกจาก sign-in) กลับมาที่ `…/inbox?gmail=<ticket>` |
+| `inbox` | thread ใน inbox 14 วันล่าสุด (ไม่รวม Promotions/Social/Updates/Forums) ที่ข้อความล่าสุดมาจากคนอื่น ไม่ใช่ no-reply / newsletter (`awaitingReply()`) |
+| `insight` | อ่าน thread เต็ม → Claude สรุป + key points + ร่างคำตอบ + แนะนำวัน follow-up (`INSIGHT_SCHEMA`) — log ลง `ai_usage` ชื่อ `gmail` |
+| `draft` | บันทึกคำตอบเป็น draft ใน thread เดิม (In-Reply-To / References) — **ไม่ส่งเมล** |
+| `disconnect` | revoke token ที่ Google + ลบแถว |
 
-- Scopes: `gcal` `start` และ sign-in (`src/features/auth/google.ts`) ขอ `gmail.readonly` + `gmail.compose` เพิ่มในหน้า consent เดียวกัน — ถ้าผู้ใช้ไม่ติ๊ก Gmail ปฏิทินยังใช้ได้ บัญชีนั้นขึ้นสถานะ `scope` ในหน้า Inbox พร้อมปุ่ม "อนุญาต Gmail" (เรียก `connectGoogle(email)` ใหม่)
-- บัญชีที่ผูกไว้ก่อน P4-01 จะได้ `scope` จนกว่าจะกดอนุญาต หรือ sign in ใหม่ (sign in ส่ง refresh token ใหม่ให้ `gcal` `link` เสมอ)
 - Follow-up reminder = task ในแอป (วันที่ +N 09:00, เปิดเตือน) — ไม่แตะ Gmail
-- App: `src/app/inbox.tsx`, `src/features/gmail` — เข้าได้จากเมนู เพิ่มเติม / sidebar
+- โหมด Testing: refresh token หมดอายุทุก 7 วัน → บัญชีขึ้น "เชื่อมใหม่" ในหน้า Inbox กดปุ่มเดียว
+- App: `src/app/inbox.tsx`, `src/features/gmail`
 
-**Setup**
+**Setup (project B — ใช้เอง)**
 
-1. Google Cloud Console → **APIs & Services → Library** → เปิด **Gmail API**
-2. **OAuth consent screen → Data access** → เพิ่ม scopes `.../auth/gmail.readonly`, `.../auth/gmail.compose`
-3. Deploy:
+1. Google Cloud Console → **สร้าง project ใหม่** (อย่าใช้ project ของ Calendar) → Library → เปิด **Gmail API**
+2. **OAuth consent screen** → External → Publishing status **Testing** → Scopes: `openid`, `email`, `.../auth/gmail.readonly`, `.../auth/gmail.compose` → **Test users**: ใส่อีเมลของตัวเอง
+3. **Credentials → OAuth client ID** → Web application → Authorized redirect URI:
+   `https://<project-ref>.supabase.co/functions/v1/gmail/callback`
+4. Deploy:
 
 ```bash
-npx supabase functions deploy gcal gmail   # gcal: ขอ scope Gmail เพิ่ม, gmail: ใหม่
+npx supabase db push        # สร้าง gmail_accounts / gmail_pending
+npx supabase secrets set \
+  GMAIL_CLIENT_ID=xxx.apps.googleusercontent.com \
+  GMAIL_CLIENT_SECRET=xxx \
+  GMAIL_RETURN_PREFIXES="veyra://,https://<your-site>/inbox"
+npx supabase functions deploy gcal gmail
 ```
 
-ใช้ secrets ชุดเดียวกับ `gcal` + `ANTHROPIC_API_KEY` — ก่อนปล่อยให้คนอื่นใช้ ต้องผ่าน Google verification (restricted scopes) ดู `docs/GMAIL_OAUTH_VERIFICATION.md`
+5. Build ที่ใช้เอง: ใส่ `EXPO_PUBLIC_GMAIL=1` ใน `.env` (dev build บนมือถือ หรือเว็บ deploy แยกของตัวเอง) — ถ้าใส่ใน deploy สาธารณะ คนอื่นจะเห็นเมนู แต่เชื่อมไม่ได้ (ไม่อยู่ใน Test users)
+
+ใช้ `GCAL_TOKEN_KEY` และ `ANTHROPIC_API_KEY` ตัวเดิม — แผนเปิดให้คนทั่วไปใช้: `docs/GMAIL_OAUTH_VERIFICATION.md`
 
 ## Cloud sync (P2) — Supabase Auth + sync tables
 

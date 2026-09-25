@@ -60,8 +60,9 @@
 
 ## Phase 4 — ปล่อยคนอื่นใช้
 
-- [x] Gmail: inbox ค้างตอบ, สรุป, draft, follow-up reminder (P4-01)
-- [ ] Google OAuth verification + CASA (Gmail restricted scopes) — checklist: `docs/GMAIL_OAUTH_VERIFICATION.md`
+- [x] Gmail: inbox ค้างตอบ, สรุป, draft, follow-up reminder (P4-01) — ใช้เองเท่านั้น (OAuth client แยก, โหมด Testing)
+- [ ] Google OAuth verification เฟส A: sign-in + Calendar (sensitive, ไม่ต้อง CASA)
+- [ ] Gmail สำหรับทุกคน: verification + CASA (restricted) — แผน: `docs/GMAIL_OAUTH_VERIFICATION.md`
 - [ ] LINE Messaging API → capture
 - [ ] ปฏิทินไทย พ.ศ. / วันหยุด / วันพระ
 - [ ] Google Calendar 2 ทาง

@@ -1,20 +1,26 @@
 // Gmail — Deno Edge Function (Supabase). P4-01.
 //
-// Works on the Google accounts `gcal` already holds (table `gcal_accounts`): one refresh token per
-// account, granted gmail.readonly + gmail.compose on the same consent screen as the calendar.
-// Nothing from the mailbox is stored here — every call reads Gmail live and returns the result.
+// Its own OAuth client (GMAIL_CLIENT_ID — a separate Google Cloud project kept in Testing mode) and
+// its own tables (`gmail_accounts`, `gmail_pending`), so the published, verified Calendar app never
+// asks for Gmail's restricted scopes. Nothing from the mailbox is stored — every call reads Gmail live.
 //
+//   POST { action: 'start', key, returnUrl, loginHint? }           → { url }   open `url` in a browser
+//   GET  /gmail/callback?code&state                                → 302 returnUrl?gmail=<ticket> | ?gmail_error=<code>
+//   POST { action: 'finish', key, ticket }                         → { account }   claim the ticket (same device only)
 //   POST { action: 'inbox', key }                                  → { accounts: InboxAccount[] }
 //     threads in the inbox from the last 14 days whose latest message is from someone else
 //   POST { action: 'insight', key, accountId, threadId, locale }   → { insight: ThreadInsight }
 //     Claude summarises the thread and drafts a reply (nothing is sent)
 //   POST { action: 'draft', key, accountId, threadId, body }       → { draftId }
 //     save `body` as a reply draft in that thread; the person sends it from Gmail
+//   POST { action: 'disconnect', key, accountId }                  → { ok: true }  revoke at Google + delete
 //
-// Types: _shared/gmail-contract.ts. Errors: `bad_key`, `not_found`, `reauth` (link again),
-// `scope` (Gmail access not granted — link again and tick Gmail), `rate_limited`, `failed`.
+// Types: _shared/gmail-contract.ts. Errors: `bad_key`, `not_found`, `reauth` (link again — every
+// 7 days while the client is in Testing mode), `scope` (Gmail access unticked), `rate_limited`, `failed`.
 //
-// Secrets: those of `gcal` (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GCAL_TOKEN_KEY) + ANTHROPIC_API_KEY.
+// Secrets: GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GCAL_TOKEN_KEY (shared cipher key), ANTHROPIC_API_KEY,
+//          GMAIL_RETURN_PREFIXES (comma list of allowed return URLs, default "veyra://"),
+//          GMAIL_REDIRECT_URI (optional; default <SUPABASE_URL>/functions/v1/gmail/callback)
 import Anthropic from 'npm:@anthropic-ai/sdk';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
@@ -33,8 +39,34 @@ import {
   type InboxThread,
   type ThreadInsight,
 } from '../_shared/gmail-contract.ts';
-import { googleConfigured, googleToken, ownerOf, ReauthError, unseal } from '../_shared/google.ts';
+import {
+  envList,
+  GMAIL_COMPOSE_SCOPE,
+  GMAIL_READ_SCOPE,
+  googleConfigured,
+  googleToken,
+  hasScope,
+  idClaims,
+  oauthState,
+  ownerOf,
+  randomToken,
+  ReauthError,
+  seal,
+  sha256,
+  tokenInfo,
+  unseal,
+  withParams,
+  type OAuthClient,
+} from '../_shared/google.ts';
 import { logUsage, userIdFrom } from '../_shared/usage.ts';
+
+const CLIENT: OAuthClient = { id: Deno.env.get('GMAIL_CLIENT_ID') ?? '', secret: Deno.env.get('GMAIL_CLIENT_SECRET') ?? '' };
+const REDIRECT_URI = Deno.env.get('GMAIL_REDIRECT_URI') ?? `${Deno.env.get('SUPABASE_URL')}/functions/v1/gmail/callback`;
+const oauth = oauthState('gmail', envList(Deno.env.get('GMAIL_RETURN_PREFIXES'), 'veyra://'));
+const SCOPES = `openid email ${GMAIL_READ_SCOPE} ${GMAIL_COMPOSE_SCOPE}`;
+const MAX_ACCOUNTS = 10;
+const STATE_TTL_MS = 10 * 60_000;
+const TICKET_TTL_MS = 10 * 60_000;
 
 const MODEL = 'claude-opus-5';
 const INBOX_QUERY = 'in:inbox newer_than:14d -category:promotions -category:social -category:updates -category:forums';
@@ -46,9 +78,10 @@ const client = new Anthropic(); // reads ANTHROPIC_API_KEY
 
 const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'authorization, apikey, content-type' };
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...cors } });
+const redirect = (url: string) => new Response(null, { status: 302, headers: { location: url } });
 
 // ── Gmail API ──
-/** Gmail access missing from the token (unticked on the consent screen, or linked before P4-01). */
+/** Gmail permission missing from the token (e.g. compose unticked on the consent screen). */
 class ScopeError extends Error {}
 
 async function gmail<T>(accessToken: string, path: string, init: { query?: Record<string, string | string[]>; body?: unknown } = {}): Promise<T> {
@@ -74,9 +107,9 @@ type Row = { id: string; email: string; status: string; refresh_token: string };
 async function accessFor(row: Row): Promise<string> {
   if (row.status === 'reauth') throw new ReauthError('reauth');
   try {
-    return (await googleToken({ grant_type: 'refresh_token', refresh_token: await unseal(row.refresh_token) })).access_token;
+    return (await googleToken(CLIENT, { grant_type: 'refresh_token', refresh_token: await unseal(row.refresh_token) })).access_token;
   } catch (err) {
-    if (err instanceof ReauthError) await admin.from('gcal_accounts').update({ status: 'reauth', updated_at: new Date().toISOString() }).eq('id', row.id);
+    if (err instanceof ReauthError) await admin.from('gmail_accounts').update({ status: 'reauth', updated_at: new Date().toISOString() }).eq('id', row.id);
     throw err;
   }
 }
@@ -100,9 +133,90 @@ async function awaitingThreads(accessToken: string, me: string): Promise<InboxTh
     .sort((a, b) => b.lastAt - a.lastAt);
 }
 
-// ── handlers ──
+// ── linking (same flow as gcal: signed state → one-time ticket → claimed by the same device) ──
+async function start(owner: string, body: Record<string, unknown>) {
+  if (!oauth.allowedReturn(body.returnUrl)) return json({ error: 'bad_return_url' }, 400);
+  await admin.from('gmail_pending').delete().lt('expires_at', new Date().toISOString());
+  const state = await oauth.sign({ o: owner, r: body.returnUrl, e: Date.now() + STATE_TTL_MS });
+  const params = new URLSearchParams({
+    client_id: CLIENT.id,
+    redirect_uri: REDIRECT_URI,
+    response_type: 'code',
+    scope: SCOPES,
+    access_type: 'offline',
+    prompt: 'consent select_account', // always hand back a refresh token
+    state,
+  });
+  if (typeof body.loginHint === 'string' && body.loginHint.includes('@')) params.set('login_hint', body.loginHint);
+  return json({ url: `https://accounts.google.com/o/oauth2/v2/auth?${params}` });
+}
+
+async function callback(url: URL) {
+  const state = await oauth.read(url.searchParams.get('state'));
+  if (!state) return new Response('This sign-in link has expired. Go back to Veyra and try again.', { status: 400 });
+  const back = (params: Record<string, string>) => redirect(withParams(state.r, params));
+
+  const code = url.searchParams.get('code');
+  if (!code) return back({ gmail_error: url.searchParams.get('error') === 'access_denied' ? 'denied' : 'failed' });
+  try {
+    const tokens = await googleToken(CLIENT, { grant_type: 'authorization_code', code, redirect_uri: REDIRECT_URI });
+    const who = idClaims(tokens.id_token);
+    if (!who || !tokens.refresh_token) return back({ gmail_error: 'failed' });
+    // Google lets people untick either permission; reading is the one the Inbox can't do without.
+    if (!hasScope(await tokenInfo(tokens.access_token), GMAIL_READ_SCOPE)) return back({ gmail_error: 'scope' });
+    const ticket = randomToken();
+    const { error } = await admin.from('gmail_pending').insert({
+      ticket_hash: await sha256(ticket),
+      owner: state.o,
+      google_sub: who.sub,
+      email: who.email,
+      refresh_token: await seal(tokens.refresh_token),
+      expires_at: new Date(Date.now() + TICKET_TTL_MS).toISOString(),
+    });
+    if (error) throw error;
+    return back({ gmail: ticket });
+  } catch (err) {
+    console.error('gmail callback', err instanceof Error ? err.message : 'error');
+    return back({ gmail_error: 'failed' });
+  }
+}
+
+async function finish(owner: string, body: Record<string, unknown>) {
+  if (typeof body.ticket !== 'string') return json({ error: 'bad_ticket' }, 400);
+  const ticketHash = await sha256(body.ticket);
+  const { data: pending } = await admin.from('gmail_pending').select('*').eq('ticket_hash', ticketHash).maybeSingle();
+  if (!pending || pending.owner !== owner || new Date(pending.expires_at).getTime() < Date.now()) return json({ error: 'bad_ticket' }, 400);
+  await admin.from('gmail_pending').delete().eq('ticket_hash', ticketHash);
+
+  const { data: existing } = await admin.from('gmail_accounts').select('google_sub').eq('owner', owner);
+  const isNew = !(existing ?? []).some((a) => a.google_sub === pending.google_sub);
+  if (isNew && (existing?.length ?? 0) >= MAX_ACCOUNTS) return json({ error: 'too_many_accounts' }, 400);
+  const { data: account, error } = await admin
+    .from('gmail_accounts')
+    .upsert(
+      { owner, google_sub: pending.google_sub, email: pending.email, refresh_token: pending.refresh_token, status: 'ok', updated_at: new Date().toISOString() },
+      { onConflict: 'owner,google_sub' },
+    )
+    .select('id, email, status')
+    .single();
+  if (error) throw error;
+  return json({ account });
+}
+
+async function disconnect(owner: string, body: Record<string, unknown>) {
+  const row = await accountRow(owner, body.accountId);
+  if (row) {
+    // Best effort: an already-expired token can't be revoked, but the row still goes.
+    const token = await unseal(row.refresh_token).catch(() => null);
+    if (token) await fetch(`https://oauth2.googleapis.com/revoke?token=${encodeURIComponent(token)}`, { method: 'POST' }).catch(() => undefined);
+    await admin.from('gmail_accounts').delete().eq('id', row.id);
+  }
+  return json({ ok: true });
+}
+
+// ── mail ──
 async function inbox(owner: string) {
-  const { data: rows, error } = await admin.from('gcal_accounts').select('id, email, status, refresh_token').eq('owner', owner).order('created_at');
+  const { data: rows, error } = await admin.from('gmail_accounts').select('id, email, status, refresh_token').eq('owner', owner).order('created_at');
   if (error) throw error;
   const accounts: InboxAccount[] = await Promise.all(
     ((rows ?? []) as Row[]).map(async (row) => {
@@ -120,7 +234,7 @@ async function inbox(owner: string) {
 
 async function accountRow(owner: string, accountId: unknown): Promise<Row | null> {
   if (typeof accountId !== 'string') return null;
-  const { data } = await admin.from('gcal_accounts').select('id, email, status, refresh_token').eq('owner', owner).eq('id', accountId).maybeSingle();
+  const { data } = await admin.from('gmail_accounts').select('id, email, status, refresh_token').eq('owner', owner).eq('id', accountId).maybeSingle();
   return (data as Row | null) ?? null;
 }
 
@@ -234,8 +348,11 @@ async function draft(owner: string, body: Record<string, unknown>) {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
+  if (!googleConfigured(CLIENT)) return json({ error: 'not_configured' }, 503);
+
+  const url = new URL(req.url);
+  if (req.method === 'GET' && url.pathname.endsWith('/callback')) return callback(url);
   if (req.method !== 'POST') return json({ error: 'not_found' }, 404);
-  if (!googleConfigured()) return json({ error: 'not_configured' }, 503);
 
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   const owner = await ownerOf(body?.key);
@@ -243,6 +360,12 @@ Deno.serve(async (req) => {
 
   try {
     switch (body.action) {
+      case 'start':
+        return await start(owner, body);
+      case 'finish':
+        return await finish(owner, body);
+      case 'disconnect':
+        return await disconnect(owner, body);
       case 'inbox':
         return await inbox(owner);
       case 'insight':

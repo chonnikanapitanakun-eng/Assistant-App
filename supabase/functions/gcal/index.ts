@@ -18,42 +18,37 @@
 // `key` is the device key (src/features/google-calendar/device-key.ts). An account belongs to
 // sha256(key) until it is claimed by a signed-in user (Phase 2 Supabase Auth), which fills `user_id`.
 //
-// Gmail (P4-01, functions/gmail) reads the same rows: `start` also asks for gmail.readonly +
-// gmail.compose, so one consent covers both. Calendar stays required; Gmail may be unticked.
-//
 // Secrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GCAL_TOKEN_KEY (32+ random bytes, base64),
 //          GCAL_RETURN_PREFIXES (comma list of allowed return URLs, default "veyra://"),
 //          GCAL_REDIRECT_URI (optional; default <SUPABASE_URL>/functions/v1/gcal/callback)
+// Gmail is a separate function and OAuth client (functions/gmail) so this app's scopes stay non-restricted.
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 import {
-  b64url,
   CALENDAR_SCOPE,
-  CLIENT_ID,
-  deriveKey,
-  enc,
-  fromB64url,
-  GMAIL_COMPOSE_SCOPE,
-  GMAIL_READ_SCOPE,
+  envList,
   googleConfigured,
   googleToken,
   hasScope,
+  idClaims,
+  oauthState,
   ownerOf,
+  randomToken,
   ReauthError,
   seal,
   sha256,
   tokenInfo,
   unseal,
+  withParams,
+  type OAuthClient,
   type TokenInfo,
 } from '../_shared/google.ts';
 
+const CLIENT: OAuthClient = { id: Deno.env.get('GOOGLE_CLIENT_ID') ?? '', secret: Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '' };
 const REDIRECT_URI = Deno.env.get('GCAL_REDIRECT_URI') ?? `${Deno.env.get('SUPABASE_URL')}/functions/v1/gcal/callback`;
-const RETURN_PREFIXES = (Deno.env.get('GCAL_RETURN_PREFIXES') ?? 'veyra://')
-  .split(',')
-  .map((s) => s.trim().replace(/^["']|["']$/g, '')) // tolerate quotes pasted into the dashboard
-  .filter(Boolean);
+const oauth = oauthState('gcal', envList(Deno.env.get('GCAL_RETURN_PREFIXES'), 'veyra://'));
 
-const SCOPES = `openid email ${CALENDAR_SCOPE} ${GMAIL_READ_SCOPE} ${GMAIL_COMPOSE_SCOPE}`;
+const SCOPES = `openid email ${CALENDAR_SCOPE}`;
 const MAX_ACCOUNTS = 10;
 const STATE_TTL_MS = 10 * 60_000;
 const TICKET_TTL_MS = 10 * 60_000;
@@ -61,48 +56,7 @@ const MAX_WINDOW_MS = 400 * 86_400_000;
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 
-const randomToken = () => b64url(crypto.getRandomValues(new Uint8Array(32)));
-const hmacKey = deriveKey('gcal-state:').then((raw) => crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']));
-
-type State = { o: string; r: string; e: number };
-async function signState(s: State): Promise<string> {
-  const body = b64url(enc.encode(JSON.stringify(s)));
-  const sig = new Uint8Array(await crypto.subtle.sign('HMAC', await hmacKey, enc.encode(body)));
-  return `${body}.${b64url(sig)}`;
-}
-async function readState(raw: string | null): Promise<State | null> {
-  const [body, sig] = (raw ?? '').split('.');
-  if (!body || !sig) return null;
-  try {
-    if (!(await crypto.subtle.verify('HMAC', await hmacKey, fromB64url(sig), enc.encode(body)))) return null;
-    const s = JSON.parse(new TextDecoder().decode(fromB64url(body))) as State;
-    return s.e > Date.now() && allowedReturn(s.r) ? s : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Only redirect back to the app (or a configured web origin) — never an arbitrary URL. */
-function allowedReturn(url: unknown): url is string {
-  return typeof url === 'string' && url.length < 1000 && RETURN_PREFIXES.some((p) => url.startsWith(p));
-}
-const withParams = (url: string, params: Record<string, string>) => {
-  const u = new URL(url);
-  for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
-  return u.toString();
-};
-
 // ── Google ──
-/** The id_token comes straight from Google's token endpoint over TLS, so its payload is trusted as-is. */
-function idClaims(idToken: string | undefined): { sub: string; email: string } | null {
-  try {
-    const p = JSON.parse(new TextDecoder().decode(fromB64url(idToken!.split('.')[1])));
-    return typeof p.sub === 'string' && typeof p.email === 'string' ? { sub: p.sub, email: p.email } : null;
-  } catch {
-    return null;
-  }
-}
-
 async function gget<T>(accessToken: string, path: string, query: Record<string, string>): Promise<T> {
   const res = await fetch(`https://www.googleapis.com/calendar/v3/${path}?${new URLSearchParams(query)}`, { headers: { authorization: `Bearer ${accessToken}` } });
   if (res.status === 401) throw new ReauthError('unauthorized');
@@ -156,11 +110,11 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 const redirect = (url: string) => new Response(null, { status: 302, headers: { location: url } });
 
 async function start(owner: string, body: Record<string, unknown>) {
-  if (!allowedReturn(body.returnUrl)) return json({ error: 'bad_return_url' }, 400);
+  if (!oauth.allowedReturn(body.returnUrl)) return json({ error: 'bad_return_url' }, 400);
   await admin.from('gcal_pending').delete().lt('expires_at', new Date().toISOString());
-  const state = await signState({ o: owner, r: body.returnUrl, e: Date.now() + STATE_TTL_MS });
+  const state = await oauth.sign({ o: owner, r: body.returnUrl, e: Date.now() + STATE_TTL_MS });
   const params = new URLSearchParams({
-    client_id: CLIENT_ID,
+    client_id: CLIENT.id,
     redirect_uri: REDIRECT_URI,
     response_type: 'code',
     scope: SCOPES,
@@ -174,14 +128,14 @@ async function start(owner: string, body: Record<string, unknown>) {
 }
 
 async function callback(url: URL) {
-  const state = await readState(url.searchParams.get('state'));
+  const state = await oauth.read(url.searchParams.get('state'));
   if (!state) return new Response('This sign-in link has expired. Go back to Veyra and try again.', { status: 400 });
   const back = (params: Record<string, string>) => redirect(withParams(state.r, params));
 
   const code = url.searchParams.get('code');
   if (!code) return back({ gcal_error: url.searchParams.get('error') === 'access_denied' ? 'denied' : 'failed' });
   try {
-    const tokens = await googleToken({ grant_type: 'authorization_code', code, redirect_uri: REDIRECT_URI });
+    const tokens = await googleToken(CLIENT, { grant_type: 'authorization_code', code, redirect_uri: REDIRECT_URI });
     const who = idClaims(tokens.id_token);
     if (!who || !tokens.refresh_token) return back({ gcal_error: 'failed' });
     if (!(await grantedCalendar(tokens.access_token))) return back({ gcal_error: 'scope' });
@@ -238,7 +192,7 @@ async function link(owner: string, body: Record<string, unknown>, req: Request) 
   if (typeof body.refreshToken !== 'string' || !body.refreshToken) return json({ error: 'bad_token' }, 400);
   let accessToken: string;
   try {
-    ({ access_token: accessToken } = await googleToken({ grant_type: 'refresh_token', refresh_token: body.refreshToken }));
+    ({ access_token: accessToken } = await googleToken(CLIENT, { grant_type: 'refresh_token', refresh_token: body.refreshToken }));
   } catch (err) {
     console.error('gcal link', err);
     return json({ error: 'client_mismatch' }, 400);
@@ -262,7 +216,7 @@ async function sync(owner: string, body: Record<string, unknown>) {
       const base = { id: a.id as string, email: a.email as string };
       if (a.status === 'reauth') return { ...base, status: 'reauth' };
       try {
-        const { access_token } = await googleToken({ grant_type: 'refresh_token', refresh_token: await unseal(a.refresh_token) });
+        const { access_token } = await googleToken(CLIENT, { grant_type: 'refresh_token', refresh_token: await unseal(a.refresh_token) });
         const events = await fetchEvents(access_token, new Date(min).toISOString(), new Date(max).toISOString());
         return { ...base, status: 'ok', events };
       } catch (err) {
@@ -311,7 +265,7 @@ async function disconnect(owner: string, body: Record<string, unknown>) {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
-  if (!googleConfigured()) return json({ error: 'not_configured' }, 503);
+  if (!googleConfigured(CLIENT)) return json({ error: 'not_configured' }, 503);
 
   const url = new URL(req.url);
   if (req.method === 'GET' && url.pathname.endsWith('/callback')) return callback(url);

@@ -33,6 +33,6 @@ verify_jwt = true
 [functions.gcal]
 verify_jwt = false
 
-# Gmail (P4-01): same device-key ownership as gcal; called with the anon key or the user's JWT.
+# Gmail (P4-01): like gcal, Google's redirect lands on /gmail/callback with no Supabase JWT.
 [functions.gmail]
-verify_jwt = true
+verify_jwt = false

@@ -5,6 +5,7 @@ import { View } from 'react-native';
 
 import { VeyraLockup, VGlyph } from '@/components/brand/logo';
 import { Gradient, Icon, PressableScale, Text, type IconName } from '@/components/ui';
+import { gmailEnabled } from '@/features/gmail';
 import { useTheme } from '@/theme';
 
 import { navItems } from './nav-items';
@@ -42,7 +43,7 @@ export function Sidebar({ state, navigation }: BottomTabBarProps) {
         );
       })}
 
-      <SidebarItem icon="mail" label={t('more.inbox')} focused={false} onPress={() => router.push('/inbox')} />
+      {gmailEnabled ? <SidebarItem icon="mail" label={t('more.inbox')} focused={false} onPress={() => router.push('/inbox')} /> : null}
       <SidebarItem icon="target" label={t('more.focus')} focused={false} onPress={() => router.push('/focus')} />
       <SidebarItem icon="search" label={t('more.search')} focused={false} onPress={() => router.push('/search')} />
 

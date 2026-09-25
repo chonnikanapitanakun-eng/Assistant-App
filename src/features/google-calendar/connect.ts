@@ -52,15 +52,14 @@ export function completeGoogleConnect(ret: AuthReturn): Promise<ConnectResult> {
 }
 
 /**
- * Right after Google sign-in (which also asked for Calendar + Gmail access): link that same account.
- * Already linked on this device → still hand the server the fresh refresh token, which carries the
- * Gmail scopes an older link may lack (P4-01). Adding more accounts stays in Settings (`connectGoogle`).
+ * Right after Google sign-in (which also asked for Calendar access): link that same account's calendar,
+ * unless this device already has it. Adding more accounts stays in Settings (`connectGoogle`).
  */
 export async function linkFromSignIn(accessToken: string, refreshToken: string, email: string | undefined): Promise<ConnectResult> {
   if (!gcalEnabled) return null;
   const linked = await db.select({ email: calendarAccounts.email }).from(calendarAccounts).where(isNull(calendarAccounts.deletedAt)).all();
-  const { account } = await linkSignInAccount(accessToken, refreshToken);
   if (email && linked.some((a) => a.email.toLowerCase() === email.toLowerCase())) return null;
+  const { account } = await linkSignInAccount(accessToken, refreshToken);
   return saveLinked(account);
 }
 

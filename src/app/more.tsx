@@ -3,13 +3,15 @@ import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
 import { Icon, PressableScale, Sheet, Tag, Text, type IconName } from '@/components/ui';
+import { gmailEnabled } from '@/features/gmail';
 import { useTheme } from '@/theme';
 
 /** `tab` routes live under (tabs) and are dismissed back to; `screen` routes replace the sheet. */
 type Item = { key: string; icon: IconName; href?: Href; kind?: 'tab' | 'screen' };
 const items: Item[] = [
   { key: 'notes', icon: 'file-text', href: '/notes', kind: 'tab' },
-  { key: 'inbox', icon: 'mail', href: '/inbox', kind: 'screen' },
+  // Personal-use builds only until Gmail passes Google verification (features/gmail/remote.ts).
+  ...(gmailEnabled ? [{ key: 'inbox', icon: 'mail', href: '/inbox', kind: 'screen' } as Item] : []),
   { key: 'focus', icon: 'target', href: '/focus', kind: 'screen' },
   { key: 'search', icon: 'search', href: '/search', kind: 'screen' },
   { key: 'contacts', icon: 'users' },

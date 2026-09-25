@@ -1,83 +1,87 @@
-# Google OAuth verification — Gmail (P4-01)
+# Google OAuth verification — แผน 2 เฟส
 
-ต้องทำก่อนปล่อยให้คนอื่นนอกจาก test users ใช้ Veyra กับ Gmail ขั้นตอนนี้ทำในโค้ดไม่ได้ เจ้าของโปรเจกต์ต้องยื่นเองใน Google Cloud Console
+Gmail scopes เป็น **restricted** ถ้าจะเปิดให้คนทั่วไปใช้ ต้องผ่าน CASA security assessment ซึ่งมีค่าใช้จ่ายและต้องประเมินซ้ำทุกปี ส่วน Calendar เป็นแค่ **sensitive** ต้อง verify แต่ไม่ต้องทำ CASA จึงแยกเป็น 2 Google Cloud project
 
-> **ใช้เองคนเดียว / ทีมเล็ก**: ยังไม่ต้องยื่น ให้เปิด consent screen ในโหมด **Testing** แล้วใส่อีเมลใน Test users (ได้ไม่เกิน 100 คน) ข้อจำกัดคือ refresh token หมดอายุทุก 7 วัน (แอปจะขึ้น "เชื่อมใหม่") และจะเห็นหน้าเตือน "Google hasn't verified this app"
+| | Project A — แอปหลัก | Project B — Gmail (ใช้เอง) |
+|---|---|---|
+| ใช้กับ | Supabase Auth (sign-in) + `gcal` | `gmail` |
+| Secrets | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | `GMAIL_CLIENT_ID` / `GMAIL_CLIENT_SECRET` |
+| Scopes | `openid`, `email`, `calendar.readonly` | `openid`, `email`, `gmail.readonly`, `gmail.compose` |
+| Publishing status | **In production** (หลัง verify เฟส A) | **Testing** — test users ไม่เกิน 100 คน |
+| ค่าใช้จ่าย | ฟรี | ฟรี (จนกว่าจะเปิดให้ทุกคน) |
+| ข้อจำกัด | — | refresh token หมดอายุทุก 7 วัน ต้องกดเชื่อมใหม่, เห็นหน้าเตือน "unverified app" |
 
-## 1. Scopes ที่แอปขอ
+แอปซ่อนเมนู Inbox ถ้าไม่ได้ตั้ง `EXPO_PUBLIC_GMAIL=1` build สาธารณะจึงไม่เห็น Gmail เลย
 
-| Scope | ระดับ | ใช้ทำอะไรในแอป | ทำไมใช้ scope ที่แคบกว่าไม่ได้ |
-|---|---|---|---|
-| `openid`, `email` | Non-sensitive | ระบุบัญชี Google ที่ผูก | — |
-| `calendar.readonly` | Sensitive | นำเข้านัดมาแสดงในปฏิทินของแอป (P2-07) | เป็น scope อ่านอย่างเดียวที่แคบที่สุดแล้ว |
-| `gmail.readonly` | **Restricted** | หาอีเมลที่ยังไม่ได้ตอบ และอ่านเนื้อหา thread เพื่อให้ AI สรุปและร่างคำตอบ **เมื่อผู้ใช้กดเปิด thread นั้นเอง** | `gmail.metadata` ไม่มีเนื้อหาเมล จึงสรุปหรือร่างคำตอบไม่ได้ |
-| `gmail.compose` | **Restricted** | บันทึกคำตอบที่ผู้ใช้แก้แล้วเป็น **draft** ใน thread เดิม แอปไม่ส่งเมลเอง | Gmail ไม่มี scope ที่สร้าง draft ได้อย่างเดียว `drafts.create` ต้องใช้ `gmail.compose` เป็นอย่างน้อย |
+> ⚠️ กติกาของ Google ในเอกสารนี้อ้างอิงจากความรู้ ณ ตอนเขียน ยังไม่ได้เทียบกับเอกสารล่าสุด ก่อนยื่นให้เช็คหน้า *OAuth app verification* และ *Restricted scope verification* ของ Google อีกครั้ง
 
-Restricted scopes ต้องผ่าน **(1) OAuth app verification** และ **(2) CASA security assessment** โดย lab ที่ Google รับรอง และต้องประเมินซ้ำทุก 12 เดือน
+---
 
-## 2. Checklist ก่อนยื่น
+## เฟส A — verify แอปหลัก (sign-in + Calendar)
 
-**Branding / Consent screen** (Google Auth Platform → Branding)
+**Branding** (Google Auth Platform → Branding)
 - [ ] App name "Veyra", logo, support email
-- [ ] Homepage URL บนโดเมนที่เป็นเจ้าของ (verify ใน Search Console แล้ว)
-- [ ] Privacy policy URL บนโดเมนเดียวกัน (ดูข้อ 3)
-- [ ] Terms of service URL
-- [ ] Authorized domains: โดเมนของ homepage + `supabase.co` (redirect URI ของ `gcal` และ Supabase Auth)
-- [ ] เปลี่ยน Publishing status เป็น **In production**
+- [ ] Homepage URL บนโดเมนที่เป็นเจ้าของ (verify ใน Search Console)
+- [ ] Privacy policy URL และ Terms of service URL บนโดเมนเดียวกัน
+- [ ] Authorized domains: โดเมน homepage + `supabase.co`
 
 **Data access**
-- [ ] ใส่ scope ครบตามตารางข้อ 1 ห้ามมี scope เกินที่ใช้จริง
-- [ ] เขียน justification ต่อ scope (ใช้ข้อความจากข้อ 4)
+- [ ] มีแค่ `openid`, `email`, `calendar.readonly` — **ห้ามมี Gmail scope ใน project นี้**
+- [ ] Justification ของ `calendar.readonly`:
+  > Veyra shows the user's Google Calendar events alongside their tasks in a single day view. Read-only; events are edited in Google Calendar.
 
-**Demo video** (YouTube แบบ unlisted, ภาษาอังกฤษ)
-- [ ] ดูข้อ 5
+**Demo video** (YouTube unlisted, ภาษาอังกฤษ ~2 นาที)
+1. หน้า sign-in → แสดง URL consent ของ Google ให้เห็น `client_id`
+2. หน้า consent: app name + scopes → Allow
+3. หน้า Calendar ของแอปแสดงนัดจาก Google
+4. Settings → Remove บัญชี → แสดงว่าสิทธิ์ถูกถอนใน myaccount.google.com/permissions
 
-**CASA**
-- [ ] หลังยื่น Google จะส่งอีเมลให้ทำ CASA → เลือก lab จากรายชื่อที่ Google ให้ (มีค่าใช้จ่าย ขอใบเสนอราคาล่าสุดจาก lab)
-- [ ] เตรียมตอบเรื่อง: การเก็บ token (AES-GCM, key อยู่ใน Supabase secrets), RLS ของ `gcal_accounts`, ไม่เก็บเนื้อหาอีเมล, log ไม่มีเนื้อหาเมล, การ revoke ตอนลบบัญชี
-
-**สิ่งที่ต้องทำให้เสร็จในแอปก่อนยื่น** (Phase 4 ข้ออื่น)
-- [ ] PDPA: หน้า privacy policy + export / ลบบัญชี (ROADMAP) ลบบัญชีต้อง revoke token Google และลบแถว `gcal_accounts` ด้วย
-
-## 3. ข้อความที่ต้องมีใน Privacy policy
-
-ต้องมีประโยคนี้ตามตัวอักษร (Limited Use disclosure):
-
+**Privacy policy** ต้องมีประโยคนี้ตามตัวอักษร:
 > Veyra's use and transfer to any other app of information received from Google APIs will adhere to the [Google API Services User Data Policy](https://developers.google.com/terms/api-services-user-data-policy), including the Limited Use requirements.
 
-และต้องอธิบายให้ชัดว่า:
-- อ่านข้อมูล Gmail อะไรบ้าง: หัวเรื่อง, ผู้ส่ง, snippet และเนื้อหาของ thread ที่ผู้ใช้เปิด
-- ใช้ทำอะไร: แสดงอีเมลค้างตอบ, สรุป, ร่างคำตอบเป็น draft เท่านั้น
-- **ไม่เก็บ**เนื้อหาอีเมลบน server, ไม่ใช้เพื่อโฆษณา, ไม่ขายต่อ, คนไม่ได้อ่าน (ยกเว้นผู้ใช้ยินยอมหรือจำเป็นทางกฎหมาย/ความปลอดภัย)
-- เนื้อหา thread ที่ผู้ใช้เปิดจะถูกส่งไปยัง **Anthropic (Claude API)** เพื่อสรุปและร่างคำตอบ ในนามผู้ใช้ และไม่นำไปใช้ train โมเดลทั่วไป (ตรวจสอบกับ commercial terms ปัจจุบันของ Anthropic ก่อนเผยแพร่)
-- วิธีเพิกถอนสิทธิ์: Settings → Google Calendar → Remove หรือ https://myaccount.google.com/permissions
+- [ ] เปลี่ยน Publishing status เป็น In production แล้วกด Submit for verification
 
-## 4. Scope justification (ใช้ข้อความนี้ในฟอร์ม)
+## Project B — Gmail ใช้เอง (ทำได้เลย ไม่ต้องรอเฟส A)
 
-**gmail.readonly**
-> Veyra is a personal assistant app. Its Inbox screen lists the user's own recent inbox threads that are still waiting on their reply (the latest message is from someone else). When the user opens one of these threads, Veyra reads its content so it can show a short summary and a suggested reply. Message content is fetched on demand, shown only to the user, and never stored on our servers. gmail.metadata is not sufficient because the summary and suggested reply need the message body.
+ขั้นตอนตั้งค่าอยู่ใน `supabase/functions/README.md` § gmail สรุปสั้นๆ:
+- [ ] สร้าง project ใหม่ → เปิด Gmail API → consent screen แบบ **Testing** → ใส่อีเมลตัวเองใน Test users
+- [ ] OAuth client (Web) → redirect URI `…/functions/v1/gmail/callback`
+- [ ] ตั้ง secrets `GMAIL_*` → `supabase db push` → deploy `gmail`
+- [ ] ใส่ `EXPO_PUBLIC_GMAIL=1` ใน build ที่ใช้เอง
 
-**gmail.compose**
-> After the user reviews and edits the suggested reply, Veyra saves it as a draft reply in the same Gmail thread (users.drafts.create). Veyra never sends email; the user sends the draft from Gmail. No narrower scope allows creating drafts.
+**อย่าเปลี่ยน Project B เป็น In production** ถ้ายังไม่ได้ยื่น verify เพราะแอปจะถูกจำกัดและขึ้นคำเตือนกับทุกคน
 
-**calendar.readonly**
-> Veyra shows the user's Google Calendar events alongside their tasks in a single day view. Read-only; events are edited in Google Calendar.
+---
 
-## 5. Demo video script (~3 นาที)
+## เฟส B — (อนาคต) เปิด Gmail ให้ทุกคน
 
-1. เปิดแอป (production build หรือเว็บ) → แสดง URL หน้า consent ของ Google ให้เห็น **client_id** ในแถบที่อยู่
-2. แสดงหน้า consent: app name, scopes ครบ 5 ตัว → กด Allow
-3. Settings → เห็นบัญชีที่ผูก (Calendar)
-4. เมนู More → **Inbox**: เห็นรายการอีเมลค้างตอบ (**gmail.readonly**)
-5. แตะ thread → AI summary + ร่างคำตอบ → แก้ข้อความ → **Save as Gmail draft**
-6. เปิด Gmail → Drafts → เห็น draft อยู่ใน thread เดิม และยังไม่ถูกส่ง (**gmail.compose**)
-7. กด follow-up "In 3 days" → เห็น task ในหน้า Tasks
-8. Settings → Remove บัญชี → แสดงว่าสิทธิ์ถูกถอนใน myaccount.google.com/permissions
+ทำเมื่อคุ้มค่า CASA แล้ว โค้ดไม่ต้องเขียนใหม่
 
-## 6. ที่โค้ดรองรับไว้แล้ว (อ้างอิงตอนตอบ reviewer)
+1. ยื่น verify Project B (หรือย้าย Gmail scopes ไป Project A แล้วยื่นเพิ่ม)
+2. ทำ CASA กับ lab ที่ Google รับรอง (ขอใบเสนอราคาล่าสุด) ประเมินซ้ำทุก 12 เดือน
+3. เอา `EXPO_PUBLIC_GMAIL=1` ใส่ build สาธารณะ
 
-- ขอ scope เดียวชุดเดียวใน `gcal` `start` และ sign-in (`src/features/auth/google.ts`) ผู้ใช้เอา Gmail ออกได้ ปฏิทินยังใช้ได้
-- `supabase/functions/gmail/index.ts`: อ่านสด ไม่มีตารางเก็บเมล, log เฉพาะ error message ไม่มีเนื้อหา
+**Scope justification**
+
+| Scope | ใช้ทำอะไร | ทำไมใช้ scope ที่แคบกว่าไม่ได้ |
+|---|---|---|
+| `gmail.readonly` | หาอีเมลที่ยังไม่ได้ตอบ + อ่าน thread ที่ผู้ใช้เปิด เพื่อสรุปและร่างคำตอบ | `gmail.metadata` ไม่มีเนื้อหาเมล |
+| `gmail.compose` | บันทึกคำตอบเป็น draft ใน thread เดิม ไม่ส่งเมลเอง | ไม่มี scope ที่สร้าง draft ได้อย่างเดียว |
+
+> **gmail.readonly** — Veyra's Inbox screen lists the user's own recent inbox threads that are still waiting on their reply. When the user opens a thread, Veyra reads its content to show a short summary and a suggested reply. Content is fetched on demand, shown only to the user, and never stored on our servers. gmail.metadata is not sufficient because the summary and reply need the message body.
+>
+> **gmail.compose** — After the user reviews and edits the suggested reply, Veyra saves it as a draft reply in the same thread (users.drafts.create). Veyra never sends email; the user sends the draft from Gmail.
+
+**Privacy policy เพิ่มเติมสำหรับ Gmail**
+- อ่านอะไร: หัวเรื่อง, ผู้ส่ง, snippet และเนื้อหาของ thread ที่ผู้ใช้เปิด
+- ไม่เก็บเนื้อหาอีเมลบน server, ไม่ใช้เพื่อโฆษณา, ไม่ขายต่อ, คนไม่ได้อ่าน
+- เนื้อหา thread ที่ผู้ใช้เปิดจะส่งไป Anthropic (Claude API) เพื่อสรุป/ร่างคำตอบ และไม่นำไปใช้ train โมเดลทั่วไป (ยืนยันกับ commercial terms ปัจจุบันของ Anthropic ก่อนเผยแพร่)
+
+**Demo video เพิ่มเติม**: More → Inbox → เปิด thread → AI summary → แก้คำตอบ → Save as Gmail draft → เปิด Gmail Drafts ให้เห็นว่ายังไม่ถูกส่ง → Remove บัญชี
+
+**ที่โค้ดรองรับไว้แล้ว (ตอบ CASA)**
 - Refresh token เข้ารหัส AES-GCM (`_shared/google.ts`), ตาราง RLS เปิดแบบไม่มี policy (อ่านได้เฉพาะ service role)
-- Draft เท่านั้น ไม่มีโค้ดส่งเมล (`drafts.create`)
-- Remove บัญชี = revoke token ที่ Google + ลบแถว (`gcal` `disconnect`)
+- ไม่มีตารางเก็บเมล, log เฉพาะ error message ไม่มีเนื้อหา (`gmail/index.ts`)
+- Draft เท่านั้น ไม่มีโค้ดส่งเมล
+- Remove = revoke token ที่ Google + ลบแถว (`gmail` `disconnect`)
+- ก่อนเฟส B ต้องมี PDPA: export / ลบบัญชี (ลบบัญชีต้อง revoke + ลบแถว `gmail_accounts`)
