@@ -40,7 +40,7 @@
 - [x] Check-in (mood/energy) + Review screen
 - [x] `ai-summary` daily / weekly + morning briefing notification (Review screen `/review`, briefing ตั้งเวลาได้ใน Settings)
 - [ ] Focus timer + focus_sessions
-- [ ] Routines + energy tag
+- [x] Routines + energy tag (สร้าง task วันนี้อัตโนมัติจาก rule ตอนเปิดแอป, filter ตาม energy)
 - [ ] Budget ต่อหมวด + เตือน, recurring bills / subscriptions
 - [ ] Net worth (FX rate manual / API)
 - [x] Google Calendar import (read-only, หลายบัญชี) — `supabase/functions/gcal`, `src/features/google-calendar`

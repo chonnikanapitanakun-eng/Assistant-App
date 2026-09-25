@@ -15,6 +15,7 @@ import { Text } from '@/components/ui';
 import { useFocusTimerDriver } from '@/features/focus/store';
 import { GoogleCalendarAutoSync } from '@/features/google-calendar';
 import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
+import { useRoutineTasks } from '@/features/routines/queries';
 import { SyncAutoRun } from '@/features/sync';
 import { useTheme } from '@/theme';
 
@@ -25,6 +26,7 @@ void configureAndroidChannel();
 export default function RootLayout() {
   const { t } = useTranslation();
   const { ready, error } = useDatabase();
+  useRoutineTasks(ready);
   const { colors, isDark } = useTheme();
   const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
   // Fall back to system font rather than blocking the app if Inter fails to load.
@@ -71,6 +73,8 @@ export default function RootLayout() {
             <Stack.Screen name="bill/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="wallet/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="budget/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
+            <Stack.Screen name="routine/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
+            <Stack.Screen name="routines" />
             <Stack.Screen name="note/[id]" />
             <Stack.Screen name="more" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="focus" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
