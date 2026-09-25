@@ -5,6 +5,8 @@ type WalletRow = { id: string; balance: number; currency: string };
 
 /**
  * Current balance = opening balance (wallets.balance) + every transaction touching the wallet.
+ * Only this wallet's leg counts: a transfer debits its source and credits its destination, so the
+ * other side's wallet (even a hidden one) never affects this balance.
  * Transactions in another currency (no FX yet) are left out rather than mixed in.
  */
 export function walletBalance(wallet: WalletRow, txs: Tx[]): number {
@@ -98,7 +100,13 @@ function dueIn(year: number, monthIdx: number, day: number): string {
 export function nextDueDate(bill: BillRow, today: Date = new Date()): string {
   if (bill.frequency === 'yearly') {
     const m = (bill.dueMonth ?? today.getMonth() + 1) - 1;
-    if (bill.paidThrough) return dueIn(Number(bill.paidThrough.slice(0, 4)) + 1, m, bill.dueDay);
+    if (bill.paidThrough) {
+      // First due date strictly after what's already paid. Usually next year, but not when
+      // `paidThrough` came from a monthly cycle before the bill was switched to yearly.
+      const year = Number(bill.paidThrough.slice(0, 4));
+      const sameYear = dueIn(year, m, bill.dueDay);
+      return sameYear > bill.paidThrough ? sameYear : dueIn(year + 1, m, bill.dueDay);
+    }
     return dueIn(today.getFullYear(), m, bill.dueDay);
   }
   if (bill.paidThrough) {

@@ -1,5 +1,8 @@
+import type { CalendarEvent, Contact, Task, Transaction } from '@/db';
 import { parseCaptureLocally } from '@/features/ai/capture';
 import type { CaptureItem } from '@/features/ai/types';
+import { allDayKey } from '@/features/calendar/model';
+import { toDateKey } from '@/lib/date';
 
 import { parseBlocks, parseInline, plainText } from './markdown';
 
@@ -49,6 +52,47 @@ export function extractItems(body: string, today: Date = new Date()): CaptureIte
     }
   }
   return out;
+}
+
+/**
+ * Identity of an extracted item, used to tell whether it was already saved from this note
+ * (type + title + date; money uses type + note + amount, since an undated amount is saved with
+ * today's date). Stable across re-parses, so editing other lines doesn't re-offer saved items.
+ */
+export function itemSignature(item: CaptureItem): string {
+  const norm = (s?: string | null) => (s ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
+  switch (item.type) {
+    case 'task':
+    case 'event':
+      return `${item.type}|${norm(item.title)}|${item.date ?? ''}`;
+    case 'expense':
+    case 'income':
+      return `${item.type}|${norm(item.note)}|${item.amount}`;
+    case 'contact':
+      return `contact|${norm(item.name)}`;
+    case 'note':
+      return `note|${norm(item.body)}`;
+  }
+}
+
+/** Signature of a record saved by Extract (see `itemSignature`), or null for records Extract never creates. */
+export function recordSignature(
+  record: { type: 'task'; row: Pick<Task, 'title' | 'date'> } | { type: 'event'; row: Pick<CalendarEvent, 'title' | 'start' | 'isAllDay'> } | { type: 'transaction'; row: Pick<Transaction, 'type' | 'note' | 'amount' | 'currency'> } | { type: 'contact'; row: Pick<Contact, 'name'> },
+): string | null {
+  switch (record.type) {
+    case 'task':
+      return itemSignature({ type: 'task', title: record.row.title, date: record.row.date ?? undefined });
+    case 'event': {
+      const { title, start, isAllDay } = record.row;
+      return itemSignature({ type: 'event', title, date: isAllDay ? allDayKey(start) : toDateKey(new Date(start)) });
+    }
+    case 'transaction': {
+      const { type, note, amount, currency } = record.row;
+      return type === 'transfer' ? null : itemSignature({ type, amount, currency, note: note ?? undefined });
+    }
+    case 'contact':
+      return itemSignature({ type: 'contact', name: record.row.name });
+  }
 }
 
 type Searchable = { title: string; body: string; tags: string[] | null };

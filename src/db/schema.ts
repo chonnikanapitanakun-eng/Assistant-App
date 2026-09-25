@@ -229,3 +229,4 @@ export type CalendarEvent = typeof calendarEvents.$inferSelect;
 export type CalendarAccount = typeof calendarAccounts.$inferSelect;
 export type RecurringBill = typeof recurringBills.$inferSelect;
 export type AssistantMessage = typeof assistantMessages.$inferSelect;
+export type Checkin = typeof checkins.$inferSelect;

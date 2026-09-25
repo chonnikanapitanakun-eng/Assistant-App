@@ -1,4 +1,4 @@
-import { addDays, toDateKey } from '@/lib/date';
+import { addDays, combineDateTime, toDateKey, toDateKeyUTC, utcDayStart } from '@/lib/date';
 
 /** One thing on the calendar: a calendar event or a dated task. Times are local HH:mm. */
 export type CalItem = {
@@ -34,9 +34,44 @@ export const fromDateKey = (key: string) => {
   return new Date(y, m - 1, d);
 };
 
+const DAY_MS = 86_400_000;
+
+/**
+ * Date key of an all-day event boundary. New all-day events are stored as UTC midnight, which
+ * reads back the same in every timezone. Older rows (and other writers) stored local midnight;
+ * those are never an exact UTC-midnight multiple unless the offset was 0, so read them as local.
+ */
+export const allDayKey = (ms: number) => (ms % DAY_MS === 0 ? toDateKeyUTC(new Date(ms)) : toDateKey(new Date(ms)));
+
+/**
+ * Whether an event belongs in the dateKey range [from, to). All-day events match by date key and
+ * include multi-day ones that overlap the range; timed events match by local start time.
+ */
+export function eventInRange(e: Pick<EventRow, 'start' | 'end' | 'isAllDay'>, from: string, to: string): boolean {
+  if (e.isAllDay) {
+    const first = allDayKey(e.start);
+    // `end` is exclusive (the day after the last day).
+    return first >= from ? first < to : allDayKey(e.end) > from;
+  }
+  return e.start >= fromDateKey(from).getTime() && e.start < fromDateKey(to).getTime();
+}
+
+/**
+ * Event form values → stored epoch range. Timed events use local wall-clock time (DST-safe via
+ * combineDateTime). All-day events use UTC midnight so their date survives timezone changes
+ * (read back with `allDayKey`). Throws on an unparsable date/time.
+ */
+export function eventRange(v: { date: string; allDay: boolean; startTime: string; endTime: string }): { start: number; end: number } {
+  const range = v.allDay
+    ? { start: utcDayStart(v.date), end: utcDayStart(v.date, 1) }
+    : { start: combineDateTime(v.date, v.startTime), end: combineDateTime(v.date, v.endTime) };
+  if (range.start === undefined || range.end === undefined) throw new Error(`Invalid event date/time: ${v.date} ${v.startTime}-${v.endTime}`);
+  return { start: range.start, end: range.end };
+}
+
 export function eventToItem(e: EventRow): CalItem {
   const start = new Date(e.start);
-  const date = toDateKey(start);
+  const date = e.isAllDay ? allDayKey(e.start) : toDateKey(start);
   const readOnly = e.source !== undefined && e.source !== 'veyra';
   const color = e.color ?? undefined;
   if (e.isAllDay) return { kind: 'event', id: e.id, title: e.title, date, allDay: true, location: e.location, readOnly, color };

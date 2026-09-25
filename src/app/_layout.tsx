@@ -12,6 +12,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 import { isDatabaseLocked, queryClient, useDatabase } from '@/db';
 import { Text } from '@/components/ui';
+import { useFocusTimerDriver } from '@/features/focus/store';
 import { GoogleCalendarAutoSync } from '@/features/google-calendar';
 import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
 import { SyncAutoRun } from '@/features/sync';
@@ -28,6 +29,7 @@ export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
   // Fall back to system font rather than blocking the app if Inter fails to load.
   const fontsReady = fontsLoaded || !!fontError;
+  useFocusTimerDriver();
 
   useEffect(() => {
     if ((ready || error) && fontsReady) void SplashScreen.hideAsync();
@@ -58,6 +60,7 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="onboarding" options={{ animation: 'fade', gestureEnabled: false }} />
             <Stack.Screen name="settings" />
+            <Stack.Screen name="privacy" />
             <Stack.Screen name="search" />
             <Stack.Screen name="capture" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="assistant" options={{ presentation: 'modal' }} />
@@ -71,6 +74,7 @@ export default function RootLayout() {
             <Stack.Screen name="note/[id]" />
             <Stack.Screen name="more" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="focus" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+            <Stack.Screen name="review" />
           </Stack>
           <GoogleCalendarAutoSync />
           <SyncAutoRun />

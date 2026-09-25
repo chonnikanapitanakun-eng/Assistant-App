@@ -23,12 +23,12 @@
 
 ## Phase 1 — MVP
 
-- [ ] Today screen
+- [x] Today screen
 - [x] Tasks: CRUD, checklist, reminder (expo-notifications)
 - [x] Timeline drag-drop (กดค้าง ลากย้ายเวลา snap 15 นาที)
 - [x] Plan: day / week / month
-- [ ] Notes: CRUD, markdown, tags, pin
-- [ ] Money: wallets, transactions, categories, สรุปเดือน
+- [x] Notes: CRUD, markdown, tags, pin
+- [x] Money: wallets, transactions, categories, สรุปเดือน
 - [ ] Contacts + Areas: CRUD, ผูกกับ record
 - [x] Links table + UI "เกี่ยวข้องกับ" (docs/LINKS.md)
 - [x] Universal search (FTS5 trigram, grouped by type)
@@ -37,7 +37,7 @@
 
 ## Phase 2 — เทียบ Tiimo
 
-- [ ] Check-in (mood/energy) + Review screen
+- [x] Check-in (mood/energy) + Review screen
 - [ ] `ai-summary` daily / weekly + morning briefing notification
 - [ ] Focus timer + focus_sessions
 - [ ] Routines + energy tag
@@ -63,9 +63,9 @@
 
 - [ ] Gmail: inbox ค้างตอบ, สรุป, draft, follow-up reminder
 - [ ] LINE Messaging API → capture
-- [ ] ปฏิทินไทย พ.ศ. / วันหยุด / วันพระ
+- [x] ปฏิทินไทย พ.ศ. / วันหยุด / วันพระ
 - [ ] Google Calendar 2 ทาง
 - [ ] `ai-prep-meeting`
 - [ ] Premium tier (RevenueCat)
-- [ ] PDPA: privacy policy, export / delete account
+- [x] PDPA: privacy policy, export / delete account — `src/app/privacy.tsx`, `src/features/privacy`, `supabase/functions/account`
 - [ ] App Store / Play Store release

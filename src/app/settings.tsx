@@ -10,10 +10,12 @@ import { Button, Card, Chip, Icon, IconButton, PressableScale, Screen, Text, Tog
 import { authEnabled, signInWithGoogle, signOut, useSession } from '@/features/auth';
 import { completeGoogleConnect, connectGoogle, disconnectGoogle, gcalEnabled, syncGoogleCalendars, useCalendarAccounts, type AuthReturn, type ConnectResult } from '@/features/google-calendar';
 import { useNotificationPermission } from '@/features/notifications';
+import { accountDeleteEnabled, deleteAccount, eraseLocalData, exportAllData, PRIVACY_CONTACT_EMAIL } from '@/features/privacy';
 import { setLanguage } from '@/features/profile/language';
 import { ALL_INTERESTS, useProfile, type Interest } from '@/features/profile/store';
 import { runSync, useSyncStatus } from '@/features/sync';
 import type { CalendarAccount } from '@/db';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useConfirm } from '@/lib/use-confirm';
 import { currencySymbol, parseAmount, supportedCurrencies, type Currency } from '@/lib/currency';
 import { useTheme } from '@/theme';
@@ -105,6 +107,8 @@ export default function SettingsScreen() {
           </Row>
         </PressableScale>
       </Section>
+
+      <PrivacySection />
 
       <View style={{ alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xl }}>
         <Mascot pose="calm" size={72} />
@@ -337,6 +341,72 @@ function NotificationsSection() {
           <Button size="sm" variant="secondary" label={state === 'denied' ? t('notifications.open_settings') : t('notifications.enable')} onPress={() => (state === 'denied' ? void Linking.openSettings() : void request())} />
         )}
       </Row>
+    </Section>
+  );
+}
+
+/**
+ * PDPA (P4-07): the policy, take your data (export), erase this device, delete the account.
+ * Erase / delete are two-tap (useConfirm) and end in onboarding, since the profile is gone too.
+ */
+function PrivacySection() {
+  const { t } = useTranslation();
+  const { spacing } = useTheme();
+  const session = useSession();
+  const [notice, setNotice] = useState<Notice>(null);
+  const exporting = useAsyncAction();
+  const erasing = useAsyncAction();
+  const deleting = useAsyncAction();
+  const eraseArm = useConfirm();
+  const deleteArm = useConfirm();
+  const busy = exporting.busy || erasing.busy || deleting.busy;
+
+  const doExport = async () => {
+    setNotice(null);
+    const ok = await exporting.run(exportAllData);
+    setNotice({ text: ok ? t('privacy.export_done') : t('privacy.export_failed'), error: !ok });
+  };
+  const doErase = async () => {
+    setNotice(null);
+    if (await erasing.run(() => eraseLocalData())) router.replace('/onboarding');
+    else setNotice({ text: t('privacy.erase_failed'), error: true });
+  };
+  const doDelete = async () => {
+    setNotice(null);
+    if (await deleting.run(deleteAccount)) router.replace('/onboarding');
+    else setNotice({ text: t('privacy.delete_failed', { email: PRIVACY_CONTACT_EMAIL }), error: true });
+  };
+
+  return (
+    <Section title={t('privacy.title')}>
+      <PressableScale accessibilityRole="button" accessibilityLabel={t('privacy.policy')} onPress={() => router.push('/privacy')}>
+        <Row icon="shield" label={t('privacy.policy')} sub={t('privacy.policy_body')}>
+          <Icon name="chevron-right" size={18} color="textTertiary" />
+        </Row>
+      </PressableScale>
+      <Divider />
+      <Row icon="download" label={t('privacy.export')} sub={t('privacy.export_body')}>
+        <Button size="sm" variant="secondary" label={exporting.busy ? t('common.loading') : t('privacy.export_action')} disabled={busy} onPress={() => void doExport()} />
+      </Row>
+      <Divider />
+      <Row icon="trash-2" label={t('privacy.erase')} sub={t('privacy.erase_body')}>
+        <Button size="sm" variant="ghost" label={eraseArm.armed ? t('privacy.erase_confirm') : t('privacy.erase_action')} accessibilityHint={t('privacy.erase_body')} disabled={busy} onPress={() => eraseArm.confirm(() => void doErase())} />
+      </Row>
+      {accountDeleteEnabled ? (
+        <>
+          <Divider />
+          <Row icon="user-x" label={t('privacy.delete_account')} sub={session ? t('privacy.delete_account_body') : t('privacy.delete_offline')}>
+            {session ? (
+              <Button size="sm" variant="ghost" label={deleteArm.armed ? t('privacy.delete_confirm') : t('privacy.delete_action')} accessibilityHint={t('privacy.delete_account_body')} disabled={busy} onPress={() => deleteArm.confirm(() => void doDelete())} />
+            ) : null}
+          </Row>
+        </>
+      ) : null}
+      {notice ? (
+        <Text variant="caption" color={notice.error ? 'danger' : 'success'} accessibilityLiveRegion="polite" style={{ paddingBottom: spacing.sm }}>
+          {notice.text}
+        </Text>
+      ) : null}
     </Section>
   );
 }

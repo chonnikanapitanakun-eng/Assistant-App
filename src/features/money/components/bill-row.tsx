@@ -6,8 +6,8 @@ import { View } from 'react-native';
 import { Button, Icon, PressableScale, Tag, Text } from '@/components/ui';
 import type { Category, RecurringBill } from '@/db';
 import { formatMoney } from '@/lib/currency';
-import { background } from '@/lib/background';
 import { toDateKey } from '@/lib/date';
+import { useAsyncAction } from '@/lib/use-async-action';
 import { useTheme, type TintName } from '@/theme';
 
 import { categoryIcon } from '../category-icon';
@@ -24,6 +24,9 @@ export function BillRow({ bill, category, compact }: { bill: RecurringBill; cate
   const { t, i18n } = useTranslation();
   const { tints, spacing } = useTheme();
   const [noWallet, setNoWallet] = useState(false);
+  // One action at a time: a double tap on "Mark paid" must not record two payments.
+  const { busy, failed, run } = useAsyncAction();
+  // `updateBill` clears lastPaymentId, so a later edit can't revive Paid/Undo for an old payment.
   const justPaid = !!bill.lastPaymentId && toDateKey(new Date(bill.updatedAt)) === toDateKey();
 
   const due = nextDueDate(bill);
@@ -37,8 +40,8 @@ export function BillRow({ bill, category, compact }: { bill: RecurringBill; cate
           ? t('money.due_tomorrow')
           : t('money.due_on', { date: new Date(`${due}T00:00:00`).toLocaleDateString(i18n.language === 'th' ? 'th-TH' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) });
 
-  const pay = () => background(markBillPaid(bill).then((paid) => setNoWallet(!paid)), 'Mark bill paid');
-  const undo = () => background(undoBillPaid(bill), 'Undo bill payment');
+  const pay = () => void run(async () => setNoWallet(!(await markBillPaid(bill))));
+  const undo = () => void run(() => undoBillPaid(bill));
 
   return (
     <View style={{ gap: spacing.sm, paddingVertical: spacing.xs }}>
@@ -68,12 +71,13 @@ export function BillRow({ bill, category, compact }: { bill: RecurringBill; cate
       {!compact || state !== 'later' || justPaid ? (
         <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm }}>
           {justPaid ? (
-            <Button size="sm" variant="ghost" icon="rotate-ccw" label={t('money.undo')} onPress={undo} />
+            <Button size="sm" variant="ghost" icon="rotate-ccw" label={t('money.undo')} disabled={busy} onPress={undo} />
           ) : (
-            <Button size="sm" variant="secondary" icon="check" label={t('money.mark_paid')} onPress={pay} accessibilityHint={t('money.mark_paid_hint')} />
+            <Button size="sm" variant="secondary" icon="check" label={t('money.mark_paid')} disabled={busy} onPress={pay} accessibilityHint={t('money.mark_paid_hint')} />
           )}
         </View>
       ) : null}
+      {failed ? <Text variant="caption" tone={tints.priorityHigh.fg}>{t('common.save_failed')}</Text> : null}
       {noWallet ? <Text variant="caption" tone={tints.priorityHigh.fg}>{t('money.no_wallet', { currency: bill.currency })}</Text> : null}
     </View>
   );

@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
-import { PressableScale, Text } from '@/components/ui';
+import { Icon, PressableScale, Text } from '@/components/ui';
+import { isWanPhraDateKey } from '@/lib/thai-lunar';
+import { thaiHolidayOnDate } from '@/lib/thai-holidays';
 import { useTheme } from '@/theme';
 
 import { fromDateKey } from '../model';
@@ -27,12 +29,19 @@ export function WeekStrip({ days, selected, today, counts, onSelect }: Props) {
         const isToday = d === today;
         const c = counts.get(d);
         const busy = !!c && c.events + c.tasks > 0;
+        const holiday = thaiHolidayOnDate(d);
+        const wanPhra = isWanPhraDateKey(d);
+        const holidayLabel = holiday ? (locale === 'th-TH' ? holiday.nameTh : holiday.nameEn) : null;
+        const a11yLabel = [
+          date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }),
+          holidayLabel,
+        ].filter(Boolean).join(', ');
         return (
           <PressableScale
             key={d}
             accessibilityRole="button"
             accessibilityState={{ selected: on }}
-            accessibilityLabel={date.toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' })}
+            accessibilityLabel={a11yLabel}
             onPress={() => onSelect(d)}
             style={{
               flex: 1,
@@ -47,7 +56,10 @@ export function WeekStrip({ days, selected, today, counts, onSelect }: Props) {
             }}
           >
             <Text variant="caption" tone={on ? colors.onPrimary : colors.textSecondary}>{date.toLocaleDateString(locale, { weekday: 'short' })}</Text>
-            <Text variant="subheading" weight="bold" tone={on ? colors.onPrimary : isToday ? colors.primary : colors.text}>{date.getDate()}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+              <Text variant="subheading" weight="bold" tone={on ? colors.onPrimary : holiday ? colors.danger : isToday ? colors.primary : colors.text}>{date.getDate()}</Text>
+              {wanPhra ? <Icon name="moon" size={9} tone={on ? colors.onPrimary : colors.textTertiary} /> : null}
+            </View>
             <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: busy ? (on ? colors.onPrimary : colors.primary) : 'transparent' }} />
           </PressableScale>
         );

@@ -4,6 +4,7 @@ import { View } from 'react-native';
 
 import { Icon, PressableScale, Tag, Text } from '@/components/ui';
 import type { Task } from '@/db';
+import { fromDateKey } from '@/features/calendar/model';
 import { background } from '@/lib/background';
 import { daysFromToday } from '@/lib/date';
 import { useTheme } from '@/theme';
@@ -94,5 +95,5 @@ export function relativeDay(date: string, t: T, lang: string): string {
   if (diff === 0) return t('capture.today');
   if (diff === 1) return t('capture.tomorrow');
   if (diff === -1) return t('tasks.yesterday');
-  return new Date(`${date}T00:00:00`).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+  return fromDateKey(date).toLocaleDateString(lang === 'th' ? 'th-TH' : 'en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
 }

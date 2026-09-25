@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ScrollView, TextInput, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
+import { allDayKey, fromDateKey } from '@/features/calendar/model';
 import { Card, Chip, Icon, IconButton, PressableScale, Screen, Text } from '@/components/ui';
 import { categoryIcon } from '@/features/money/category-icon';
 import { plainText } from '@/features/notes/markdown';
@@ -143,7 +144,8 @@ function SearchResult({ type, item, terms }: { type: SearchType; item: SearchGro
     }
     case 'event': {
       const ev = item as SearchGroups['event'][number];
-      const start = new Date(ev.start);
+      // All-day rows are UTC midnight; format them via their date key so the day never shifts by timezone.
+      const start = ev.isAllDay ? fromDateKey(allDayKey(ev.start)) : new Date(ev.start);
       const when = ev.isAllDay
         ? `${start.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} · ${t('search.all_day')}`
         : `${start.toLocaleDateString(locale, { day: 'numeric', month: 'short' })} ${start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}`;

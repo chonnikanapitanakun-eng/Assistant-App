@@ -48,6 +48,12 @@ export default function CaptureScreen() {
   const [remote, setRemote] = useState<{ text: string; items: CaptureItem[] } | null>(null);
   const [thinking, setThinking] = useState(false);
   const captureContext = useCaptureContext();
+  // Read at fire time: the context changes on every DB write, which must not restart the debounce
+  // or abort a request in flight.
+  const captureContextRef = useRef(captureContext);
+  useEffect(() => {
+    captureContextRef.current = captureContext;
+  }, [captureContext]);
   const abortRef = useRef<AbortController | null>(null);
 
   // Claude refines the instant local parse once typing pauses. Any failure keeps the local result.
@@ -61,8 +67,13 @@ export default function CaptureScreen() {
     const id = setTimeout(async () => {
       setThinking(true);
       try {
-        const res = await captureRemote(value, captureContext(), controller.signal);
-        if (!controller.signal.aborted && res.items.length) setRemote({ text: value, items: res.items });
+        const res = await captureRemote(value, captureContextRef.current(), controller.signal);
+        if (!controller.signal.aborted && res.items.length) {
+          setRemote({ text: value, items: res.items });
+          // A new list: ticks and income/expense flips made on the old one would land on the wrong items.
+          setExcluded(new Set());
+          setMoneyType({});
+        }
       } catch {
         // offline / rate-limited / upstream error → local parse stays
       } finally {
@@ -73,13 +84,15 @@ export default function CaptureScreen() {
       clearTimeout(id);
       controller.abort();
     };
-  }, [text, phase.kind, captureContext]);
+  }, [text, phase.kind]);
   const [saving, setSaving] = useState(false);
 
   const detected = useMemo(() => {
-    const base = remote && remote.text === text.trim() ? remote.items : parseCaptureLocally(text);
+    const fromRemote = !!remote && remote.text === text.trim();
+    const base = fromRemote ? remote.items : parseCaptureLocally(text);
     return base.map((item, i) => {
-      const key = `${i}:${item.type === 'income' ? 'expense' : item.type}`;
+      // Keys are per list (Claude's vs the local parse) so edits to one never apply to the other.
+      const key = `${fromRemote ? 'c' : 'l'}${i}:${item.type === 'income' ? 'expense' : item.type}`;
       const override = moneyType[key];
       const resolved: CaptureItem = override && (item.type === 'income' || item.type === 'expense') ? { ...item, type: override } : item;
       return { key, item: resolved };

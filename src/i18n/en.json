@@ -438,12 +438,14 @@
     "with_hint": "Saved to contacts and linked to this event.",
     "not_found": "Event not found",
     "read_only": "Synced from {{source}} — edit it there.",
-    "drag_hint": "Long-press and drag to change the time"
+    "drag_hint": "Long-press and drag to change the time",
+    "wan_phra": "Buddhist observance day"
   },
   "more": {
     "title": "More",
     "notes": "Notes",
     "focus": "Focus",
+    "review": "Review",
     "search": "Search",
     "contacts": "Contacts",
     "settings": "Settings",
@@ -493,6 +495,40 @@
     "notify_focus_body": "Nice work. Time for a short break.",
     "notify_break_title": "Break's over",
     "notify_break_body": "Ready for the next round?"
+  },
+  "review": {
+    "title": "Review",
+    "tab_today": "Today",
+    "tab_week": "Week",
+    "checkin_title": "How are you doing?",
+    "checkin_subtitle": "A quick check-in — mood, energy and anything on your mind.",
+    "mood": "Mood",
+    "mood_1": "Very low",
+    "mood_2": "Low",
+    "mood_3": "Okay",
+    "mood_4": "Good",
+    "mood_5": "Great",
+    "energy": "Energy",
+    "energy_1": "Very low",
+    "energy_2": "Low",
+    "energy_3": "Medium",
+    "energy_4": "High",
+    "energy_5": "Very high",
+    "reflection": "Reflection",
+    "reflection_placeholder": "What stood out today?",
+    "today_summary": "Today's review",
+    "focus_today": "Focus today",
+    "spent_today": "Spent today",
+    "week_title": "Mood & energy this week",
+    "week_chart_label": "Energy per day, last 7 days, with mood",
+    "avg_mood": "Avg. mood",
+    "avg_energy": "Avg. energy",
+    "streak_one": "day streak",
+    "streak_other": "day streak",
+    "tasks_week": "Tasks done",
+    "focus_week": "Focus this week",
+    "recent": "Recent check-ins",
+    "no_checkins": "Your daily check-ins will show up here."
   },
   "onboarding": {
     "welcome_title": "Hi, I'm Veyra.",
@@ -662,5 +698,76 @@
     "wallet_digits": "Account number",
     "wallet_digits_placeholder": "e.g. 1234 or the full number",
     "wallet_digits_hint": "The digits your slips show (xxx-x-x1234-x → 1234), used to match slips to this account."
+  },
+  "privacy": {
+    "title": "Privacy",
+    "policy": "Privacy policy",
+    "policy_body": "What Veyra stores, where, and your rights",
+    "updated": "Last updated {{date}}",
+    "intro": "Veyra keeps your planner, notes, money and contacts on your device first. This page says exactly what leaves it, when, and how to take your data with you or erase it.",
+    "manage": "Manage your data in Settings",
+    "contact_row": "Questions or a request about your data: {{email}}",
+    "export": "Export my data",
+    "export_body": "Everything on this device as one JSON file (tasks, notes, money, contacts, calendar, check-ins, chat).",
+    "export_action": "Export",
+    "export_done": "Your export is ready.",
+    "export_failed": "Export failed — try again.",
+    "erase": "Erase data on this device",
+    "erase_body": "Signs out and deletes everything stored here. Cloud data (if you sync) stays until you delete your account.",
+    "erase_action": "Erase",
+    "erase_confirm": "Tap again to erase",
+    "erase_failed": "Could not erase — try again.",
+    "delete_account": "Delete my account",
+    "delete_account_body": "Deletes your cloud data, Google Calendar link and sign-in for good, then erases this device. Cannot be undone.",
+    "delete_action": "Delete",
+    "delete_confirm": "Tap again to delete",
+    "delete_failed": "Could not delete your account. Check your connection and try again — or email {{email}}.",
+    "delete_offline": "Sign in to delete your account.",
+    "sections": [
+      {
+        "title": "Who we are",
+        "body": "Veyra is made by an independent developer in Thailand (the data controller under Thailand's Personal Data Protection Act, PDPA, and the UK GDPR for users in the UK). Contact: {{email}}."
+      },
+      {
+        "title": "What Veyra stores on your device",
+        "body": "• Profile: the name you typed, language, currency and manual exchange rates.\n• Planner: tasks, checklists, routines, reminders and focus sessions.\n• Notes and their tags.\n• Money: wallets (optionally a bank code and the last digits a slip shows), transactions, categories, budgets and recurring bills.\n• Contacts and life areas, and the links between records.\n• Calendar events imported from Google.\n• Mood and energy check-ins.\n• Your chat with Veyra AI.\nAll of this lives in a database on your device. Without signing in, none of it is uploaded — except what you send to the AI features below."
+      },
+      {
+        "title": "Cloud sync (only when you sign in)",
+        "body": "Signing in with Google gives Veyra your Google email address and account id, kept by our authentication provider (Supabase). From then on your planner, notes, money, contacts, check-ins, focus sessions, chat and links are copied to our database so every device you sign in on shows the same data. Each row is tied to your account and protected by row-level security: no other user, and no app code without your session, can read it. Signing out stops syncing; the copy stays until you delete your account."
+      },
+      {
+        "title": "Google Calendar",
+        "body": "Calendar access is read-only. Veyra never creates, edits or deletes events in Google. To read your calendars our server keeps a refresh token for each linked Google account, encrypted at rest; the app itself never sees it. Removing an account in Settings revokes that token at Google and deletes it."
+      },
+      {
+        "title": "AI features",
+        "body": "Quick capture, Veyra AI chat and slip reading send what you give them — the text you typed, your question, or the slip image you chose — to our server, which forwards it to Anthropic's Claude API and returns the result. To make sense of it, the request also carries a small context: the names of your contacts, areas, wallets and categories, and for chat a summary of today's tasks and recent spending. Our server logs how many tokens each request used (never the content) to run the service and, later, a premium tier. Slip images are not stored on the server. We do not use your data to train any model. Every AI feature has an on-device fallback, so the app works without them."
+      },
+      {
+        "title": "Notifications",
+        "body": "Reminders are scheduled on your device by the operating system. Veyra runs no push server and sends nothing out to deliver them."
+      },
+      {
+        "title": "How long we keep it",
+        "body": "On your device: until you erase it (Settings → Privacy) or uninstall the app. In the cloud: until you delete your account. Items you delete inside the app are marked deleted and kept so your other devices learn about the deletion; account deletion removes them entirely."
+      },
+      {
+        "title": "Your rights",
+        "body": "Under the PDPA (and the UK GDPR) you can:\n• Access and take your data — Settings → Privacy → Export my data gives you everything as JSON.\n• Correct it — edit any record in the app.\n• Erase it — Erase data on this device, or Delete my account for the cloud copy and sign-in too.\n• Withdraw consent — sign out to stop syncing, remove a Google account to stop calendar access.\n• Object or complain — email {{email}}; in Thailand you may also contact the Personal Data Protection Committee (PDPC).\nRequests are answered within 30 days."
+      },
+      {
+        "title": "Security",
+        "body": "Data travels over HTTPS only. Cloud rows are isolated per account with row-level security, Google tokens are encrypted with a key held only on the server, and the AI API key never leaves the server. No system is perfectly secure; keep your Google account protected with two-step verification."
+      },
+      {
+        "title": "Children",
+        "body": "Veyra is not directed at children under 13 and we do not knowingly collect their data. If you believe a child has used it, email us and we will erase the account."
+      },
+      {
+        "title": "Changes to this policy",
+        "body": "When this page changes, the date at the top moves. Material changes are announced in the app before they take effect."
+      }
+    ]
   }
 }
