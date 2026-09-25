@@ -30,8 +30,26 @@ if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.stora
   navigator.storage.persist().catch(() => undefined);
 }
 
+/** Web: OPFS allows one open handle per file — held by another tab, or briefly by the page we just left (OAuth redirect / reload). */
+export const isDatabaseLocked = (e: unknown) => String(e).includes('NoModificationAllowedError');
+
+// The previous page's worker usually lets go within a second or two; another open tab never does.
+const LOCK_RETRY_MS = [250, 500, 1000, 1500, 2000, 3000];
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function open(): Promise<SQLiteDatabase> {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      return await openDatabaseAsync(DB_NAME);
+    } catch (e) {
+      if (Platform.OS !== 'web' || !isDatabaseLocked(e) || attempt >= LOCK_RETRY_MS.length) throw e;
+      await wait(LOCK_RETRY_MS[attempt]);
+    }
+  }
+}
+
 let opening: Promise<SQLiteDatabase> | null = null;
-const getSqlite = () => (opening ??= openDatabaseAsync(DB_NAME));
+const getSqlite = () => (opening ??= open());
 
 let tail: Promise<unknown> = Promise.resolve();
 function serialize<T>(task: () => Promise<T>): Promise<T> {

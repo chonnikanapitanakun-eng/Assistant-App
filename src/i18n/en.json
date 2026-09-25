@@ -632,5 +632,9 @@
     "sync_error": "Last sync failed — try Sync now",
     "sign_out": "Sign out",
     "error_failed": "Sign-in failed. Check your connection and try again."
+  },
+  "db": {
+    "locked_title": "Veyra is open in another tab",
+    "locked_body": "Close the other tab, then reload this page."
   }
 }
