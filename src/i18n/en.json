@@ -636,5 +636,31 @@
   "db": {
     "locked_title": "Veyra is open in another tab",
     "locked_body": "Close the other tab, then reload this page."
+  },
+  "security": {
+    "title": "Security",
+    "hint": "PIN lock protects Veyra when your phone is unlocked but the app is left open — set one, then optionally add Face ID or Touch ID as a shortcut.",
+    "app_lock": "App lock",
+    "app_lock_on": "On — a PIN is required to open Veyra",
+    "app_lock_off": "Off",
+    "turn_off": "Turn off",
+    "confirm_turn_off": "Tap again to turn off",
+    "change_pin": "Change PIN",
+    "biometric_hint": "Use this instead of your PIN most of the time.",
+    "face_id": "Face ID",
+    "touch_id": "Touch ID",
+    "fingerprint": "Fingerprint",
+    "biometric": "Biometric unlock",
+    "enable_prompt": "Confirm to turn on",
+    "unlock_prompt": "Unlock Veyra",
+    "locked_title": "Veyra is locked",
+    "forgot_pin": "Forgot PIN?",
+    "forgot_pin_confirm": "Tap again to remove the PIN and turn off app lock",
+    "enter_current_pin": "Enter your current PIN",
+    "enter_new_pin": "Enter a new PIN",
+    "confirm_new_pin": "Confirm your new PIN",
+    "wrong_pin": "Wrong PIN — try again.",
+    "pin_mismatch": "PINs didn't match — try again.",
+    "backspace": "Delete"
   }
 }

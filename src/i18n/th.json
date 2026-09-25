@@ -636,5 +636,31 @@
   "db": {
     "locked_title": "Veyra เปิดอยู่ในแท็บอื่น",
     "locked_body": "ปิดแท็บอื่นก่อน แล้วโหลดหน้านี้ใหม่"
+  },
+  "security": {
+    "title": "ความปลอดภัย",
+    "hint": "ล็อกด้วย PIN ป้องกันไม่ให้คนอื่นเปิดแอปได้ถ้าเผลอวางมือถือไว้ตอนไม่ล็อกหน้าจอ — ตั้ง PIN ไว้ก่อน แล้วจะเพิ่ม Face ID หรือ Touch ID เป็นทางลัดด้วยก็ได้",
+    "app_lock": "ล็อกแอป",
+    "app_lock_on": "เปิดอยู่ — ต้องใส่ PIN ทุกครั้งที่เปิด Veyra",
+    "app_lock_off": "ปิดอยู่",
+    "turn_off": "ปิดใช้งาน",
+    "confirm_turn_off": "แตะอีกครั้งเพื่อปิดใช้งาน",
+    "change_pin": "เปลี่ยน PIN",
+    "biometric_hint": "ใช้แทน PIN ได้เลยในการเปิดแอปส่วนใหญ่",
+    "face_id": "Face ID",
+    "touch_id": "Touch ID",
+    "fingerprint": "ลายนิ้วมือ",
+    "biometric": "ปลดล็อกด้วยไบโอเมตริก",
+    "enable_prompt": "ยืนยันเพื่อเปิดใช้งาน",
+    "unlock_prompt": "ปลดล็อก Veyra",
+    "locked_title": "Veyra ถูกล็อกอยู่",
+    "forgot_pin": "ลืม PIN?",
+    "forgot_pin_confirm": "แตะอีกครั้งเพื่อลบ PIN และปิดล็อกแอป",
+    "enter_current_pin": "ใส่ PIN ปัจจุบัน",
+    "enter_new_pin": "ตั้ง PIN ใหม่",
+    "confirm_new_pin": "ยืนยัน PIN ใหม่",
+    "wrong_pin": "PIN ไม่ถูกต้อง ลองอีกครั้ง",
+    "pin_mismatch": "PIN ไม่ตรงกัน ลองอีกครั้ง",
+    "backspace": "ลบ"
   }
 }
