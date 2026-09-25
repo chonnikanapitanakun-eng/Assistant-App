@@ -157,7 +157,7 @@ export default function CaptureScreen() {
             />
             <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: spacing.xs, paddingBottom: spacing.xs }}>
               {media.map((m) => (
-                <IconButton key={m.key} icon={m.icon} label={t(`home.capture_${m.key}`)} onPress={() => setMediaHint(t(`capture.media_${m.key}`))} />
+                <IconButton key={m.key} icon={m.icon} label={t(`home.capture_${m.key}`)} onPress={() => (m.key === 'photo' ? router.replace('/slip') : setMediaHint(t(`capture.media_${m.key}`)))} />
               ))}
               {text ? (
                 <View style={{ marginLeft: 'auto' }}>

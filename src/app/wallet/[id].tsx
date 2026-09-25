@@ -8,6 +8,7 @@ import { Button, Chip, Field, FieldError, Sheet, Text, useInputStyle } from '@/c
 import type { Wallet } from '@/db';
 import { walletIcon } from '@/features/money/category-icon';
 import { walletBalance } from '@/features/money/model';
+import { BANKS } from '@/features/slip/banks';
 import { createWallet, deleteWallet, updateWallet, useTransactions, useWallet } from '@/features/money/queries';
 import { currencySymbol, formatMoney, parseAmount, supportedCurrencies } from '@/lib/currency';
 import { useAsyncAction } from '@/lib/use-async-action';
@@ -39,6 +40,8 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
   const [type, setType] = useDraft<Wallet['type']>(`${draft}:type`, existing?.type ?? 'bank');
   const [currency, setCurrency] = useDraft(`${draft}:currency`, existing?.currency ?? 'THB');
   const [opening, setOpening] = useDraft(`${draft}:opening`, existing ? String(existing.balance) : '0');
+  const [bankCode, setBankCode] = useDraft<string | null>(`${draft}:bankCode`, existing?.bankCode ?? null);
+  const [accountDigits, setAccountDigits] = useDraft(`${draft}:accountDigits`, existing?.accountDigits ?? '');
   const [showErrors, setShowErrors] = useState(false);
 
   const hasHistory = !!existing && txs.some((x) => x.walletId === existing.id || x.toWalletId === existing.id);
@@ -50,7 +53,10 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
       setShowErrors(true);
       return;
     }
-    const values = { name: name.trim(), type, currency, balance: parsed };
+    // Bank details only mean something for THB bank / card accounts (they match Thai slips).
+    const linkable = currency === 'THB' && (type === 'bank' || type === 'card');
+    const digits = accountDigits.replace(/\D/g, '');
+    const values = { name: name.trim(), type, currency, balance: parsed, bankCode: linkable ? bankCode : null, accountDigits: linkable && digits.length >= 3 ? digits : null };
     void run(async () => {
       if (existing) await updateWallet(existing.id, values);
       else await createWallet(values);
@@ -103,6 +109,18 @@ function WalletForm({ existing, onClose }: { existing?: Wallet; onClose: () => v
           </View>
           {hasHistory ? <Text variant="caption" color="textTertiary">{t('money.currency_locked')}</Text> : null}
         </Field>
+
+        {currency === 'THB' && (type === 'bank' || type === 'card') ? (
+          <Field label={t('slip.wallet_bank')} icon="hash">
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+              {BANKS.map((b) => (
+                <Chip key={b.code} label={b.short} selected={bankCode === b.code} onPress={() => setBankCode(bankCode === b.code ? null : b.code)} />
+              ))}
+            </View>
+            <TextInput value={accountDigits} onChangeText={setAccountDigits} keyboardType="number-pad" placeholder={t('slip.wallet_digits_placeholder')} placeholderTextColor={colors.textTertiary} accessibilityLabel={t('slip.wallet_digits')} style={input()} />
+            <Text variant="caption" color="textTertiary">{t('slip.wallet_digits_hint')}</Text>
+          </Field>
+        ) : null}
 
         <Field label={t('money.opening_balance')} icon="flag">
           <TextInput value={opening} onChangeText={setOpening} keyboardType="numbers-and-punctuation" accessibilityLabel={t('money.opening_balance')} style={input(errors.opening, showErrors)} />

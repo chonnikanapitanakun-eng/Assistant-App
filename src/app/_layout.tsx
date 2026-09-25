@@ -64,6 +64,7 @@ export default function RootLayout() {
             <Stack.Screen name="task/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="event/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="tx/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
+            <Stack.Screen name="slip" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="bill/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="wallet/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="budget/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
