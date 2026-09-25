@@ -47,3 +47,22 @@ export type CaptureResponse = {
   items: CaptureItem[];
   confidence: number; // 0-1
 };
+
+/**
+ * Contract ของ ai-ask (SPEC §6.4, P3-01) — mirror ของ supabase/functions/_shared/ask-contract.ts
+ * แอปทำ retrieval เอง (src/features/ai/ask/) แล้วส่งเฉพาะ record ที่เกี่ยวข้อง แต่ละอันมี ref สั้นๆ (T1, E2, N3, X4, C5, B6)
+ * Claude อ้าง ref กลับมาเป็น sources; แอป map กลับเป็น record จริง
+ */
+export type AskRecordType = 'task' | 'event' | 'note' | 'transaction' | 'contact' | 'bill';
+export type AskRecord = { ref: string; type: AskRecordType; text: string };
+
+export type AskSuggestedAction = { label: string; type: 'task' | 'event' | 'note'; title: string; date?: string; startTime?: string };
+
+export type AskResponse = {
+  answer: string;
+  sources: { ref: string }[];
+  suggestedActions: AskSuggestedAction[];
+  followUps: string[];
+  /** Set by the function when it could not answer (refusal / unparseable output); `answer` is then empty. */
+  status?: 'refusal' | 'invalid';
+};
