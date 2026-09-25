@@ -36,9 +36,7 @@ describe('updateCard', () => {
       suggestions: [],
     };
     const id = await addMessage('assistant', 'ยืนยันไหม', payload);
-    const message = await db.select().from(assistantMessages).where(eq(assistantMessages.id, id)).get();
-
-    await updateCard(message!, 'p1', { state: 'done' });
+    await updateCard(id, 'p1', { state: 'done' });
 
     const after = await db.select().from(assistantMessages).where(eq(assistantMessages.id, id)).get();
     const cards = (after!.payload as typeof payload).cards;

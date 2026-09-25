@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/db', () => import('@/db/__tests__/mock-db'));
+vi.mock('@/features/notifications', () => ({
+  syncBillReminder: vi.fn().mockResolvedValue(undefined),
+  cancelBillReminder: vi.fn().mockResolvedValue(undefined),
+}));
 
 const { resetDb } = await import('@/db/__tests__/mock-db');
 const { db, wallets, transactions, categories } = await import('@/db');
@@ -26,7 +30,7 @@ beforeEach(() => {
 });
 
 async function seedWallet(over: Partial<{ name: string; type: 'cash' | 'bank' | 'card' | 'investment'; currency: string; balance: number }> = {}) {
-  return createWallet({ name: 'กระเป๋าเงินสด', type: 'cash', currency: 'THB', balance: 0, ...over });
+  return createWallet({ name: 'กระเป๋าเงินสด', type: 'cash', currency: 'THB', balance: 0, bankCode: null, accountDigits: null, ...over });
 }
 
 describe('createWallet / updateWallet / deleteWallet', () => {
@@ -40,7 +44,7 @@ describe('createWallet / updateWallet / deleteWallet', () => {
 
   it('updates fields', async () => {
     const id = await seedWallet({ name: 'เดิม' });
-    await updateWallet(id, { name: 'ใหม่', type: 'bank', currency: 'GBP', balance: 100 });
+    await updateWallet(id, { name: 'ใหม่', type: 'bank', currency: 'GBP', balance: 100, bankCode: null, accountDigits: null });
     const wallet = await db.select().from(wallets).where(eq(wallets.id, id)).get();
     expect(wallet).toMatchObject({ name: 'ใหม่', type: 'bank', currency: 'GBP', balance: 100 });
   });
