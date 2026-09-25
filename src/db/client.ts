@@ -30,6 +30,13 @@ if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.stora
   navigator.storage.persist().catch(() => undefined);
 }
 
+/**
+ * Web: OPFS allows one open handle per file — held by another tab, or briefly by the page we just
+ * left (OAuth redirect / reload). Chrome reports it as NoModificationAllowedError, Safari as
+ * InvalidStateError. expo-sqlite's worker can't recover from it in-page (use-database.ts reloads).
+ */
+export const isDatabaseLocked = (e: unknown) => /NoModificationAllowedError|InvalidStateError/.test(String(e));
+
 let opening: Promise<SQLiteDatabase> | null = null;
 const getSqlite = () => (opening ??= openDatabaseAsync(DB_NAME));
 

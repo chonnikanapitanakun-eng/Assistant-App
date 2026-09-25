@@ -6,10 +6,11 @@ import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-import { queryClient, useDatabase } from '@/db';
+import { isDatabaseLocked, queryClient, useDatabase } from '@/db';
 import { Text } from '@/components/ui';
 import { GoogleCalendarAutoSync } from '@/features/google-calendar';
 import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
@@ -21,6 +22,7 @@ configureNotificationHandler();
 void configureAndroidChannel();
 
 export default function RootLayout() {
+  const { t } = useTranslation();
   const { ready, error } = useDatabase();
   const { colors, isDark } = useTheme();
   const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
@@ -34,8 +36,8 @@ export default function RootLayout() {
   if (error) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.background }}>
-        <Text variant="heading" color="danger">Database error</Text>
-        <Text color="textSecondary">{error.message}</Text>
+        <Text variant="heading" color="danger">{isDatabaseLocked(error) ? t('db.locked_title') : 'Database error'}</Text>
+        <Text color="textSecondary" style={{ textAlign: 'center' }}>{isDatabaseLocked(error) ? t('db.locked_body') : error.message}</Text>
       </View>
     );
   }
