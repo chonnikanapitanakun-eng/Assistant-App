@@ -10,10 +10,10 @@ export const gcalEnabled = !!url && !!anonKey;
 /** Error code from the function, e.g. `not_configured`, `too_many_accounts`, `bad_ticket`. */
 export class GcalError extends Error {}
 
-async function call<T>(action: string, body: Record<string, unknown> = {}): Promise<T> {
+async function call<T>(action: string, body: Record<string, unknown> = {}, bearer = anonKey): Promise<T> {
   const res = await fetch(`${url}/functions/v1/gcal`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${anonKey}`, apikey: anonKey! },
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${bearer}`, apikey: anonKey! },
     body: JSON.stringify({ action, key: deviceKey(), ...body }),
   });
   const data = await res.json().catch(() => ({}));
@@ -26,3 +26,7 @@ export const finishAuth = (ticket: string) => call<{ account: { id: string; emai
 export const fetchSync = (from: number, to: number) =>
   call<{ accounts: SyncAccount[] }>('sync', { timeMin: new Date(from).toISOString(), timeMax: new Date(to).toISOString() }).then((r) => r.accounts);
 export const revokeAccount = (accountId: string) => call<{ ok: true }>('disconnect', { accountId });
+
+/** Attach this device's Google Calendar accounts to the signed-in user (features/sync/auto-sync.tsx). */
+export const claimGoogleAccounts = (accessToken: string) =>
+  gcalEnabled ? call<{ ok: true }>('claim', {}, accessToken).then(() => undefined) : Promise.resolve();

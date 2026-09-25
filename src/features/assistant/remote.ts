@@ -1,3 +1,5 @@
+import { getSession } from '@/features/auth';
+
 import type { AssistantContext, Card, Proposal, Reply } from './types';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
@@ -16,7 +18,7 @@ type RemoteResponse = { text: string; proposals: Proposal[]; suggestions?: strin
 export async function askRemote(history: { role: 'user' | 'assistant'; text: string }[], ctx: AssistantContext, locale: string): Promise<Reply> {
   const res = await fetch(`${url}/functions/v1/assistant`, {
     method: 'POST',
-    headers: { 'content-type': 'application/json', authorization: `Bearer ${anonKey}`, apikey: anonKey! },
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${getSession()?.access_token ?? anonKey}`, apikey: anonKey! },
     body: JSON.stringify({
       locale,
       messages: history.slice(-12).map((m) => ({ role: m.role, content: m.text })),

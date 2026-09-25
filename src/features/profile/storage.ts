@@ -44,3 +44,20 @@ export function removeKey(key: string) {
     // Non-fatal: a leftover key is ignored by its reader.
   }
 }
+
+/** Unparsed string read/write — for values (like a Supabase session) that are already JSON text. */
+export function readRaw(key: string): string | null {
+  try {
+    return store.get(key);
+  } catch {
+    return null;
+  }
+}
+
+export function writeRaw(key: string, value: string) {
+  try {
+    store.set(key, value);
+  } catch {
+    // Non-fatal.
+  }
+}

@@ -44,7 +44,8 @@
 - [ ] Budget ต่อหมวด + เตือน, recurring bills / subscriptions
 - [ ] Net worth (FX rate manual / API)
 - [x] Google Calendar import (read-only, หลายบัญชี) — `supabase/functions/gcal`, `src/features/google-calendar`
-- [ ] Supabase Auth (Apple/Google) + sync engine
+- [x] Supabase Auth (Google) + sync engine — `src/features/auth`, `src/features/sync`
+- [ ] Supabase Auth (Apple)
 - [ ] PIN / Face ID
 
 ## Phase 3 — จุดขายไทย

@@ -13,6 +13,7 @@ import { queryClient, useDatabase } from '@/db';
 import { Text } from '@/components/ui';
 import { GoogleCalendarAutoSync } from '@/features/google-calendar';
 import { configureAndroidChannel, configureNotificationHandler } from '@/features/notifications';
+import { SyncAutoRun } from '@/features/sync';
 import { useTheme } from '@/theme';
 
 void SplashScreen.preventAutoHideAsync();
@@ -69,6 +70,7 @@ export default function RootLayout() {
             <Stack.Screen name="focus" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
           </Stack>
           <GoogleCalendarAutoSync />
+          <SyncAutoRun />
           <StatusBar style={isDark ? 'light' : 'dark'} />
         </ThemeProvider>
       </QueryClientProvider>

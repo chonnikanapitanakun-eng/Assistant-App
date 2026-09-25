@@ -60,7 +60,7 @@ curl -X POST "$SUPABASE_URL/functions/v1/ai-capture" \
 3. แอป `finish` ด้วย device key เดียวกัน → ย้ายเข้า `gcal_accounts` (ต้องเป็นเครื่องที่เริ่ม flow เท่านั้น — กันการส่งลิงก์ consent ให้คนอื่นกดแล้วได้ปฏิทินเขาไป)
 4. `sync` → refresh access token ทีละบัญชี → ดึง event จากทุกปฏิทินที่ติ๊กไว้ใน Google Calendar (ข้าม cancelled / ที่ตอบ declined) → แอป diff ลง SQLite (`planSync` ใน `src/features/google-calendar/model.ts`) — id ในเครื่องคงเดิมทุกรอบ, นัดที่เชิญทั้ง 2 บัญชีแสดงครั้งเดียว
 
-**Identity ชั่วคราว**: ยังไม่มี Supabase Auth → บัญชีผูกกับ `sha256(device key)` (`src/features/google-calendar/device-key.ts`) ลบแอป / ล้าง site data = ต้องเชื่อมใหม่ — ย้ายไป `user_id` ตอนทำ Auth
+**Identity**: บัญชียังผูกกับ `sha256(device key)` เสมอ (`src/features/google-calendar/device-key.ts`) — ลบแอป / ล้าง site data ก่อน sign in = ต้องเชื่อมใหม่ เข้าสู่ระบบ (Cloud sync ด้านล่าง) แล้วแอปจะเรียก `claim` ให้อัตโนมัติ ย้าย `user_id` ของบัญชีที่ยังไม่มีเจ้าของให้เครื่องนั้น (idempotent, เรียกซ้ำได้)
 
 **Setup**
 
@@ -84,3 +84,22 @@ npx supabase functions deploy gcal
 - `GCAL_TOKEN_KEY` ห้ามเปลี่ยนหลังใช้งานแล้ว — token เดิมจะถอดรหัสไม่ได้ (ต้องเชื่อมใหม่ทุกบัญชี)
 
 **ข้อจำกัดโหมด Testing ของ Google**: ผู้ใช้ทดสอบไม่เกิน 100 คน และ refresh token หมดอายุทุก 7 วัน → บัญชีขึ้น "ต้องเชื่อมใหม่" ใน Settings กดปุ่มเดียวจบ (ต้องผ่าน Google verification ก่อนปล่อยคนอื่นใช้ — Phase 4)
+
+## Cloud sync (P2) — Supabase Auth + sync tables
+
+เข้าสู่ระบบด้วย Google (`src/features/auth`) แล้วทุกตารางที่มี base columns สำหรับ sync (`src/db/schema.ts`) จะ push/pull ข้อมูลไปมากับ Postgres โดยตรงผ่าน Supabase client ของแอป (ไม่ผ่าน Edge Function — RLS คุมสิทธิ์แทน) ดู `src/features/sync` (push/pull ทีละแถวที่เปลี่ยน, last-write-wins ด้วย `updatedAt`) — ยังไม่มี Apple Sign In
+
+**ตาราง**: areas, contacts, routines, tasks, notes, wallets, categories, transactions, recurring_bills, checkins, focus_sessions, assistant_messages, links (`supabase/migrations/20260925010000_sync_tables.sql`) — `calendar_events`/`calendar_accounts` ไม่รวม เพราะซิงก์ผ่าน `gcal` อยู่แล้ว
+
+**Setup (ครั้งแรก)**
+
+1. Supabase Dashboard → **Authentication → Providers → Google** → ใส่ Client ID / Client Secret (จาก Google Cloud Console เดียวกับที่ตั้งไว้สำหรับ `gcal` ก็ได้ หรือสร้างใหม่แยกก็ได้)
+2. **Authentication → URL Configuration → Redirect URLs** → เพิ่ม `veyra://settings`, `http://localhost:8081/settings` (dev), และ URL เว็บ `…/settings`
+3. Push ตาราง sync:
+
+```bash
+npx supabase db push        # สร้างตาราง areas/tasks/notes/... + RLS
+```
+
+- `ai-capture` / `assistant` เปลี่ยนเป็น `verify_jwt = true` แล้ว (`supabase/config.toml`) — คนที่ยังไม่ login ก็ยังเรียกได้ปกติ (anon key เองก็เป็น JWT ที่ผ่านการตรวจสอบ), login แล้ว `ai_usage.user_id` จะเป็นของจริง
+- ลบแอป / ล้าง site data แล้วเข้าสู่ระบบใหม่ (บัญชี Google เดิม) = ข้อมูลกลับมาครบจาก Postgres
