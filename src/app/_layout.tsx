@@ -71,6 +71,7 @@ export default function RootLayout() {
             <Stack.Screen name="note/[id]" />
             <Stack.Screen name="more" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="focus" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />
+            <Stack.Screen name="review" />
           </Stack>
           <GoogleCalendarAutoSync />
           <SyncAutoRun />

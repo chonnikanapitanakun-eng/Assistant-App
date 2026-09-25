@@ -37,7 +37,7 @@
 
 ## Phase 2 — เทียบ Tiimo
 
-- [ ] Check-in (mood/energy) + Review screen
+- [x] Check-in (mood/energy) + Review screen
 - [ ] `ai-summary` daily / weekly + morning briefing notification
 - [ ] Focus timer + focus_sessions
 - [ ] Routines + energy tag
