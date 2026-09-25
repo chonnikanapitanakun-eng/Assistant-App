@@ -10,6 +10,10 @@
 //   POST { action: 'disconnect', key, accountId }         → { ok: true }  revoke at Google + delete
 //   POST { action: 'claim', key }, Authorization: Bearer <user JWT> → { ok: true }
 //     attach every account still owned only by sha256(key) to the signed-in user (idempotent)
+//   POST { action: 'link', key, refreshToken }, Authorization: Bearer <user JWT> → { account }
+//     link the Google account just used to sign in (Supabase Auth asked for calendar.readonly too),
+//     so sign-in and calendar are one consent screen. Needs Supabase's Google provider to use the
+//     same GOOGLE_CLIENT_ID, otherwise Google rejects the refresh token → `client_mismatch`.
 //
 // `key` is the device key (src/features/google-calendar/device-key.ts). An account belongs to
 // sha256(key) until it is claimed by a signed-in user (Phase 2 Supabase Auth), which fills `user_id`.
@@ -217,12 +221,13 @@ async function callback(url: URL) {
   }
 }
 
+type TokenInfo = { scope?: string; sub?: string; email?: string };
+const tokenInfo = async (accessToken: string): Promise<TokenInfo> =>
+  (await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`)).json().catch(() => ({}));
+const hasCalendar = (info: TokenInfo) => typeof info.scope === 'string' && info.scope.split(' ').includes('https://www.googleapis.com/auth/calendar.readonly');
+
 /** Google lets people untick the calendar permission on the consent screen. */
-async function grantedCalendar(accessToken: string) {
-  const res = await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`);
-  const info = await res.json().catch(() => ({}));
-  return typeof info.scope === 'string' && info.scope.split(' ').includes('https://www.googleapis.com/auth/calendar.readonly');
-}
+const grantedCalendar = async (accessToken: string) => hasCalendar(await tokenInfo(accessToken));
 
 async function finish(owner: string, body: Record<string, unknown>) {
   if (typeof body.ticket !== 'string') return json({ error: 'bad_ticket' }, 400);
@@ -231,17 +236,39 @@ async function finish(owner: string, body: Record<string, unknown>) {
   if (!pending || pending.owner !== owner || new Date(pending.expires_at).getTime() < Date.now()) return json({ error: 'bad_ticket' }, 400);
   await admin.from('gcal_pending').delete().eq('ticket_hash', ticketHash);
 
+  return saveAccount(owner, { google_sub: pending.google_sub, email: pending.email, refresh_token: pending.refresh_token });
+}
+
+async function saveAccount(owner: string, row: { google_sub: string; email: string; refresh_token: string; user_id?: string }) {
   const { data: existing } = await admin.from('gcal_accounts').select('id, google_sub').eq('owner', owner);
-  const isNew = !(existing ?? []).some((a) => a.google_sub === pending.google_sub);
+  const isNew = !(existing ?? []).some((a) => a.google_sub === row.google_sub);
   if (isNew && (existing?.length ?? 0) >= MAX_ACCOUNTS) return json({ error: 'too_many_accounts' }, 400);
 
   const { data: account, error } = await admin
     .from('gcal_accounts')
-    .upsert({ owner, google_sub: pending.google_sub, email: pending.email, refresh_token: pending.refresh_token, status: 'ok', updated_at: new Date().toISOString() }, { onConflict: 'owner,google_sub' })
+    .upsert({ owner, ...row, status: 'ok', updated_at: new Date().toISOString() }, { onConflict: 'owner,google_sub' })
     .select('id, email, status')
     .single();
   if (error) throw error;
   return json({ account });
+}
+
+/** Link the Google account the person just signed in with, from the refresh token Supabase Auth handed the app. */
+async function link(owner: string, body: Record<string, unknown>, req: Request) {
+  const user = await userOf(req);
+  if (!user) return json({ error: 'bad_token' }, 401);
+  if (typeof body.refreshToken !== 'string' || !body.refreshToken) return json({ error: 'bad_token' }, 400);
+  let accessToken: string;
+  try {
+    ({ access_token: accessToken } = await googleToken({ grant_type: 'refresh_token', refresh_token: body.refreshToken }));
+  } catch (err) {
+    console.error('gcal link', err);
+    return json({ error: 'client_mismatch' }, 400);
+  }
+  const info = await tokenInfo(accessToken);
+  if (!hasCalendar(info)) return json({ error: 'scope' }, 400);
+  if (!info.sub || !info.email) return json({ error: 'failed' }, 400);
+  return saveAccount(owner, { google_sub: info.sub, email: info.email, refresh_token: await seal(body.refreshToken), user_id: user });
 }
 
 async function sync(owner: string, body: Record<string, unknown>) {
@@ -273,14 +300,20 @@ async function sync(owner: string, body: Record<string, unknown>) {
   return json({ accounts });
 }
 
-/** Attach this device's not-yet-claimed accounts to the signed-in user. Safe to call repeatedly. */
-async function claim(owner: string, req: Request) {
+/** The signed-in Supabase user behind the request's bearer token, or null (anon key / expired). */
+async function userOf(req: Request): Promise<string | null> {
   const token = (req.headers.get('authorization') ?? '').replace(/^Bearer\s+/i, '');
   const { data, error } = await admin.auth.getUser(token);
-  if (error || !data.user) return json({ error: 'bad_token' }, 401);
+  return error || !data.user ? null : data.user.id;
+}
+
+/** Attach this device's not-yet-claimed accounts to the signed-in user. Safe to call repeatedly. */
+async function claim(owner: string, req: Request) {
+  const user = await userOf(req);
+  if (!user) return json({ error: 'bad_token' }, 401);
   const { error: updateError } = await admin
     .from('gcal_accounts')
-    .update({ user_id: data.user.id, updated_at: new Date().toISOString() })
+    .update({ user_id: user, updated_at: new Date().toISOString() })
     .eq('owner', owner)
     .is('user_id', null);
   if (updateError) throw updateError;
@@ -322,6 +355,8 @@ Deno.serve(async (req) => {
         return await disconnect(owner, body);
       case 'claim':
         return await claim(owner, req);
+      case 'link':
+        return await link(owner, body, req);
     }
     return json({ error: 'unknown_action' }, 400);
   } catch (err) {

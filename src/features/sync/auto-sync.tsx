@@ -1,8 +1,8 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
 
-import { useSession } from '@/features/auth';
-import { claimGoogleAccounts } from '@/features/google-calendar';
+import { clearProviderRefreshToken, useProviderRefreshToken, useSession } from '@/features/auth';
+import { claimGoogleAccounts, linkFromSignIn } from '@/features/google-calendar';
 import { background } from '@/lib/background';
 
 import { runSync } from './engine';
@@ -15,6 +15,14 @@ import { runSync } from './engine';
 export function SyncAutoRun() {
   const session = useSession();
   const userId = session?.user.id;
+  const refreshToken = useProviderRefreshToken();
+
+  // Just signed in with Google (Calendar access asked on the same screen): link that calendar too.
+  useEffect(() => {
+    if (!session || !refreshToken) return;
+    clearProviderRefreshToken();
+    background(linkFromSignIn(session.access_token, refreshToken, session.user.email), 'Google Calendar link');
+  }, [session, refreshToken]);
 
   useEffect(() => {
     if (!userId || !session) return;

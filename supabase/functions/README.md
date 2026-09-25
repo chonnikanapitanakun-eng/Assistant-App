@@ -93,7 +93,8 @@ npx supabase functions deploy gcal
 
 **Setup (ครั้งแรก)**
 
-1. Supabase Dashboard → **Authentication → Providers → Google** → ใส่ Client ID / Client Secret (จาก Google Cloud Console เดียวกับที่ตั้งไว้สำหรับ `gcal` ก็ได้ หรือสร้างใหม่แยกก็ได้)
+1. Supabase Dashboard → **Authentication → Providers → Google** → ใส่ Client ID / Client Secret **ตัวเดียวกับ `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` ของ `gcal`** — ตอน sign in แอปขอสิทธิ์ `calendar.readonly` ในหน้า consent เดียวกัน แล้วส่ง refresh token ที่ได้ไปให้ `gcal` (action `link`) ผูกปฏิทินของ email นั้นให้ทันที (ข้ามถ้าเครื่องนี้ผูก email นั้นไว้แล้ว) — ถ้าใช้ client คนละตัว Google จะปฏิเสธ token (`client_mismatch`) ต้องไปกด "เพิ่มบัญชี" ใน Settings เอง ส่วน email อื่นๆ เพิ่มที่ Settings → Google Calendar เหมือนเดิม
+   - ใน Google Cloud Console เพิ่ม Authorized redirect URI ของ Supabase Auth ด้วย: `https://<project-ref>.supabase.co/auth/v1/callback`
 2. **Authentication → URL Configuration → Redirect URLs** → เพิ่ม `veyra://settings`, `http://localhost:8081/settings` (dev), และ URL เว็บ `…/settings`
 3. Push ตาราง sync:
 

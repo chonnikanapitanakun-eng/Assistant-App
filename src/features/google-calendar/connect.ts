@@ -6,8 +6,9 @@ import { Platform } from 'react-native';
 import { calendarAccounts, commit, db } from '@/db';
 
 import { pickColor } from './model';
-import { finishAuth, revokeAccount, startAuth } from './remote';
+import { finishAuth, gcalEnabled, linkSignInAccount, revokeAccount, startAuth } from './remote';
 import { removeLocal, syncGoogleCalendars, upsertAccount } from './sync';
+import type { AccountStatus } from './types';
 
 /** Google redirects back to Settings with `?gcal=<ticket>` or `?gcal_error=<code>`. */
 export type AuthReturn = { gcal?: string; gcal_error?: string };
@@ -44,16 +45,30 @@ export function completeGoogleConnect(ret: AuthReturn): Promise<ConnectResult> {
   if (!ticket) return Promise.resolve(null);
   let p = claimed.get(ticket);
   if (!p) {
-    p = (async () => {
-      const { account } = await finishAuth(ticket);
-      const used = await db.select({ color: calendarAccounts.color }).from(calendarAccounts).where(isNull(calendarAccounts.deletedAt)).all();
-      await commit([upsertAccount(account.id, account.email, account.status, pickColor(used.map((u) => u.color)))]);
-      await syncGoogleCalendars({ force: true });
-      return { email: account.email };
-    })();
+    p = finishAuth(ticket).then(({ account }) => saveLinked(account));
     claimed.set(ticket, p);
   }
   return p;
+}
+
+/**
+ * Right after Google sign-in (which also asked for Calendar access): link that same account's calendar,
+ * unless this device already has it. Adding more accounts stays in Settings (`connectGoogle`).
+ */
+export async function linkFromSignIn(accessToken: string, refreshToken: string, email: string | undefined): Promise<ConnectResult> {
+  if (!gcalEnabled) return null;
+  const linked = await db.select({ email: calendarAccounts.email }).from(calendarAccounts).where(isNull(calendarAccounts.deletedAt)).all();
+  if (email && linked.some((a) => a.email.toLowerCase() === email.toLowerCase())) return null;
+  const { account } = await linkSignInAccount(accessToken, refreshToken);
+  return saveLinked(account);
+}
+
+/** Save a newly linked account locally and pull its events. */
+async function saveLinked(account: { id: string; email: string; status: AccountStatus }): Promise<ConnectResult> {
+  const used = await db.select({ color: calendarAccounts.color }).from(calendarAccounts).where(isNull(calendarAccounts.deletedAt)).all();
+  await commit([upsertAccount(account.id, account.email, account.status, pickColor(used.map((u) => u.color)))]);
+  await syncGoogleCalendars({ force: true });
+  return { email: account.email };
 }
 
 /** Unlink: revoke on the server first (so the token is gone), then hide it locally. */
