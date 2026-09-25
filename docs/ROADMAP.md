@@ -62,7 +62,7 @@
 
 - [ ] Gmail: inbox ค้างตอบ, สรุป, draft, follow-up reminder
 - [ ] LINE Messaging API → capture
-- [ ] ปฏิทินไทย พ.ศ. / วันหยุด / วันพระ
+- [x] ปฏิทินไทย พ.ศ. / วันหยุด / วันพระ
 - [ ] Google Calendar 2 ทาง
 - [ ] `ai-prep-meeting`
 - [ ] Premium tier (RevenueCat)

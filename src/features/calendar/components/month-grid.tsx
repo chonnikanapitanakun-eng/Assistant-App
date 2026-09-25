@@ -1,7 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { View } from 'react-native';
 
-import { PressableScale, Text } from '@/components/ui';
+import { Icon, PressableScale, Text } from '@/components/ui';
+import { isWanPhraDateKey } from '@/lib/thai-lunar';
+import { thaiHolidayOnDate } from '@/lib/thai-holidays';
 import { useTheme } from '@/theme';
 
 import { fromDateKey, monthGrid, weekDays, type CalItem } from '../model';
@@ -41,12 +43,21 @@ export function MonthGrid({ date, selected, today, items, onSelect, large }: Pro
             const dayItems = (byDay.get(c.date) ?? []).filter((i) => !i.done);
             const events = dayItems.filter((i) => i.kind === 'event');
             const n = fromDateKey(c.date).getDate();
+            const holiday = thaiHolidayOnDate(c.date);
+            const wanPhra = isWanPhraDateKey(c.date);
+            const holidayLabel = holiday ? (locale === 'th-TH' ? holiday.nameTh : holiday.nameEn) : null;
+            const a11yLabel = [
+              fromDateKey(c.date).toLocaleDateString(locale, { day: 'numeric', month: 'long' }),
+              t('calendar.items', { count: dayItems.length }),
+              holidayLabel,
+              wanPhra ? t('calendar.wan_phra') : null,
+            ].filter(Boolean).join(', ');
             return (
               <PressableScale
                 key={c.date}
                 accessibilityRole="button"
                 accessibilityState={{ selected: on }}
-                accessibilityLabel={`${fromDateKey(c.date).toLocaleDateString(locale, { day: 'numeric', month: 'long' })}, ${t('calendar.items', { count: dayItems.length })}`}
+                accessibilityLabel={a11yLabel}
                 onPress={() => onSelect(c.date)}
                 style={{
                   flex: 1,
@@ -62,23 +73,28 @@ export function MonthGrid({ date, selected, today, items, onSelect, large }: Pro
                   opacity: c.inMonth ? 1 : 0.4,
                 }}
               >
-                <View
-                  style={{
-                    alignSelf: large ? 'flex-start' : 'center',
-                    minWidth: 30,
-                    height: 30,
-                    borderRadius: 15,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: !large && on ? colors.primary : 'transparent',
-                    borderWidth: isToday && !(on && !large) ? 1.5 : 0,
-                    borderColor: colors.primary,
-                  }}
-                >
-                  <Text variant="label" weight={isToday || on ? 'bold' : 'medium'} tone={!large && on ? colors.onPrimary : isToday ? colors.primary : colors.text}>{n}</Text>
+                <View style={{ alignSelf: large ? 'flex-start' : 'center', flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                  <View
+                    style={{
+                      minWidth: 30,
+                      height: 30,
+                      borderRadius: 15,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: !large && on ? colors.primary : 'transparent',
+                      borderWidth: isToday && !(on && !large) ? 1.5 : 0,
+                      borderColor: colors.primary,
+                    }}
+                  >
+                    <Text variant="label" weight={isToday || on || holiday ? 'bold' : 'medium'} tone={!large && on ? colors.onPrimary : holiday ? colors.danger : isToday ? colors.primary : colors.text}>{n}</Text>
+                  </View>
+                  {wanPhra ? <Icon name="moon" size={11} color="textTertiary" /> : null}
                 </View>
                 {large ? (
                   <>
+                    {holidayLabel ? (
+                      <Text variant="caption" numberOfLines={1} tone={colors.danger} style={{ fontSize: 11, lineHeight: 16 }}>{holidayLabel}</Text>
+                    ) : null}
                     {events.slice(0, 3).map((e) => (
                       <Text key={e.id} variant="caption" numberOfLines={1} tone={tints.meeting.fg} style={{ backgroundColor: tints.meeting.bg, borderRadius: 4, paddingHorizontal: 4, fontSize: 11, lineHeight: 16 }}>
                         {e.start ? `${e.start} ` : ''}{e.title}
