@@ -9,10 +9,15 @@ export const authEnabled = supabaseEnabled;
 export type SignInResult = { ok: true } | { error: string } | null;
 
 /**
- * Sign-in also asks for read-only Calendar access (offline, so Google hands back a refresh token) —
- * one consent screen links the calendar too; see `linkFromSignIn` in `features/google-calendar/connect.ts`.
+ * Sign-in also asks for read-only Calendar and Gmail (read + drafts) access (offline, so Google hands
+ * back a refresh token) — one consent screen links the account for Calendar and Gmail (P4-01) too;
+ * see `linkFromSignIn` in `features/google-calendar/connect.ts`. Keep in step with `gcal`'s SCOPES.
  */
-const CALENDAR_SCOPE = 'https://www.googleapis.com/auth/calendar.readonly';
+const GOOGLE_SCOPES = [
+  'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/gmail.compose',
+].join(' ');
 
 /**
  * Google sign-in via Supabase's hosted OAuth (same shape as `google-calendar/connect.ts`'s Google flow).
@@ -28,7 +33,7 @@ export async function signInWithGoogle(): Promise<SignInResult> {
     options: {
       redirectTo,
       skipBrowserRedirect: Platform.OS !== 'web',
-      scopes: CALENDAR_SCOPE,
+      scopes: GOOGLE_SCOPES,
       // consent: Google only returns a refresh token on a fresh consent.
       queryParams: { access_type: 'offline', prompt: 'consent select_account' },
     },

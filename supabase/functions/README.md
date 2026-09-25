@@ -4,6 +4,7 @@
 |---|---|---|
 | `assistant` | 1 | Veyra AI chat — `src/features/assistant/types.ts` (`Proposal`); Claude only *proposes*, the app confirms |
 | `gcal` | 2 | Google Calendar import (read-only, หลายบัญชี) — `src/features/google-calendar/types.ts`; ดู § gcal ด้านล่าง |
+| `gmail` | 4 | อีเมลค้างตอบ + AI สรุป/ร่างตอบ + บันทึก draft — `_shared/gmail-contract.ts`; ดู § gmail ด้านล่าง |
 | `ai-capture` | 1 | `src/features/ai/types.ts` → `CaptureResponse` — structured output ตาม `_shared/capture-contract.ts`, prompt ใน `ai-capture/prompt.ts` |
 | `ai-summary` | 2 | SPEC §6.4 |
 | `ai-ask` | 3 | SPEC §6.4 |
@@ -84,6 +85,33 @@ npx supabase functions deploy gcal
 - `GCAL_TOKEN_KEY` ห้ามเปลี่ยนหลังใช้งานแล้ว — token เดิมจะถอดรหัสไม่ได้ (ต้องเชื่อมใหม่ทุกบัญชี)
 
 **ข้อจำกัดโหมด Testing ของ Google**: ผู้ใช้ทดสอบไม่เกิน 100 คน และ refresh token หมดอายุทุก 7 วัน → บัญชีขึ้น "ต้องเชื่อมใหม่" ใน Settings กดปุ่มเดียวจบ (ต้องผ่าน Google verification ก่อนปล่อยคนอื่นใช้ — Phase 4)
+
+## gmail — อีเมลค้างตอบ (P4-01)
+
+ใช้บัญชี Google ชุดเดียวกับ `gcal` (ตาราง `gcal_accounts` — refresh token เดียวต่อบัญชี) ไม่มีตารางใหม่ และ**ไม่เก็บเนื้อหาอีเมลใดๆ บน server** ทุก action อ่าน Gmail สดแล้วส่งผลกลับ
+
+| action | ทำอะไร |
+|---|---|
+| `inbox` | ทุกบัญชีของเครื่อง → thread ใน inbox 14 วันล่าสุด (ไม่รวม Promotions/Social/Updates/Forums) ที่ข้อความล่าสุดมาจากคนอื่น ไม่ใช่ no-reply / newsletter (`awaitingReply()`) |
+| `insight` | อ่าน thread เต็ม → Claude สรุป + key points + ร่างคำตอบ + แนะนำวัน follow-up (structured output `INSIGHT_SCHEMA`) — log ลง `ai_usage` ชื่อ `gmail` |
+| `draft` | บันทึกคำตอบเป็น draft ใน thread เดิม (In-Reply-To / References ถูกต้อง) — **ไม่ส่งเมล** ผู้ใช้กดส่งเองใน Gmail |
+
+- Scopes: `gcal` `start` และ sign-in (`src/features/auth/google.ts`) ขอ `gmail.readonly` + `gmail.compose` เพิ่มในหน้า consent เดียวกัน — ถ้าผู้ใช้ไม่ติ๊ก Gmail ปฏิทินยังใช้ได้ บัญชีนั้นขึ้นสถานะ `scope` ในหน้า Inbox พร้อมปุ่ม "อนุญาต Gmail" (เรียก `connectGoogle(email)` ใหม่)
+- บัญชีที่ผูกไว้ก่อน P4-01 จะได้ `scope` จนกว่าจะกดอนุญาต หรือ sign in ใหม่ (sign in ส่ง refresh token ใหม่ให้ `gcal` `link` เสมอ)
+- Follow-up reminder = task ในแอป (วันที่ +N 09:00, เปิดเตือน) — ไม่แตะ Gmail
+- App: `src/app/inbox.tsx`, `src/features/gmail` — เข้าได้จากเมนู เพิ่มเติม / sidebar
+
+**Setup**
+
+1. Google Cloud Console → **APIs & Services → Library** → เปิด **Gmail API**
+2. **OAuth consent screen → Data access** → เพิ่ม scopes `.../auth/gmail.readonly`, `.../auth/gmail.compose`
+3. Deploy:
+
+```bash
+npx supabase functions deploy gcal gmail   # gcal: ขอ scope Gmail เพิ่ม, gmail: ใหม่
+```
+
+ใช้ secrets ชุดเดียวกับ `gcal` + `ANTHROPIC_API_KEY` — ก่อนปล่อยให้คนอื่นใช้ ต้องผ่าน Google verification (restricted scopes) ดู `docs/GMAIL_OAUTH_VERIFICATION.md`
 
 ## Cloud sync (P2) — Supabase Auth + sync tables
 

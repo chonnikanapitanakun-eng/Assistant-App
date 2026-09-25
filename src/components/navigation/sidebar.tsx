@@ -42,6 +42,7 @@ export function Sidebar({ state, navigation }: BottomTabBarProps) {
         );
       })}
 
+      <SidebarItem icon="mail" label={t('more.inbox')} focused={false} onPress={() => router.push('/inbox')} />
       <SidebarItem icon="target" label={t('more.focus')} focused={false} onPress={() => router.push('/focus')} />
       <SidebarItem icon="search" label={t('more.search')} focused={false} onPress={() => router.push('/search')} />
 

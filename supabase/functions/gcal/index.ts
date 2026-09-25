@@ -18,21 +18,42 @@
 // `key` is the device key (src/features/google-calendar/device-key.ts). An account belongs to
 // sha256(key) until it is claimed by a signed-in user (Phase 2 Supabase Auth), which fills `user_id`.
 //
+// Gmail (P4-01, functions/gmail) reads the same rows: `start` also asks for gmail.readonly +
+// gmail.compose, so one consent covers both. Calendar stays required; Gmail may be unticked.
+//
 // Secrets: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GCAL_TOKEN_KEY (32+ random bytes, base64),
 //          GCAL_RETURN_PREFIXES (comma list of allowed return URLs, default "veyra://"),
 //          GCAL_REDIRECT_URI (optional; default <SUPABASE_URL>/functions/v1/gcal/callback)
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
-const CLIENT_ID = Deno.env.get('GOOGLE_CLIENT_ID') ?? '';
-const CLIENT_SECRET = Deno.env.get('GOOGLE_CLIENT_SECRET') ?? '';
-const TOKEN_KEY = Deno.env.get('GCAL_TOKEN_KEY') ?? '';
+import {
+  b64url,
+  CALENDAR_SCOPE,
+  CLIENT_ID,
+  deriveKey,
+  enc,
+  fromB64url,
+  GMAIL_COMPOSE_SCOPE,
+  GMAIL_READ_SCOPE,
+  googleConfigured,
+  googleToken,
+  hasScope,
+  ownerOf,
+  ReauthError,
+  seal,
+  sha256,
+  tokenInfo,
+  unseal,
+  type TokenInfo,
+} from '../_shared/google.ts';
+
 const REDIRECT_URI = Deno.env.get('GCAL_REDIRECT_URI') ?? `${Deno.env.get('SUPABASE_URL')}/functions/v1/gcal/callback`;
 const RETURN_PREFIXES = (Deno.env.get('GCAL_RETURN_PREFIXES') ?? 'veyra://')
   .split(',')
   .map((s) => s.trim().replace(/^["']|["']$/g, '')) // tolerate quotes pasted into the dashboard
   .filter(Boolean);
 
-const SCOPES = 'openid email https://www.googleapis.com/auth/calendar.readonly';
+const SCOPES = `openid email ${CALENDAR_SCOPE} ${GMAIL_READ_SCOPE} ${GMAIL_COMPOSE_SCOPE}`;
 const MAX_ACCOUNTS = 10;
 const STATE_TTL_MS = 10 * 60_000;
 const TICKET_TTL_MS = 10 * 60_000;
@@ -40,28 +61,8 @@ const MAX_WINDOW_MS = 400 * 86_400_000;
 
 const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, { auth: { persistSession: false } });
 
-// ── crypto helpers ──
-const enc = new TextEncoder();
-const b64url = (bytes: Uint8Array) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-const fromB64url = (s: string) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0));
-const hex = (buf: ArrayBuffer) => [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
-const sha256 = async (s: string) => hex(await crypto.subtle.digest('SHA-256', enc.encode(s)));
 const randomToken = () => b64url(crypto.getRandomValues(new Uint8Array(32)));
-
-// One secret, two purpose-bound keys: AES-GCM for tokens at rest, HMAC for the OAuth state.
-const secret = TOKEN_KEY ? fromB64url(TOKEN_KEY.replace(/=+$/, '')) : new Uint8Array();
-const aesKey = crypto.subtle.digest('SHA-256', new Uint8Array([...enc.encode('gcal-token:'), ...secret])).then((raw) => crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt']));
-const hmacKey = crypto.subtle.digest('SHA-256', new Uint8Array([...enc.encode('gcal-state:'), ...secret])).then((raw) => crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']));
-
-async function seal(plain: string): Promise<string> {
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, await aesKey, enc.encode(plain)));
-  return `${b64url(iv)}.${b64url(ct)}`;
-}
-async function unseal(sealed: string): Promise<string> {
-  const [iv, ct] = sealed.split('.');
-  return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromB64url(iv) }, await aesKey, fromB64url(ct)));
-}
+const hmacKey = deriveKey('gcal-state:').then((raw) => crypto.subtle.importKey('raw', raw, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']));
 
 type State = { o: string; r: string; e: number };
 async function signState(s: State): Promise<string> {
@@ -92,22 +93,6 @@ const withParams = (url: string, params: Record<string, string>) => {
 };
 
 // ── Google ──
-class ReauthError extends Error {}
-
-async function googleToken(params: Record<string, string>) {
-  const res = await fetch('https://oauth2.googleapis.com/token', {
-    method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ client_id: CLIENT_ID, client_secret: CLIENT_SECRET, ...params }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    if (data.error === 'invalid_grant') throw new ReauthError(data.error);
-    throw new Error(`token ${res.status} ${data.error ?? ''}`);
-  }
-  return data as { access_token: string; refresh_token?: string; id_token?: string };
-}
-
 /** The id_token comes straight from Google's token endpoint over TLS, so its payload is trusted as-is. */
 function idClaims(idToken: string | undefined): { sub: string; email: string } | null {
   try {
@@ -170,10 +155,6 @@ const cors = { 'access-control-allow-origin': '*', 'access-control-allow-headers
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...cors } });
 const redirect = (url: string) => new Response(null, { status: 302, headers: { location: url } });
 
-async function ownerOf(key: unknown): Promise<string | null> {
-  return typeof key === 'string' && /^[0-9a-f]{64}$/.test(key) ? await sha256(key) : null;
-}
-
 async function start(owner: string, body: Record<string, unknown>) {
   if (!allowedReturn(body.returnUrl)) return json({ error: 'bad_return_url' }, 400);
   await admin.from('gcal_pending').delete().lt('expires_at', new Date().toISOString());
@@ -221,10 +202,7 @@ async function callback(url: URL) {
   }
 }
 
-type TokenInfo = { scope?: string; sub?: string; email?: string };
-const tokenInfo = async (accessToken: string): Promise<TokenInfo> =>
-  (await fetch(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`)).json().catch(() => ({}));
-const hasCalendar = (info: TokenInfo) => typeof info.scope === 'string' && info.scope.split(' ').includes('https://www.googleapis.com/auth/calendar.readonly');
+const hasCalendar = (info: TokenInfo) => hasScope(info, CALENDAR_SCOPE);
 
 /** Google lets people untick the calendar permission on the consent screen. */
 const grantedCalendar = async (accessToken: string) => hasCalendar(await tokenInfo(accessToken));
@@ -333,7 +311,7 @@ async function disconnect(owner: string, body: Record<string, unknown>) {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: cors });
-  if (!CLIENT_ID || !CLIENT_SECRET || secret.length < 32) return json({ error: 'not_configured' }, 503);
+  if (!googleConfigured()) return json({ error: 'not_configured' }, 503);
 
   const url = new URL(req.url);
   if (req.method === 'GET' && url.pathname.endsWith('/callback')) return callback(url);
