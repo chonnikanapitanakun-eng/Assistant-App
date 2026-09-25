@@ -28,6 +28,9 @@ verify_jwt = true
 [functions.assistant]
 verify_jwt = true
 
+[functions.ai-prep-meeting]
+verify_jwt = true
+
 # Google's OAuth redirect lands on /gcal/callback with no Supabase JWT; the function checks the
 # signed state / device key itself.
 [functions.gcal]

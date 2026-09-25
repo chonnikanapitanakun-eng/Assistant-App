@@ -9,6 +9,7 @@
 | `ai-ask` | 3 | SPEC §6.4 |
 | `ai-plan` | 3 | SPEC §6.4 |
 | `slip-ocr` | 3 | SPEC §6.4 |
+| `ai-prep-meeting` | 4 | `src/features/ai/types.ts` → `PrepMeetingResponse` — structured output ตาม `_shared/prep-meeting-contract.ts`, prompt ใน `ai-prep-meeting/prompt.ts`; ดู § ai-prep-meeting |
 
 กติกา
 
@@ -48,6 +49,21 @@ curl -X POST "$SUPABASE_URL/functions/v1/ai-capture" \
 1. `supabase secrets set ANTHROPIC_API_KEY=...`
 2. `supabase functions deploy assistant`
 3. ใส่ `EXPO_PUBLIC_SUPABASE_URL` และ `EXPO_PUBLIC_SUPABASE_ANON_KEY` ใน `.env` แล้ว restart Expo — ถ้าไม่ตั้ง แอปตอบด้วย engine ในเครื่อง (`src/features/assistant/engine.ts`)
+
+## ai-prep-meeting — เตรียมนัด (P4-05)
+
+- **Retrieval อยู่ในเครื่อง** (`src/features/ai/prep-meeting.ts`): event + contact ที่ผูก "กับใคร" + note / task / transaction ที่ link กับนัด (ทั้งสองทิศ) + นัดก่อนหน้ากับคนเดียวกัน ≤ 10 รายการ — ไม่ส่งอย่างอื่น (SPEC §6.4 กติกา "retrieval ก่อน")
+- **Prompt** (`ai-prep-meeting/prompt.ts`): SYSTEM คงที่ + `cache_control`; user turn เป็น `<event>`, `<contact>`, `<past_meetings>`, `<tasks>`, `<notes>`, `<transactions>` (และ `<emails>` เมื่อ Gmail P4-01 มา) ตัดความยาวต่อรายการฝั่ง function อีกชั้น
+- **Output**: `{ brief, checklist[], agenda[] }` — `brief` เป็น plain text 2–4 ย่อหน้า ภาษาตาม `locale`; `normalizePrepMeeting()` ตัด bullet/เลขนำหน้า, ซ้ำ, และจำกัด 10 / 8 รายการ
+- **ยืนยันก่อนบันทึก**: แอปแสดง brief อย่างเดียว ผู้ใช้กด "บันทึกเป็นงาน" จึงสร้าง task 1 รายการในวันนัด (checklist = checklist ของ task, agenda อยู่ใน notes) แล้ว link `related` กับ event
+- **Model**: `claude-opus-5`, adaptive thinking, effort `medium` (สังเคราะห์ข้ามหลาย record), `max_tokens` 4096, fallback `default`
+- Refusal / output ใช้ไม่ได้ → คืน brief ว่าง (HTTP 200) แอปแสดง "เตรียมไม่สำเร็จ" พร้อมปุ่มลองใหม่; network / 5xx → throw
+
+```bash
+curl -X POST "$SUPABASE_URL/functions/v1/ai-prep-meeting" \
+  -H "Authorization: Bearer $SUPABASE_ANON_KEY" -H "apikey: $SUPABASE_ANON_KEY" -H "content-type: application/json" \
+  -d '{"locale":"th","today":"2026-09-25","event":{"title":"Review VAT Q3 with John","date":"2026-09-26","startTime":"10:00","endTime":"11:00"},"contact":{"name":"John Smith","company":"ABC Ltd"},"tasks":[{"title":"ส่ง VAT return Q3","isDone":false,"date":"2026-09-30"}],"notes":[{"title":"Call 12 Sep","body":"John asks about MTD deadline; invoice 240 still unpaid"}],"transactions":[{"amount":1200,"currency":"GBP","type":"income","note":"Invoice 239","date":"2026-08-30"}],"pastEvents":[{"title":"Onboarding call","date":"2026-08-12"}]}'
+```
 
 ## gcal — Google Calendar import (P2-07)
 
@@ -102,5 +118,5 @@ npx supabase functions deploy gcal
 npx supabase db push        # สร้างตาราง areas/tasks/notes/... + RLS
 ```
 
-- `ai-capture` / `assistant` เปลี่ยนเป็น `verify_jwt = true` แล้ว (`supabase/config.toml`) — คนที่ยังไม่ login ก็ยังเรียกได้ปกติ (anon key เองก็เป็น JWT ที่ผ่านการตรวจสอบ), login แล้ว `ai_usage.user_id` จะเป็นของจริง
+- `ai-capture` / `assistant` / `ai-prep-meeting` เปลี่ยนเป็น `verify_jwt = true` แล้ว (`supabase/config.toml`) — คนที่ยังไม่ login ก็ยังเรียกได้ปกติ (anon key เองก็เป็น JWT ที่ผ่านการตรวจสอบ), login แล้ว `ai_usage.user_id` จะเป็นของจริง
 - ลบแอป / ล้าง site data แล้วเข้าสู่ระบบใหม่ (บัญชี Google เดิม) = ข้อมูลกลับมาครบจาก Postgres

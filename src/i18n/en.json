@@ -558,6 +558,23 @@
     "fx_rate_label": "1 {{currency}} =",
     "fx_rate_placeholder": "e.g. 44.50"
   },
+  "prep": {
+      "title": "Prepare for this meeting",
+      "hint": "Veyra reads the notes, tasks, money and earlier meetings linked here and writes you a brief.",
+      "prepare": "Prepare me",
+      "thinking": "Reading what's linked…",
+      "brief": "Brief",
+      "checklist": "Before the meeting",
+      "agenda": "Agenda",
+      "empty": "Nothing to prepare yet — link a contact, notes or tasks to this event first.",
+      "error": "Couldn't prepare the brief. Check your connection and try again.",
+      "retry": "Try again",
+      "save_task": "Save as task",
+      "task_title": "Prepare: {{title}}",
+      "saved": "Saved as a task on the meeting day and linked to this event.",
+      "open_task": "Open task",
+      "by_claude": "Written by Veyra AI from your own records — check it before you rely on it."
+  },
   "links": {
     "title": "Related",
     "add": "Link",
