@@ -56,7 +56,7 @@ curl -X POST "$SUPABASE_URL/functions/v1/ai-capture" \
 - **Prompt** (`ai-prep-meeting/prompt.ts`): SYSTEM คงที่ + `cache_control`; user turn เป็น `<event>`, `<contact>`, `<past_meetings>`, `<tasks>`, `<notes>`, `<transactions>` (และ `<emails>` เมื่อ Gmail P4-01 มา) ตัดความยาวต่อรายการฝั่ง function อีกชั้น
 - **Output**: `{ brief, checklist[], agenda[] }` — `brief` เป็น plain text 2–4 ย่อหน้า ภาษาตาม `locale`; `normalizePrepMeeting()` ตัด bullet/เลขนำหน้า, ซ้ำ, และจำกัด 10 / 8 รายการ
 - **ยืนยันก่อนบันทึก**: แอปแสดง brief อย่างเดียว ผู้ใช้กด "บันทึกเป็นงาน" จึงสร้าง task 1 รายการในวันนัด (checklist = checklist ของ task, agenda อยู่ใน notes) แล้ว link `related` กับ event
-- **Model**: `claude-opus-5`, adaptive thinking, effort `medium` (สังเคราะห์ข้ามหลาย record), `max_tokens` 4096, fallback `default`
+- **Model**: `claude-opus-5`, adaptive thinking, effort `low`, `max_tokens` 4096, fallback `default`
 - Refusal / output ใช้ไม่ได้ → คืน brief ว่าง (HTTP 200) แอปแสดง "เตรียมไม่สำเร็จ" พร้อมปุ่มลองใหม่; network / 5xx → throw
 
 ```bash

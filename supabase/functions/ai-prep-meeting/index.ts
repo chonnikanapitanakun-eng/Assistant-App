@@ -56,7 +56,7 @@ Deno.serve(async (req) => {
       model: MODEL,
       max_tokens: 4096, // a few paragraphs plus two short lists
       thinking: { type: 'adaptive' },
-      output_config: { effort: 'medium', format: { type: 'json_schema', schema: PREP_MEETING_SCHEMA } }, // synthesis across records: a notch above extraction
+      output_config: { effort: 'low', format: { type: 'json_schema', schema: PREP_MEETING_SCHEMA } }, // short brief from a handful of records: fast and cheap
       betas: ['server-side-fallback-2026-07-01'],
       fallbacks: 'default',
       system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
