@@ -9,7 +9,40 @@ export function useArea(id: string): { area: Area | undefined; loaded: boolean }
   return { area: data[0], loaded };
 }
 
-export type AreaFormValues = Pick<Area, 'nameTh' | 'nameEn' | 'parentId'>;
+export type AreaFormValues = Pick<Area, 'nameTh' | 'nameEn' | 'parentId' | 'color' | 'icon'>;
+
+/** Swatches offered in the area editor (the seeded areas use the first four). */
+export const AREA_COLORS = ['#1F4A85', '#2E9E6B', '#7B5CC7', '#C9A227', '#D9534F', '#E07B39', '#2A9BB5', '#C2477F', '#5B6B7F'] as const;
+/** Icons offered in the area editor (Feather names). */
+export const AREA_ICONS = ['folder', 'briefcase', 'heart', 'book', 'trending-up', 'home', 'users', 'star', 'coffee', 'globe', 'dollar-sign', 'activity', 'award', 'code', 'shopping-bag', 'music'] as const;
+export type AreaIcon = (typeof AREA_ICONS)[number];
+
+/** The area's icon, or its parent's, or a folder (also covers icons stored that are not in the set). */
+export function areaIcon(area: Pick<Area, 'icon'>, parent?: Pick<Area, 'icon'> | null): AreaIcon {
+  const ok = (v: string | null | undefined): v is AreaIcon => !!v && (AREA_ICONS as readonly string[]).includes(v);
+  return ok(area.icon) ? area.icon : ok(parent?.icon) ? parent.icon : 'folder';
+}
+
+/**
+ * New sort orders after moving `id` one step up (-1) or down (+1) among its siblings, renumbered
+ * 0..n so ties from older data don't stall the move. Empty when it is already at that end.
+ */
+export function reorderSiblings(list: Area[], id: string, dir: -1 | 1): { id: string; sortOrder: number }[] {
+  const self = list.find((a) => a.id === id);
+  if (!self) return [];
+  const siblings = list.filter((a) => (a.parentId ?? null) === (self.parentId ?? null)).sort((a, b) => a.sortOrder - b.sortOrder);
+  const i = siblings.findIndex((a) => a.id === id);
+  const j = i + dir;
+  if (j < 0 || j >= siblings.length) return [];
+  [siblings[i], siblings[j]] = [siblings[j], siblings[i]];
+  return siblings.map((a, k) => ({ id: a.id, sortOrder: k })).filter((r) => list.find((a) => a.id === r.id)!.sortOrder !== r.sortOrder);
+}
+
+export async function moveArea(list: Area[], id: string, dir: -1 | 1) {
+  const t = now();
+  const changes = reorderSiblings(list, id, dir);
+  if (changes.length) await commit(changes.map((c) => db.update(areas).set({ sortOrder: c.sortOrder, updatedAt: t }).where(eq(areas.id, c.id))));
+}
 
 /** Top-level areas with their children, both in sort order. */
 export function groupAreas(list: Area[]): { parent: Area; children: Area[] }[] {

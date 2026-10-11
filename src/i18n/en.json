@@ -1049,6 +1049,13 @@
     "delete_hint": "Items filed here stay, just without a project.",
     "delete_hint_children": "Its projects are deleted too. Items filed here stay, just without a project.",
     "not_found": "Area not found",
-    "empty_title": "No areas yet"
+    "empty_title": "No areas yet",
+    "color": "Colour",
+    "icon": "Icon",
+    "same_as_area": "Same as area",
+    "color_option": "Colour {{color}}",
+    "preview": "Preview",
+    "move_up": "Move {{name}} up",
+    "move_down": "Move {{name}} down"
   }
 }
