@@ -208,12 +208,13 @@ function ProposalView({ card, busy, onConfirm, onDismiss }: { card: ProposalCard
 type AskCardData = Extract<Card, { type: 'ask' }>;
 
 const sourceIcon: Record<AskRecordType, IconName> = { task: 'check-square', event: 'calendar', note: 'edit-3', transaction: 'credit-card', contact: 'user', bill: 'file-text' };
-const sourceRoute: Partial<Record<AskRecordType, '/task/[id]' | '/event/[id]' | '/note/[id]' | '/tx/[id]' | '/bill/[id]'>> = {
+const sourceRoute: Record<AskRecordType, '/task/[id]' | '/event/[id]' | '/note/[id]' | '/tx/[id]' | '/bill/[id]' | '/contact/[id]'> = {
   task: '/task/[id]',
   event: '/event/[id]',
   note: '/note/[id]',
   transaction: '/tx/[id]',
   bill: '/bill/[id]',
+  contact: '/contact/[id]',
 };
 
 /** ai-ask: the records the answer cites (tap opens them) and actions that open Quick Capture for confirmation. */

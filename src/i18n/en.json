@@ -537,7 +537,8 @@
     "search": "Search",
     "contacts": "Contacts",
     "settings": "Settings",
-    "soon": "Soon"
+    "soon": "Soon",
+    "areas": "Areas"
   },
   "focus": {
     "tab_timer": "Timer",
@@ -1010,5 +1011,44 @@
     "end": "End",
     "no_time": "No time",
     "next_month": "Next month"
+  },
+  "contacts": {
+    "title": "Contacts",
+    "add": "New contact",
+    "edit": "Edit contact",
+    "search": "Search name, company, email or phone",
+    "no_match": "No contacts match",
+    "empty_title": "No contacts yet",
+    "empty_body": "People you mention in Quick Capture show up here automatically — or add one yourself.",
+    "name_placeholder": "Name",
+    "name_required": "Enter a name",
+    "company": "Company",
+    "role": "Role",
+    "phone": "Phone",
+    "email": "Email",
+    "notes": "Notes",
+    "call": "Call",
+    "email_action": "Email",
+    "delete_hint": "Tasks, events and notes linked to this person stay; only the link is removed.",
+    "not_found": "Contact not found"
+  },
+  "areas": {
+    "title": "Areas & projects",
+    "intro": "Areas group your life (Work, Personal…); projects sit under them and are what you pick on a task.",
+    "add_area": "New area",
+    "add_project": "New project",
+    "add_project_in": "New project in {{name}}",
+    "edit": "Edit",
+    "edit_named": "Edit {{name}}",
+    "name_th": "Thai name",
+    "name_en": "English name",
+    "name_required": "Enter a name in at least one language",
+    "parent": "Belongs to",
+    "top_level": "Top level (area)",
+    "parent_hint": "Pick an area to make this a project you can file tasks under.",
+    "delete_hint": "Items filed here stay, just without a project.",
+    "delete_hint_children": "Its projects are deleted too. Items filed here stay, just without a project.",
+    "not_found": "Area not found",
+    "empty_title": "No areas yet"
   }
 }

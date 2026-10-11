@@ -32,7 +32,8 @@ suite('relationKey', () => {
 suite('routeFor', () => {
   it('maps record types to detail routes', () => {
     expect(routeFor({ type: 'transaction', id: 'x' })).toEqual({ pathname: '/tx/[id]', params: { id: 'x' } });
-    expect(routeFor({ type: 'contact', id: 'x' })).toBeNull();
+    expect(routeFor({ type: 'contact', id: 'x' })).toEqual({ pathname: '/contact/[id]', params: { id: 'x' } });
+    expect(routeFor({ type: 'area', id: 'x' })).toBeNull();
   });
 });
 

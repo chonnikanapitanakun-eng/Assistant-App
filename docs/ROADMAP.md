@@ -31,7 +31,7 @@
 - [x] Plan: day / week / month
 - [x] Notes: CRUD, markdown, tags, pin
 - [x] Money: wallets, transactions, categories, สรุปเดือน
-- [ ] Contacts + Areas: CRUD, ผูกกับ record — มีแค่ data model + auto-create จาก ai-capture/links (`src/features/contacts/links.ts`, `src/db/seed.ts`); ยังไม่มีหน้าจอ list/edit/delete (เมนู "เพิ่มเติม" ทำเครื่องหมาย contacts ว่า "เร็วๆ นี้" ใน `src/app/more.tsx`) และไม่มีหน้าจัดการ areas เลย
+- [x] Contacts + Areas: CRUD, ผูกกับ record — `src/app/contacts.tsx`, `contact/[id].tsx` (ค้นหา, โทร/อีเมล, ผูก record ผ่าน RelatedSection), `src/app/areas.tsx`, `area/[id].tsx` (ด้านชีวิต → โปรเจกต์ 2 ระดับ; ลบแล้ว record ที่อยู่ในนั้นเหลือแบบไม่มีโปรเจกต์) เข้าจากเมนู "เพิ่มเติม"
 - [x] Links table + UI "เกี่ยวข้องกับ" (docs/LINKS.md)
 - [x] Universal search (FTS5 trigram, grouped by type)
 - [x] Quick Capture: text → Supabase Edge Function `ai-capture` → preview → save (Claude structured output + `ai_usage` log; local parser เป็น fallback)
