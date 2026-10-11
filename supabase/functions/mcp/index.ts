@@ -21,7 +21,7 @@ const CORS = {
   'access-control-allow-headers': 'authorization, content-type, mcp-protocol-version, mcp-session-id',
   'access-control-allow-methods': 'POST, GET, OPTIONS',
 };
-const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json', ...CORS } });
+const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8', ...CORS } });
 
 type RpcRequest = { jsonrpc: '2.0'; id?: string | number | null; method: string; params?: Record<string, unknown> };
 const result = (id: RpcRequest['id'], value: unknown) => ({ jsonrpc: '2.0', id: id ?? null, result: value });
