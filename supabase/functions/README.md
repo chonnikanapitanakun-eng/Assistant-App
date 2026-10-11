@@ -12,6 +12,7 @@
 | `account` | 4 | PDPA: ลบบัญชี (`{ action: 'delete' }` + JWT ผู้ใช้) → ลบ auth user, ตาราง sync / `ai_usage` / `gcal_accounts` cascade ตาม; ดู § account ด้านล่าง |
 | `slip-ocr` | 3 | `src/features/slip/types.ts` → `SlipResult` — structured output ตาม `_shared/slip-contract.ts`, prompt ใน `slip-ocr/prompt.ts`; ดู § slip-ocr ด้านล่าง |
 | `ai-prep-meeting` | 4 | `src/features/ai/types.ts` → `PrepMeetingResponse` — structured output ตาม `_shared/prep-meeting-contract.ts`, prompt ใน `ai-prep-meeting/prompt.ts`; ดู § ai-prep-meeting |
+| `mcp` | 5 | MCP server (Streamable HTTP) ให้ Claude app อ่าน/แก้ข้อมูลผ่าน subscription — ไม่เรียก Claude API; ดู § mcp ด้านล่าง |
 
 กติกา
 
@@ -207,3 +208,33 @@ npx supabase db push        # สร้างตาราง areas/tasks/notes/.
 ```bash
 npx supabase functions deploy account
 ```
+
+## mcp — ต่อ Claude app (ใช้ subscription แทน API)
+
+ทิศกลับกับ function อื่น: function นี้**ไม่เรียก Claude** — Claude (claude.ai / Claude app มือถือ, desktop) เป็นฝ่ายเรียก tools ที่นี่
+ผ่าน Custom Connector เลยไม่มีค่า API ข้อมูลอ่าน/เขียนตรงที่ตาราง sync (service role, กรอง `user_id = MCP_USER_ID` ทุก query)
+เขียนแล้วตั้ง `updated_at = now` → แอป pull เข้าเครื่องรอบ sync ถัดไป
+
+Phase 1 = ผู้ใช้คนเดียว: auth ด้วย secret key ใน URL (หรือ `Authorization: Bearer`) ถ้าจะเปิดให้คนอื่นใช้ ต้องเปลี่ยนเป็น OAuth (Supabase Auth) แทน
+
+Setup
+
+1. หา user id ของตัวเอง: Supabase Dashboard → Authentication → Users → copy UID (ต้อง sign-in ใน app + sync แล้วอย่างน้อยครั้งหนึ่ง)
+2. `supabase secrets set MCP_KEY=$(openssl rand -hex 32) MCP_USER_ID=<UID>` (ตั้ง `MCP_TZ` ได้ ค่า default `Asia/Bangkok`)
+3. `supabase functions deploy mcp --no-verify-jwt`
+4. claude.ai → Settings → Connectors → Add custom connector → URL `https://<project>.supabase.co/functions/v1/mcp?key=<MCP_KEY>`
+   (เพิ่มบนเว็บครั้งเดียว ใช้ได้ทั้ง Claude app มือถือ/desktop)
+5. ทดสอบ: ถาม Claude "วันนี้มีงานอะไรบ้าง" / "เดือนนี้ใช้เงินไปเท่าไหร่"
+
+Tools — อ่าน: `get_overview`, `list_tasks`, `list_routines`, `search_notes`, `get_note`, `list_wallets` (ยอดคำนวณแบบเดียวกับ
+`src/features/money/model.ts`), `list_categories`, `list_areas`, `list_transactions`, `money_summary`, `list_bills`
+เขียน: `create_task`, `update_task`, `create_note`, `update_note`, `create_transaction` (`source = 'ai'`) — ไม่มี tool ลบ
+
+ข้อจำกัด
+
+- Calendar ไม่อยู่ใน Postgres (`calendar_events` อยู่ในเครื่อง) → ให้ Claude ใช้ Google Calendar connector ของ claude.ai แทน
+- งานที่สร้าง/แก้จาก Claude ยังไม่ตั้งแจ้งเตือนในเครื่อง และติ๊กเสร็จงานที่ repeat จะไม่สร้างรอบถัดไป (ทำใน app แทน)
+- key อยู่ใน URL → อย่าแชร์ URL connector; ถ้าหลุดให้ `supabase secrets set MCP_KEY=...` ใหม่แล้วแก้ URL ใน connector
+
+ปิด AI ที่เรียก API ใน app: ฟีเจอร์ที่เรียก Edge Functions ข้างบน (capture, assistant, ask, plan, breakdown, summary,
+prep-meeting, slip-ocr) ทำงานเฉพาะเมื่อ `EXPO_PUBLIC_AI_REMOTE=on` (`src/lib/ai.ts`) — ค่า default ปิด แอปใช้ engine ในเครื่องแทน

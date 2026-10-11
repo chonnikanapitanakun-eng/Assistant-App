@@ -1,4 +1,5 @@
 import { getSession } from '@/features/auth';
+import { aiRemoteEnabled } from '@/lib/ai';
 
 /**
  * Contract ของ ai-summary (SPEC §6.4)
@@ -38,8 +39,8 @@ export type SummaryResponse = {
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-/** Claude summaries run only when the Supabase project is configured (see supabase/functions/ai-summary). */
-export const summaryRemoteEnabled = !!url && !!anonKey;
+/** Claude summaries run only with `EXPO_PUBLIC_AI_REMOTE=on` (lib/ai.ts) (see supabase/functions/ai-summary). */
+export const summaryRemoteEnabled = aiRemoteEnabled;
 
 const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string' && !!x.trim()).slice(0, 5) : []);
 

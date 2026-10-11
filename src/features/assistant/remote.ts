@@ -1,5 +1,6 @@
 import { isValidItem } from '@/features/ai/remote';
 import { getSession } from '@/features/auth';
+import { aiRemoteEnabled } from '@/lib/ai';
 import { toDateKey } from '@/lib/date';
 
 import type { AssistantContext, Card, Proposal, Reply } from './types';
@@ -7,8 +8,8 @@ import type { AssistantContext, Card, Proposal, Reply } from './types';
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-/** Claude answers only when the Supabase project is configured (see supabase/functions/assistant). */
-export const remoteEnabled = !!url && !!anonKey;
+/** Claude answers only with `EXPO_PUBLIC_AI_REMOTE=on` (lib/ai.ts) (see supabase/functions/assistant). */
+export const remoteEnabled = aiRemoteEnabled;
 
 /** A hung request must not lock the chat; after this the caller falls back to the on-device engine. */
 export const ASSISTANT_TIMEOUT_MS = 60_000;

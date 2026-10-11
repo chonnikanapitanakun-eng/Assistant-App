@@ -1,6 +1,7 @@
 import { onDatabaseWrite } from '@/db';
 import { getSession } from '@/features/auth';
 
+import { mergeDuplicateDefaults } from './dedupe';
 import { pullTable } from './pull';
 import { pushTable } from './push';
 import { useSyncStatus } from './status';
@@ -14,7 +15,11 @@ async function cycle(pull: boolean) {
   useSyncStatus.setState({ busy: true, error: null });
   try {
     for (const table of SYNC_TABLES) await pushTable(table, userId);
-    if (pull) for (const table of SYNC_TABLES) await pullTable(table, userId);
+    if (pull) {
+      for (const table of SYNC_TABLES) await pullTable(table, userId);
+      // A pull can bring in another install's copy of the default areas / categories / wallets.
+      if (await mergeDuplicateDefaults()) for (const table of SYNC_TABLES) await pushTable(table, userId);
+    }
     useSyncStatus.setState({ busy: false, lastSyncedAt: Date.now() });
   } catch (e) {
     console.error('Cloud sync failed:', e);

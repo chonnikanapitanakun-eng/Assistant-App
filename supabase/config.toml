@@ -48,3 +48,8 @@ verify_jwt = false
 # Account deletion (PDPA). Only the signed-in user's own JWT is accepted (checked again inside).
 [functions.account]
 verify_jwt = true
+
+# MCP connector for Claude (claude.ai / Claude app). claude.ai sends no Supabase JWT; the function
+# checks its own MCP_KEY (URL ?key= or Bearer) and only touches MCP_USER_ID's rows.
+[functions.mcp]
+verify_jwt = false
