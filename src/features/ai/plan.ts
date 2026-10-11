@@ -4,6 +4,7 @@
  * และถูก re-export จากที่นี่ เพื่อให้ app กับ Edge Function ใช้กติกาเดียวกันเสมอ
  */
 import { getSession } from '@/features/auth';
+import { aiRemoteEnabled } from '@/lib/ai';
 
 import { normalizePlanResponse, planLocally, type PlanRequest, type PlanResponse } from '../../../supabase/functions/_shared/plan-contract';
 
@@ -13,8 +14,8 @@ export { planLocally, planWindow } from '../../../supabase/functions/_shared/pla
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-/** Claude planning runs only when the Supabase project is configured (see supabase/functions/ai-plan). */
-export const planRemoteEnabled = !!url && !!anonKey;
+/** Claude planning runs only with `EXPO_PUBLIC_AI_REMOTE=on` (lib/ai.ts) (see supabase/functions/ai-plan). */
+export const planRemoteEnabled = aiRemoteEnabled;
 
 /**
  * Ask the `ai-plan` Edge Function to lay the backlog into the day. Throws on network / HTTP errors and

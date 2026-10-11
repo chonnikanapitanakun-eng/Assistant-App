@@ -14,6 +14,7 @@ import { getSession } from '@/features/auth';
 import { eventToItem } from '@/features/calendar/model';
 import { addLink } from '@/features/links/queries';
 import { createTask } from '@/features/tasks/queries';
+import { aiRemoteEnabled } from '@/lib/ai';
 import { toDateKey } from '@/lib/date';
 import { newId } from '@/lib/ids';
 
@@ -22,8 +23,8 @@ import type { PrepMeetingRequest, PrepMeetingResponse } from './types';
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-/** The brief needs Claude, so the button only appears when the Supabase project is configured. */
-export const prepMeetingEnabled = !!url && !!anonKey;
+/** The brief needs Claude, so the button only appears with `EXPO_PUBLIC_AI_REMOTE=on` (lib/ai.ts). */
+export const prepMeetingEnabled = aiRemoteEnabled;
 
 const LIMITS = { notes: 8, tasks: 20, transactions: 20, pastEvents: 10 } as const;
 

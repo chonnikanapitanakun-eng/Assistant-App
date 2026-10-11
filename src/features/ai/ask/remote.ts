@@ -1,4 +1,5 @@
 import { getSession } from '@/features/auth';
+import { aiRemoteEnabled } from '@/lib/ai';
 
 import type { AskRecordType, AskResponse, AskSuggestedAction } from '../types';
 import type { Retrieval } from './retrieve';
@@ -6,8 +7,8 @@ import type { Retrieval } from './retrieve';
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-/** Q&A runs only when the Supabase project is configured (see supabase/functions/ai-ask). */
-export const askRemoteEnabled = !!url && !!anonKey;
+/** Q&A runs only with `EXPO_PUBLIC_AI_REMOTE=on` (lib/ai.ts) (see supabase/functions/ai-ask). */
+export const askRemoteEnabled = aiRemoteEnabled;
 
 /** A cited record, resolved back from the model's ref to a row the app can open. */
 export type AskSource = { ref: string; type: AskRecordType; id: string; title: string };

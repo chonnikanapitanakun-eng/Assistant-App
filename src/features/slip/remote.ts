@@ -1,12 +1,13 @@
 import { getSession } from '@/features/auth';
+import { aiRemoteEnabled } from '@/lib/ai';
 
 import type { SlipParty, SlipResult } from './types';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-/** Slip reading runs only when the Supabase project is configured (see supabase/functions/slip-ocr). */
-export const slipRemoteEnabled = !!url && !!anonKey;
+/** Slip reading runs only with `EXPO_PUBLIC_AI_REMOTE=on` (lib/ai.ts) (see supabase/functions/slip-ocr). */
+export const slipRemoteEnabled = aiRemoteEnabled;
 
 const isDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
 const str = (v: unknown) => (typeof v === 'string' && v ? v : undefined);
