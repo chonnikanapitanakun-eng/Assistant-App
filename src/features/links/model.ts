@@ -58,8 +58,8 @@ export function relationKey(relation: string | null, direction: Direction): stri
 /** Default relation when the user links manually: people are "with", everything else "related". */
 export const defaultRelation = (to: LinkableType): Relation => (to === 'contact' ? 'with' : 'related');
 
-/** Detail route for a linked record, or null for types without a screen yet (contact, area). */
-export function routeFor(ref: LinkRef): { pathname: '/task/[id]' | '/event/[id]' | '/tx/[id]' | '/note/[id]'; params: { id: string } } | null {
+/** Detail route for a linked record, or null for types without a detail screen (area). */
+export function routeFor(ref: LinkRef): { pathname: '/task/[id]' | '/event/[id]' | '/tx/[id]' | '/note/[id]' | '/contact/[id]'; params: { id: string } } | null {
   switch (ref.type) {
     case 'task':
       return { pathname: '/task/[id]', params: { id: ref.id } };
@@ -69,6 +69,8 @@ export function routeFor(ref: LinkRef): { pathname: '/task/[id]' | '/event/[id]'
       return { pathname: '/tx/[id]', params: { id: ref.id } };
     case 'note':
       return { pathname: '/note/[id]', params: { id: ref.id } };
+    case 'contact':
+      return { pathname: '/contact/[id]', params: { id: ref.id } };
     default:
       return null;
   }

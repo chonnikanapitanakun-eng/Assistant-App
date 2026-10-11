@@ -84,6 +84,10 @@ export default function RootLayout() {
             <Stack.Screen name="budget/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="routine/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="routines" />
+            <Stack.Screen name="contacts" />
+            <Stack.Screen name="contact/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
+            <Stack.Screen name="areas" />
+            <Stack.Screen name="area/[id]" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="note/[id]" />
             <Stack.Screen name="more" options={{ presentation: 'transparentModal', animation: 'none' }} />
             <Stack.Screen name="focus" options={{ presentation: 'fullScreenModal', animation: 'fade' }} />

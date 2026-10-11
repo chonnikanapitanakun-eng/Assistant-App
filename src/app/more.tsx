@@ -13,7 +13,8 @@ const items: Item[] = [
   { key: 'focus', icon: 'target', href: '/focus', kind: 'screen' },
   { key: 'review', icon: 'smile', href: '/review', kind: 'screen' },
   { key: 'search', icon: 'search', href: '/search', kind: 'screen' },
-  { key: 'contacts', icon: 'users' },
+  { key: 'contacts', icon: 'users', href: '/contacts', kind: 'screen' },
+  { key: 'areas', icon: 'folder', href: '/areas', kind: 'screen' },
   { key: 'settings', icon: 'settings', href: '/settings', kind: 'screen' },
 ];
 
