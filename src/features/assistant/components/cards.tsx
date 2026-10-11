@@ -8,6 +8,8 @@ import { formatMoney } from '@/lib/currency';
 import { daysFromToday } from '@/lib/date';
 import { useTheme } from '@/theme';
 
+import type { AskRecordType, AskSuggestedAction } from '@/features/ai/types';
+
 import type { Card, ListRow, Proposal } from '../types';
 
 type ProposalCard = Extract<Card, { type: 'proposal' }>;
@@ -15,6 +17,7 @@ type ProposalCard = Extract<Card, { type: 'proposal' }>;
 export function CardView({ card, busy, onConfirm, onDismiss, onEdit }: { card: Card; busy?: boolean; onConfirm: (c: ProposalCard) => void; onDismiss: (c: ProposalCard) => void; onEdit?: (c: ProposalCard, proposal: Proposal) => void }) {
   if (card.type === 'list') return <ListCard title={card.title} rows={card.rows} />;
   if (card.type === 'stats') return <StatsCard rows={card.rows} />;
+  if (card.type === 'ask') return <AskCard sources={card.sources} actions={card.actions} />;
   if (card.proposal.kind === 'apply_plan') return <PlanView card={card} plan={card.proposal} busy={!!busy} onConfirm={() => onConfirm(card)} onDismiss={() => onDismiss(card)} onEdit={(p) => onEdit?.(card, p)} />;
   return <ProposalView card={card} busy={!!busy} onConfirm={() => onConfirm(card)} onDismiss={() => onDismiss(card)} />;
 }
@@ -198,6 +201,57 @@ function ProposalView({ card, busy, onConfirm, onDismiss }: { card: ProposalCard
           {card.state === 'done' ? <Tag label={t('assistant.done')} tint="done" icon="check" /> : card.state === 'failed' ? <Tag label={t('assistant.failed')} tint="priorityHigh" icon="alert-circle" /> : <Text variant="caption" color="textTertiary">{t('assistant.dismissed')}</Text>}
         </View>
       )}
+    </View>
+  );
+}
+
+type AskCardData = Extract<Card, { type: 'ask' }>;
+
+const sourceIcon: Record<AskRecordType, IconName> = { task: 'check-square', event: 'calendar', note: 'edit-3', transaction: 'credit-card', contact: 'user', bill: 'file-text' };
+const sourceRoute: Partial<Record<AskRecordType, '/task/[id]' | '/event/[id]' | '/note/[id]' | '/tx/[id]' | '/bill/[id]'>> = {
+  task: '/task/[id]',
+  event: '/event/[id]',
+  note: '/note/[id]',
+  transaction: '/tx/[id]',
+  bill: '/bill/[id]',
+};
+
+/** ai-ask: the records the answer cites (tap opens them) and actions that open Quick Capture for confirmation. */
+function AskCard({ sources, actions }: { sources: AskCardData['sources']; actions: AskSuggestedAction[] }) {
+  const { t } = useTranslation();
+  const { colors, spacing, radius } = useTheme();
+  const openAction = (a: AskSuggestedAction) => router.push({ pathname: '/capture', params: { action: JSON.stringify(a) } });
+  return (
+    <View style={{ gap: spacing.sm }}>
+      {sources.length ? (
+        <View style={{ borderRadius: radius.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, paddingVertical: spacing.xs }}>
+          <Text variant="overline" color="textSecondary" style={{ paddingHorizontal: spacing.md, paddingTop: spacing.sm }}>{t('assistant.ask_sources').toUpperCase()}</Text>
+          {sources.map((s, i) => {
+            const route = sourceRoute[s.type];
+            return (
+              <PressableScale
+                key={`${s.type}${s.id}`}
+                accessibilityRole={route ? 'button' : undefined}
+                accessibilityLabel={s.title}
+                disabled={!route}
+                onPress={() => route && router.push({ pathname: route, params: { id: s.id } })}
+                style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, minHeight: 44, paddingHorizontal: spacing.md, borderTopWidth: i ? 1 : 0, borderTopColor: colors.border }}
+              >
+                <Icon name={sourceIcon[s.type]} size={16} tone={colors.textSecondary} />
+                <Text variant="bodySm" numberOfLines={1} style={{ flex: 1 }}>{s.title}</Text>
+                {route ? <Icon name="chevron-right" size={16} tone={colors.textTertiary} /> : null}
+              </PressableScale>
+            );
+          })}
+        </View>
+      ) : null}
+      {actions.length ? (
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm }}>
+          {actions.map((a, i) => (
+            <Button key={`${a.type}${i}`} label={a.label} variant="secondary" size="sm" icon={a.type === 'event' ? 'calendar' : a.type === 'note' ? 'edit-3' : 'plus'} onPress={() => openAction(a)} />
+          ))}
+        </View>
+      ) : null}
     </View>
   );
 }

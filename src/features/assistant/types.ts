@@ -1,4 +1,4 @@
-import type { CaptureItem } from '@/features/ai/types';
+import type { AskRecordType, AskSuggestedAction, CaptureItem } from '@/features/ai/types';
 
 /** One block in a day plan. `reason` is the planner's one-line why (empty from the local planner). */
 export type PlanRow = { taskId: string; title: string; startTime: string; endTime: string; reason: string; overdue?: boolean; priority?: number };
@@ -19,7 +19,9 @@ export type ListRow = { id: string; kind: 'task' | 'event' | 'bill'; title: stri
 export type Card =
   | { type: 'list'; title?: string; rows: ListRow[] }
   | { type: 'stats'; rows: { label: string; value: string; hint?: string; tone?: 'danger' | 'warning' | 'good' }[] }
-  | { type: 'proposal'; id: string; proposal: Proposal; state: ProposalState };
+  | { type: 'proposal'; id: string; proposal: Proposal; state: ProposalState }
+  /** An ai-ask answer's cited records (tap to open) and suggested actions (open Quick Capture to confirm). */
+  | { type: 'ask'; sources: { type: AskRecordType; id: string; title: string }[]; actions: AskSuggestedAction[] };
 
 export type Reply = { text: string; cards: Card[]; suggestions: string[]; source: 'local' | 'claude' };
 

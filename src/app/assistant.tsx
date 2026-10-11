@@ -11,12 +11,13 @@ import type { AssistantMessage } from '@/db';
 import { runProposal } from '@/features/assistant/actions';
 import { CardView } from '@/features/assistant/components/cards';
 import { Typing } from '@/features/assistant/components/typing';
-import { defaultSuggestions, detectIntent, respond } from '@/features/assistant/engine';
+import { defaultSuggestions, detectIntent, respond, type Intent } from '@/features/assistant/engine';
 import { planDayWithAI } from '@/features/assistant/plan-remote';
 import { addMessage, claimProposal, clearChat, dismissProposal, editProposal, settleProposal, useMessages, type ChatPayload } from '@/features/assistant/queries';
 import { askRemote, remoteEnabled } from '@/features/assistant/remote';
 import type { Card, Proposal, Reply } from '@/features/assistant/types';
 import { useAssistantContext } from '@/features/assistant/use-context';
+import { askRemoteEnabled, planRetrieval, useAskQuestion } from '@/features/ai/ask';
 import { MarkdownView } from '@/features/notes/components/markdown-view';
 import { useProfile } from '@/features/profile/store';
 import { background } from '@/lib/background';
@@ -33,6 +34,7 @@ export default function AssistantScreen() {
   const name = useProfile((p) => p.name);
   const messages = useMessages();
   const getContext = useAssistantContext();
+  const askQuestion = useAskQuestion();
   const { armed, confirm } = useConfirm();
   const [draft, setDraft] = useDraft('assistant:draft', '');
   const [thinking, setThinking] = useState(false);
@@ -49,8 +51,27 @@ export default function AssistantScreen() {
     setDraft('');
     const history = [...messages.map((m) => ({ role: m.role, text: m.text })), { role: 'user' as const, text }];
     background(addMessage('user', text), 'Save chat message');
-    let reply: Reply;
-    if (remoteEnabled && detectIntent(text, getContext()).intent === 'plan_day') {
+    let reply: Reply | null = null;
+    const intent = detectIntent(text, getContext()).intent;
+    if (askRemoteEnabled && isDataQuestion(text, intent)) {
+      // Questions about the user's own records go to ai-ask (P3-01): retrieval + cited answer.
+      // A refusal / unusable answer / network error falls through to the normal chat path below.
+      setThinking(true);
+      try {
+        const res = await askQuestion(text);
+        if (res.status === 'ok') {
+          const cards: Card[] = res.sources.length || res.suggestedActions.length ? [{ type: 'ask', sources: res.sources.map(({ type, id, title }) => ({ type, id, title })), actions: res.suggestedActions }] : [];
+          reply = { text: res.answer, cards, suggestions: res.followUps, source: 'claude' };
+        }
+      } catch {
+        // fall through
+      } finally {
+        setThinking(false);
+      }
+    }
+    if (reply) {
+      // answered by ai-ask
+    } else if (remoteEnabled && intent === 'plan_day') {
       // "Plan my day" goes to the dedicated ai-plan function (P3-02); it falls back to the local planner itself.
       setThinking(true);
       try {
@@ -204,6 +225,13 @@ export default function AssistantScreen() {
       </View>
     </KeyboardAvoidingView>
   );
+}
+
+/** Read-only questions about the user's data (not commands, captures, planning or small talk). */
+function isDataQuestion(text: string, intent: Intent): boolean {
+  if (!['overdue', 'expenses', 'bills', 'summarise_tasks', 'unknown'].includes(intent)) return false;
+  const plan = planRetrieval(text);
+  return plan.focus.length > 0 || plan.window !== null || (intent === 'unknown' && plan.terms.length > 0);
 }
 
 function Avatar() {

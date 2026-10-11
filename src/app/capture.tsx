@@ -6,10 +6,11 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Gradient, IconButton, PressableScale, Sheet, Text, type IconName } from '@/components/ui';
+import { actionToCaptureItem } from '@/features/ai/ask';
 import { parseCaptureLocally } from '@/features/ai/capture';
 import { captureRemote, captureRemoteEnabled } from '@/features/ai/remote';
 import { saveCaptureItems } from '@/features/ai/save';
-import type { CaptureItem } from '@/features/ai/types';
+import type { AskSuggestedAction, CaptureItem } from '@/features/ai/types';
 import { useCaptureContext } from '@/features/ai/use-capture-context';
 import { DetectedItem } from '@/features/capture/detected-item';
 import { defaultSpeechLang, type SpeechLang } from '@/features/capture/speech';
@@ -38,15 +39,17 @@ type Phase = { kind: 'edit' } | { kind: 'saved'; count: number } | { kind: 'erro
 export default function CaptureScreen() {
   const { t, i18n } = useTranslation();
   const { colors, spacing, radius, typography, fontFamily, motion } = useTheme();
-  const params = useLocalSearchParams<{ text?: string; voice?: string }>();
+  const params = useLocalSearchParams<{ text?: string; voice?: string; action?: string }>();
+  // Opened from a Veyra AI suggested action (ai-ask): preview exactly that item, no re-parse.
+  const seed = useMemo(() => parseActionParam(params.action), [params.action]);
 
-  const [text, setText] = useDraft('capture:text', params.text ?? '');
+  const [text, setText] = useDraft(seed ? null : 'capture:text', seed?.text ?? params.text ?? '');
   const [focused, setFocused] = useState(false);
   const [excluded, setExcluded] = useState<Set<string>>(new Set());
   const [moneyType, setMoneyType] = useState<Record<string, 'income' | 'expense'>>({});
   const [mediaHint, setMediaHint] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
-  const [remote, setRemote] = useState<{ text: string; items: CaptureItem[] } | null>(null);
+  const [remote, setRemote] = useState<{ text: string; items: CaptureItem[] } | null>(seed);
   const [thinking, setThinking] = useState(false);
   const captureContext = useCaptureContext();
   // Read at fire time: the context changes on every DB write, which must not restart the debounce
@@ -78,6 +81,7 @@ export default function CaptureScreen() {
     if (!captureRemoteEnabled || phase.kind !== 'edit') return;
     const value = text.trim();
     if (!value) return; // a stale `remote` is ignored because it is keyed by text
+    if (seed && value === seed.text) return; // the suggested action is already structured
     const controller = new AbortController();
     abortRef.current?.abort();
     abortRef.current = controller;
@@ -101,7 +105,7 @@ export default function CaptureScreen() {
       clearTimeout(id);
       controller.abort();
     };
-  }, [text, phase.kind]);
+  }, [text, phase.kind, seed]);
   const [saving, setSaving] = useState(false);
 
   const detected = useMemo(() => {
@@ -291,4 +295,16 @@ function Result({ mascot, title, body, action, onAction }: { mascot: 'success' |
       </View>
     </Animated.View>
   );
+}
+
+/** `?action=` from an ai-ask suggested action → the text shown in the box plus the one item to preview. */
+function parseActionParam(raw: string | undefined): { text: string; items: CaptureItem[] } | null {
+  if (!raw) return null;
+  try {
+    const a = JSON.parse(raw) as AskSuggestedAction;
+    if (!a || typeof a.title !== 'string' || !a.title.trim() || !['task', 'event', 'note'].includes(a.type)) return null;
+    return { text: a.title.trim(), items: [actionToCaptureItem({ ...a, title: a.title.trim() })] };
+  } catch {
+    return null;
+  }
 }
