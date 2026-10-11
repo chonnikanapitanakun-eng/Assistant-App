@@ -306,6 +306,7 @@
     "dismissed": "Skipped",
     "confirm_hint": "Nothing changes until you confirm.",
     "offline_note": "Answered on-device — Veyra AI couldn't be reached.",
+    "ask_sources": "Based on",
     "emails": "Summarise emails",
     "bill_overdue": "overdue since {{date}}",
     "bill_today": "due today",
