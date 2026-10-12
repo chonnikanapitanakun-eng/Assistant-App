@@ -6,6 +6,7 @@ import { ScrollView, TextInput, View } from 'react-native';
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Chip, Field, FieldError, IconButton, Sheet, Text, Toggle, useInputStyle, type IconName } from '@/components/ui';
 import type { Routine } from '@/db';
+import { TimeRangeField } from '@/features/calendar/components/date-field';
 import { dayName, periodIcon } from '@/features/routines/labels';
 import { PERIODS, ruleDays, toRule, WEEK_ORDER, WEEKDAYS, WEEKENDS, type Period } from '@/features/routines/model';
 import { createRoutine, deleteRoutine, updateRoutine, useRoutine } from '@/features/routines/queries';
@@ -154,11 +155,7 @@ function RoutineForm({ existing, onClose }: { existing?: Routine; onClose: () =>
         </Field>
 
         <Field label={t('tasks.time')} icon="clock">
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <TextInput value={startTime} onChangeText={setStartTime} placeholder="07:00" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.start_time')} style={[input(errors.startTime, showErrors), { flex: 1 }]} />
-            <Text color="textTertiary">–</Text>
-            <TextInput value={endTime} onChangeText={setEndTime} placeholder="07:30" placeholderTextColor={colors.textTertiary} accessibilityLabel={t('task.end_time')} style={[input(errors.endTime, showErrors), { flex: 1 }]} />
-          </View>
+          <TimeRangeField start={startTime} end={endTime} onChangeStart={setStartTime} onChangeEnd={setEndTime} invalid={showErrors && !!(errors.startTime ?? errors.endTime)} clearable />
           <FieldError message={showErrors ? (errors.startTime ?? errors.endTime) : null} />
           <Text variant="caption" color="textSecondary">{t('routines.time_hint')}</Text>
         </Field>

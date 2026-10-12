@@ -137,9 +137,11 @@ function BillForm({ existing, onClose }: { existing?: RecurringBill; onClose: ()
               ))}
             </View>
           ) : null}
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-            <Text variant="bodySm" style={{ flex: 1 }}>{t('money.due_day')}</Text>
-            <TextInput value={dueDay} onChangeText={setDueDay} keyboardType="number-pad" maxLength={2} accessibilityLabel={t('money.due_day')} style={[input(errors.dueDay, showErrors), { width: 80, textAlign: 'center' }]} />
+          <Text variant="bodySm">{t('money.due_day')}</Text>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs }}>
+            {Array.from({ length: 31 }, (_, i) => String(i + 1)).map((d) => (
+              <Chip key={d} label={d} selected={dueDay === d} onPress={() => setDueDay(d)} />
+            ))}
           </View>
           <FieldError message={showErrors ? errors.dueDay : null} />
         </Field>
