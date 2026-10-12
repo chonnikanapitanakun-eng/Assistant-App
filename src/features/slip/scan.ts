@@ -3,6 +3,9 @@ import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 import { parseSlipQr, type SlipQr } from './qr';
 import { isAiRemoteOn } from '@/features/ai/enabled';
+import { useProfile } from '@/features/profile/store';
+
+import { isLocalComplete, readSlipLocal } from './local-ocr';
 
 import { readSlipRemote } from './remote';
 import type { SlipResult } from './types';
@@ -34,14 +37,19 @@ async function readQr(uri: string): Promise<SlipQr | null> {
 /**
  * One picked image → what we know about it, cheapest step first:
  *   1. slip QR on the device (free) → a ref already saved means a duplicate, and no paid call is made
- *   2. slip-ocr (Claude Haiku) on a resized copy for amount / date / names
+ *   2. device OCR (ML Kit / Apple Vision, free) — always when Claude API is off; first when the user picked
+ *      "device first" and it found the amount and date
+ *   3. slip-ocr (Claude Haiku) on a resized copy for amount / date / names
  * `knownRefs` holds refs already in the database and earlier in this batch.
  */
 export async function scanSlip(image: { uri: string; width?: number }, knownRefs: Set<string>, signal?: AbortSignal): Promise<ScanOutcome> {
   const { uri } = image;
   const qr = await readQr(uri);
   if (qr && knownRefs.has(qr.ref)) return { kind: 'duplicate', ref: qr.ref, qr };
-  if (!isAiRemoteOn()) return { kind: 'offline', qr };
+  const remote = isAiRemoteOn();
+  const local = !remote || useProfile.getState().slipOcr === 'local_first' ? await readSlipLocal(uri) : null;
+  const fromLocal = (): ScanOutcome => (local?.isSlip ? withRef(local, qr, knownRefs) : { kind: 'offline', qr });
+  if (!remote || (local && isLocalComplete(local))) return fromLocal();
 
   let base64: string | undefined;
   try {
@@ -50,17 +58,21 @@ export async function scanSlip(image: { uri: string; width?: number }, knownRefs
     const rendered = await context.renderAsync();
     base64 = (await rendered.saveAsync({ format: SaveFormat.JPEG, compress: 0.7, base64: true })).base64;
   } catch {
-    return { kind: 'error' };
+    return local?.isSlip ? fromLocal() : { kind: 'error' };
   }
-  if (!base64) return { kind: 'error' };
+  if (!base64) return local?.isSlip ? fromLocal() : { kind: 'error' };
 
   let slip: SlipResult;
   try {
     slip = await readSlipRemote(base64, signal);
   } catch {
-    return { kind: 'offline', qr };
+    return fromLocal();
   }
   if (!slip.isSlip) return { kind: 'not_slip' };
+  return withRef(slip, qr, knownRefs);
+}
+
+function withRef(slip: SlipResult, qr: SlipQr | null, knownRefs: Set<string>): ScanOutcome {
   const ref = qr?.ref ?? slip.ref;
   if (ref && knownRefs.has(ref)) return { kind: 'duplicate', ref, qr, slip };
   return { kind: 'read', slip, qr };

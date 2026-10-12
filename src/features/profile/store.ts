@@ -25,6 +25,8 @@ export type Profile = {
   contextReminderMin: number;
   /** AI features that call the Claude API (billed) — off = on-device only (features/ai/enabled.ts). */
   claudeApi: boolean;
+  /** Slip reading with Claude API on: try device OCR first (free) or go straight to Claude (reads names too). */
+  slipOcr: 'local_first' | 'ai_first';
 };
 
 export const PROFILE_KEY = 'veyra.profile';
@@ -32,7 +34,7 @@ export const PROFILE_KEY = 'veyra.profile';
 const deviceLanguage = (): 'en' | 'th' => (getLocales()[0]?.languageCode === 'th' ? 'th' : 'en');
 
 export function defaultProfile(): Profile {
-  return { name: '', language: deviceLanguage(), currency: 'THB', interests: [...ALL_INTERESTS], onboarded: false, fxRates: {}, briefing: { ...DEFAULT_BRIEFING }, contextReminderMin: 30, claudeApi: false };
+  return { name: '', language: deviceLanguage(), currency: 'THB', interests: [...ALL_INTERESTS], onboarded: false, fxRates: {}, briefing: { ...DEFAULT_BRIEFING }, contextReminderMin: 30, claudeApi: false, slipOcr: 'local_first' };
 }
 
 export function loadProfile(): Profile {

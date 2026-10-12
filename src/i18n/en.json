@@ -736,7 +736,12 @@
     "context_reminder": "Prep reminders",
     "context_reminder_hint": "Before an event, remind me about unfinished tasks linked to it or to the people on it.",
     "context_off": "Off",
-    "context_min": "{{count}} min before"
+    "context_min": "{{count}} min before",
+    "slip_ocr": "Read slips",
+    "slip_ocr_local_first": "Device first",
+    "slip_ocr_ai_first": "Claude only",
+    "slip_ocr_local_first_hint": "Free on-device OCR; Claude only when it can't read the amount and date",
+    "slip_ocr_ai_first_hint": "Claude reads every slip, payee names included — billed"
   },
   "prep": {
     "title": "Prepare for this meeting",
