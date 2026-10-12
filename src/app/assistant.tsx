@@ -14,10 +14,11 @@ import { Typing } from '@/features/assistant/components/typing';
 import { defaultSuggestions, detectIntent, respond, type Intent } from '@/features/assistant/engine';
 import { planDayWithAI } from '@/features/assistant/plan-remote';
 import { addMessage, claimProposal, clearChat, dismissProposal, editProposal, settleProposal, useMessages, type ChatPayload } from '@/features/assistant/queries';
-import { askRemote, remoteEnabled } from '@/features/assistant/remote';
+import { askRemote } from '@/features/assistant/remote';
 import type { Card, Proposal, Reply } from '@/features/assistant/types';
 import { useAssistantContext } from '@/features/assistant/use-context';
-import { askRemoteEnabled, planRetrieval, useAskQuestion } from '@/features/ai/ask';
+import { planRetrieval, useAskQuestion } from '@/features/ai/ask';
+import { useAiRemote } from '@/features/ai/enabled';
 import { MarkdownView } from '@/features/notes/components/markdown-view';
 import { useProfile } from '@/features/profile/store';
 import { background } from '@/lib/background';
@@ -35,6 +36,7 @@ export default function AssistantScreen() {
   const messages = useMessages();
   const getContext = useAssistantContext();
   const askQuestion = useAskQuestion();
+  const remoteEnabled = useAiRemote();
   const { armed, confirm } = useConfirm();
   const [draft, setDraft] = useDraft('assistant:draft', '');
   const [thinking, setThinking] = useState(false);
@@ -53,7 +55,7 @@ export default function AssistantScreen() {
     background(addMessage('user', text), 'Save chat message');
     let reply: Reply | null = null;
     const intent = detectIntent(text, getContext()).intent;
-    if (askRemoteEnabled && isDataQuestion(text, intent)) {
+    if (remoteEnabled && isDataQuestion(text, intent)) {
       // Questions about the user's own records go to ai-ask (P3-01): retrieval + cited answer.
       // A refusal / unusable answer / network error falls through to the normal chat path below.
       setThinking(true);

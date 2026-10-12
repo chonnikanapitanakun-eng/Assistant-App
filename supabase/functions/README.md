@@ -237,4 +237,4 @@ Tools — อ่าน: `get_overview`, `list_tasks`, `list_routines`, `search_n
 - key อยู่ใน URL → อย่าแชร์ URL connector; ถ้าหลุดให้ `supabase secrets set MCP_KEY=...` ใหม่แล้วแก้ URL ใน connector
 
 ปิด AI ที่เรียก API ใน app: ฟีเจอร์ที่เรียก Edge Functions ข้างบน (capture, assistant, ask, plan, breakdown, summary,
-prep-meeting, slip-ocr) ทำงานเฉพาะเมื่อ `EXPO_PUBLIC_AI_REMOTE=on` (`src/lib/ai.ts`) — ค่า default ปิด แอปใช้ engine ในเครื่องแทน
+prep-meeting, slip-ocr) ทำงานเฉพาะเมื่อเปิด **ตั้งค่า → Veyra AI → ใช้ Claude API** (`src/features/ai/enabled.ts`, เก็บใน profile ของแต่ละเครื่อง) — ค่า default ปิด แอปใช้ engine ในเครื่องแทน

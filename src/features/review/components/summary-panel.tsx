@@ -6,7 +6,7 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Card, Gradient, Icon, IconButton, Tag, Text, type IconName } from '@/components/ui';
 import type { SummaryScope } from '@/features/ai/summary';
-import { summaryRemoteEnabled } from '@/features/ai/summary';
+import { useAiRemote } from '@/features/ai/enabled';
 import { fromDateKey } from '@/features/calendar/model';
 import { useSummary } from '@/features/review/use-summary';
 import { useTheme } from '@/theme';
@@ -16,6 +16,7 @@ export function SummaryPanel({ scope }: { scope: SummaryScope }) {
   const { t, i18n } = useTranslation();
   const { colors, spacing, radius } = useTheme();
   const { request, review, source, status, generatedAt, refresh } = useSummary(scope);
+  const summaryRemoteEnabled = useAiRemote();
 
   const lang = i18n.language === 'th' ? 'th-TH' : 'en-GB';
   const day = (key: string, opts: Intl.DateTimeFormatOptions) => fromDateKey(key).toLocaleDateString(lang, opts);

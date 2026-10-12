@@ -23,6 +23,8 @@ export type Profile = {
   briefing: Briefing;
   /** Context-aware reminders (P3-07): minutes before an event to flag unfinished prep. 0 = off. */
   contextReminderMin: number;
+  /** AI features that call the Claude API (billed) — off = on-device only (features/ai/enabled.ts). */
+  claudeApi: boolean;
 };
 
 export const PROFILE_KEY = 'veyra.profile';
@@ -30,7 +32,7 @@ export const PROFILE_KEY = 'veyra.profile';
 const deviceLanguage = (): 'en' | 'th' => (getLocales()[0]?.languageCode === 'th' ? 'th' : 'en');
 
 export function defaultProfile(): Profile {
-  return { name: '', language: deviceLanguage(), currency: 'THB', interests: [...ALL_INTERESTS], onboarded: false, fxRates: {}, briefing: { ...DEFAULT_BRIEFING }, contextReminderMin: 30 };
+  return { name: '', language: deviceLanguage(), currency: 'THB', interests: [...ALL_INTERESTS], onboarded: false, fxRates: {}, briefing: { ...DEFAULT_BRIEFING }, contextReminderMin: 30, claudeApi: false };
 }
 
 export function loadProfile(): Profile {

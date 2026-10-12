@@ -2,7 +2,9 @@ import { scanFromURLAsync } from 'expo-camera';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
 
 import { parseSlipQr, type SlipQr } from './qr';
-import { readSlipRemote, slipRemoteEnabled } from './remote';
+import { isAiRemoteOn } from '@/features/ai/enabled';
+
+import { readSlipRemote } from './remote';
 import type { SlipResult } from './types';
 
 /** Slips are tall screenshots with large print; 800px wide keeps them legible at ~1.5k image tokens. */
@@ -39,7 +41,7 @@ export async function scanSlip(image: { uri: string; width?: number }, knownRefs
   const { uri } = image;
   const qr = await readQr(uri);
   if (qr && knownRefs.has(qr.ref)) return { kind: 'duplicate', ref: qr.ref, qr };
-  if (!slipRemoteEnabled) return { kind: 'offline', qr };
+  if (!isAiRemoteOn()) return { kind: 'offline', qr };
 
   let base64: string | undefined;
   try {

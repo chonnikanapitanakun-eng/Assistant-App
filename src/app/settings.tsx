@@ -7,6 +7,7 @@ import { create } from 'zustand';
 
 import { Mascot } from '@/components/brand/mascot';
 import { Button, Card, Chip, Icon, IconButton, PressableScale, Screen, Text, Toggle, type IconName } from '@/components/ui';
+import { aiRemoteAvailable } from '@/features/ai/enabled';
 import { authEnabled, signInWithApple, signInWithGoogle, signOut, useSession, type SignInResult } from '@/features/auth';
 import { LEAD_OPTIONS } from '@/features/context-reminders';
 import { completeGoogleConnect, connectGoogle, disconnectGoogle, gcalEnabled, syncGoogleCalendars, useCalendarAccounts, type AuthReturn, type ConnectResult } from '@/features/google-calendar';
@@ -102,6 +103,8 @@ export default function SettingsScreen() {
       <GoogleCalendarSection />
 
       <FxRatesSection />
+
+      {aiRemoteAvailable ? <AiSection /> : null}
 
       {Platform.OS !== 'web' ? (
         <>
@@ -485,6 +488,20 @@ const BRIEFING_TIMES = [
   { hour: 8, minute: 30 },
 ];
 const hhmm = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+
+/** Claude API on/off: the in-app AI features that bill the Anthropic API (features/ai/enabled.ts). */
+function AiSection() {
+  const { t } = useTranslation();
+  const on = useProfile((p) => p.claudeApi);
+  const update = useProfile((p) => p.update);
+  return (
+    <Section title={t('settings.ai')} hint={t('settings.claude_api_hint')}>
+      <Row icon="zap" label={t('settings.claude_api')} sub={on ? t('settings.claude_api_on') : t('settings.claude_api_off')}>
+        <Toggle value={on} onValueChange={(v) => update({ claudeApi: v })} label={t('settings.claude_api')} />
+      </Row>
+    </Section>
+  );
+}
 
 /** Morning briefing: on/off and the time. Turning it on asks for permission if the app never has. */
 function BriefingSection() {

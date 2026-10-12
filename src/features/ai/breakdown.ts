@@ -1,13 +1,9 @@
 import { getSession } from '@/features/auth';
-import { aiRemoteEnabled } from '@/lib/ai';
 
 import type { BreakdownResponse, BreakdownSubtask } from './types';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
-/** AI task breakdown runs only with `EXPO_PUBLIC_AI_REMOTE=on` (lib/ai.ts) (see supabase/functions/ai-breakdown). */
-export const breakdownRemoteEnabled = aiRemoteEnabled;
 
 /**
  * Ask the `ai-breakdown` Edge Function to split a task into checklist steps. Throws on network / HTTP

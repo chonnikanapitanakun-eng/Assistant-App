@@ -4,18 +4,16 @@
  * และถูก re-export จากที่นี่ เพื่อให้ app กับ Edge Function ใช้กติกาเดียวกันเสมอ
  */
 import { getSession } from '@/features/auth';
-import { aiRemoteEnabled } from '@/lib/ai';
 
 import { normalizePlanResponse, planLocally, type PlanRequest, type PlanResponse } from '../../../supabase/functions/_shared/plan-contract';
+
+import { isAiRemoteOn } from './enabled';
 
 export type { PlanBusy, PlanRequest, PlanResponse, PlanSkipped, PlanSlot, PlanTask } from '../../../supabase/functions/_shared/plan-contract';
 export { planLocally, planWindow } from '../../../supabase/functions/_shared/plan-contract';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
-/** Claude planning runs only with `EXPO_PUBLIC_AI_REMOTE=on` (lib/ai.ts) (see supabase/functions/ai-plan). */
-export const planRemoteEnabled = aiRemoteEnabled;
 
 /**
  * Ask the `ai-plan` Edge Function to lay the backlog into the day. Throws on network / HTTP errors and
@@ -36,7 +34,7 @@ export async function planRemote(req: PlanRequest, signal?: AbortSignal): Promis
 
 /** Plan with Claude when configured, otherwise (or on any failure / empty answer) with the local planner. */
 export async function planDay(req: PlanRequest, signal?: AbortSignal): Promise<PlanResponse & { source: 'local' | 'claude' }> {
-  if (planRemoteEnabled) {
+  if (isAiRemoteOn()) {
     try {
       const remote = await planRemote(req, signal);
       if (remote.schedule.length) return { ...remote, source: 'claude' };

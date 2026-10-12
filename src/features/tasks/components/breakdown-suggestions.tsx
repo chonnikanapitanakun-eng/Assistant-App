@@ -4,7 +4,8 @@ import { View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 
 import { Gradient, Icon, IconButton, PressableScale, Text } from '@/components/ui';
-import { breakdownRemote, breakdownRemoteEnabled } from '@/features/ai/breakdown';
+import { breakdownRemote } from '@/features/ai/breakdown';
+import { useAiRemote } from '@/features/ai/enabled';
 import { newId } from '@/lib/ids';
 import { useTheme } from '@/theme';
 
@@ -29,6 +30,7 @@ export function BreakdownSuggestions({ title, notes, existing, onAdd }: Props) {
   const { colors, spacing, radius } = useTheme();
   const [phase, setPhase] = useState<Phase>({ kind: 'idle' });
   const [excluded, setExcluded] = useState<Set<number>>(new Set());
+  const breakdownRemoteEnabled = useAiRemote();
 
   if (!breakdownRemoteEnabled || !title.trim()) return null;
 
