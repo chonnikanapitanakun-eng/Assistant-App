@@ -14,10 +14,10 @@ import { useCallback } from 'react';
 import { useProfile } from '@/features/profile/store';
 
 import type { AskSuggestedAction, CaptureItem } from '../types';
-import { askRemote, askRemoteEnabled, type AskResult } from './remote';
+import { askRemote, type AskResult } from './remote';
 import { retrieve, type AskSettings, type Retrieval } from './retrieve';
 
-export { askRemoteEnabled, retrieve };
+export { retrieve };
 export type { AskResult, AskSettings, Retrieval };
 export type { AskSource } from './remote';
 export { planRetrieval } from './model';

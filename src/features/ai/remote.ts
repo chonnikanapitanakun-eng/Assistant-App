@@ -1,13 +1,9 @@
 import { getSession } from '@/features/auth';
-import { aiRemoteEnabled } from '@/lib/ai';
 
 import type { CaptureItem, CaptureResponse } from './types';
 
 const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
-
-/** Claude capture runs only with `EXPO_PUBLIC_AI_REMOTE=on` (lib/ai.ts) (see supabase/functions/ai-capture). */
-export const captureRemoteEnabled = aiRemoteEnabled;
 
 export type CaptureContext = {
   locale: 'th' | 'en';

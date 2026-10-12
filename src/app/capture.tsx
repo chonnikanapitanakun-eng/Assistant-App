@@ -8,7 +8,8 @@ import { Mascot } from '@/components/brand/mascot';
 import { Button, Gradient, IconButton, PressableScale, Sheet, Text, type IconName } from '@/components/ui';
 import { actionToCaptureItem } from '@/features/ai/ask';
 import { parseCaptureLocally } from '@/features/ai/capture';
-import { captureRemote, captureRemoteEnabled } from '@/features/ai/remote';
+import { useAiRemote } from '@/features/ai/enabled';
+import { captureRemote } from '@/features/ai/remote';
 import { saveCaptureItems } from '@/features/ai/save';
 import type { AskSuggestedAction, CaptureItem } from '@/features/ai/types';
 import { useCaptureContext } from '@/features/ai/use-capture-context';
@@ -51,6 +52,7 @@ export default function CaptureScreen() {
   const [phase, setPhase] = useState<Phase>({ kind: 'edit' });
   const [remote, setRemote] = useState<{ text: string; items: CaptureItem[] } | null>(seed);
   const [thinking, setThinking] = useState(false);
+  const captureRemoteEnabled = useAiRemote();
   const captureContext = useCaptureContext();
   // Read at fire time: the context changes on every DB write, which must not restart the debounce
   // or abort a request in flight.
@@ -105,7 +107,7 @@ export default function CaptureScreen() {
       clearTimeout(id);
       controller.abort();
     };
-  }, [text, phase.kind, seed]);
+  }, [text, phase.kind, seed, captureRemoteEnabled]);
   const [saving, setSaving] = useState(false);
 
   const detected = useMemo(() => {

@@ -9,7 +9,8 @@ import type { CalendarEvent } from '@/db';
 import { useAsyncAction } from '@/lib/use-async-action';
 import { useTheme } from '@/theme';
 
-import { buildPrepRequest, isEmptyPrep, prepMeetingEnabled, prepMeetingRemote, savePrepAsTask } from '../prep-meeting';
+import { useAiRemote } from '../enabled';
+import { buildPrepRequest, isEmptyPrep, prepMeetingRemote, savePrepAsTask } from '../prep-meeting';
 import type { PrepMeetingResponse } from '../types';
 
 type Phase = { kind: 'idle' } | { kind: 'loading' } | { kind: 'ready'; prep: PrepMeetingResponse } | { kind: 'empty' } | { kind: 'error' };
@@ -26,6 +27,7 @@ export function PrepMeetingSection({ event }: { event: CalendarEvent }) {
   const [savedTaskId, setSavedTaskId] = useState<string | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const { busy, failed, run } = useAsyncAction();
+  const prepMeetingEnabled = useAiRemote();
 
   useEffect(() => () => abortRef.current?.abort(), []);
 

@@ -2,7 +2,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { summaryRemote, summaryRemoteEnabled, type SummaryRequest, type SummaryResponse, type SummaryScope } from '@/features/ai/summary';
+import { useAiRemote } from '@/features/ai/enabled';
+import { summaryRemote, type SummaryRequest, type SummaryResponse, type SummaryScope } from '@/features/ai/summary';
 import { eventToItem } from '@/features/calendar/model';
 import { useEventsBetween } from '@/features/calendar/queries';
 import { billState, nextDueDate } from '@/features/money/model';
@@ -72,7 +73,7 @@ export type SummaryState = {
 };
 
 /**
- * The review for a scope. Renders the local summary at once; asks Claude when Supabase is configured,
+ * The review for a scope. Renders the local summary at once; asks Claude when the Claude API setting is on,
  * caching the answer per range on device so reopening the screen does not spend another call.
  */
 export function useSummary(scope: SummaryScope): SummaryState {
@@ -86,6 +87,7 @@ export function useSummary(scope: SummaryScope): SummaryState {
   const forced = force?.fp === fp ? force.n : 0;
 
   const cached = useMemo(() => readCached(key, fp), [key, fp]);
+  const summaryRemoteEnabled = useAiRemote();
 
   const query = useQuery({
     queryKey: ['ai-summary', key, fp, forced],

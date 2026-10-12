@@ -6,11 +6,11 @@ import { ScrollView, View } from 'react-native';
 
 import { Mascot } from '@/components/brand/mascot';
 import { Button, FieldError, Sheet, Text } from '@/components/ui';
+import { useAiRemote } from '@/features/ai/enabled';
 import { createSlipTransactions, getPayeeHistory, getSlipRefs, useCategories, useWallets } from '@/features/money/queries';
 import { SlipCard } from '@/features/slip/components/slip-card';
 import { applyScan, draftErrors, emptyDraft, hasErrors, toValues, type SlipDraft } from '@/features/slip/draft';
 import { suggestFromSlip, type PayeeHistory } from '@/features/slip/match';
-import { slipRemoteEnabled } from '@/features/slip/remote';
 import { scanSlip } from '@/features/slip/scan';
 import { toDateKey } from '@/lib/date';
 import { newId } from '@/lib/ids';
@@ -29,6 +29,7 @@ export default function SlipScreen() {
   const wallets = useWallets();
   const categories = useCategories();
   const { busy, failed, run } = useAsyncAction();
+  const slipRemoteEnabled = useAiRemote();
   const [drafts, setDrafts] = useState<SlipDraft[]>([]);
   const [showErrors, setShowErrors] = useState(false);
   const [pickError, setPickError] = useState<string | null>(null);
