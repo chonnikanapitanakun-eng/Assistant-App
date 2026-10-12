@@ -492,13 +492,24 @@ const hhmm = (h: number, m: number) => `${String(h).padStart(2, '0')}:${String(m
 /** Claude API on/off: the in-app AI features that bill the Anthropic API (features/ai/enabled.ts). */
 function AiSection() {
   const { t } = useTranslation();
+  const { spacing } = useTheme();
   const on = useProfile((p) => p.claudeApi);
+  const slipOcr = useProfile((p) => p.slipOcr) ?? 'local_first';
   const update = useProfile((p) => p.update);
   return (
     <Section title={t('settings.ai')} hint={t('settings.claude_api_hint')}>
       <Row icon="zap" label={t('settings.claude_api')} sub={on ? t('settings.claude_api_on') : t('settings.claude_api_off')}>
         <Toggle value={on} onValueChange={(v) => update({ claudeApi: v })} label={t('settings.claude_api')} />
       </Row>
+      {on ? (
+        <Row icon="camera" label={t('settings.slip_ocr')} sub={t(`settings.slip_ocr_${slipOcr}_hint`)}>
+          <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+            {(['local_first', 'ai_first'] as const).map((k) => (
+              <Chip key={k} label={t(`settings.slip_ocr_${k}`)} selected={slipOcr === k} onPress={() => update({ slipOcr: k })} />
+            ))}
+          </View>
+        </Row>
+      ) : null}
     </Section>
   );
 }

@@ -731,7 +731,12 @@
     "context_reminder": "เตือนเตรียมตัว",
     "context_reminder_hint": "ก่อนถึงนัด เตือนงานที่ยังไม่เสร็จซึ่งผูกกับนัดนั้น หรือกับคนที่อยู่ในนัด",
     "context_off": "ปิด",
-    "context_min": "ก่อน {{count}} นาที"
+    "context_min": "ก่อน {{count}} นาที",
+    "slip_ocr": "อ่านสลิป",
+    "slip_ocr_local_first": "ในเครื่องก่อน",
+    "slip_ocr_ai_first": "Claude เท่านั้น",
+    "slip_ocr_local_first_hint": "อ่านในเครื่องฟรี เรียก Claude เฉพาะตอนอ่านยอดหรือวันที่ไม่ได้",
+    "slip_ocr_ai_first_hint": "ให้ Claude อ่านทุกสลิป ได้ชื่อผู้รับ/ผู้จ่ายด้วย มีค่าใช้จ่าย"
   },
   "prep": {
     "title": "เตรียมนัดนี้",
